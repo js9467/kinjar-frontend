@@ -1,5 +1,5 @@
-// CHANGE: stop using "@/auth"
-import { auth } from "../../../src/auth";
+// Using relative import to avoid path alias
+import { auth } from "../../../../src/auth";
 
 export async function POST(req: Request) {
   const session = await auth();

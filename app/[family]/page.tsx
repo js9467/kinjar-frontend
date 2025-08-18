@@ -1,6 +1,6 @@
 // app/[family]/page.tsx
 
-import { getPublicFeed, type Post } from "../../lib/api";
+import { getPublicFeed, type Post, PostKind } from "../../lib/api";
 
 type PageProps = {
   params: { family: string };
@@ -51,12 +51,12 @@ export default async function PublicFamilyPage({ params }: PageProps) {
               </div>
 
               {/* TEXT */}
-              {p.kind === "text" && (p as any).body && (
+              {p.kind === PostKind.TEXT && (p as any).body && (
                 <p style={{ marginTop: 8, whiteSpace: "pre-wrap" }}>{(p as any).body}</p>
               )}
 
               {/* IMAGE */}
-              {p.kind === "image" && imageSrc(p) && (
+              {p.kind === PostKind.PHOTO && imageSrc(p) && (
                 <img
                   src={imageSrc(p)}
                   alt=""
@@ -64,20 +64,8 @@ export default async function PublicFamilyPage({ params }: PageProps) {
                 />
               )}
 
-              {/* LINK */}
-              {p.kind === "link" && ((p as any).linkUrl ?? (p as any).link_url) && (
-                <a
-                  href={(p as any).linkUrl ?? (p as any).link_url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  style={{ marginTop: 8, display: "inline-block", color: "#2563eb", textDecoration: "underline" }}
-                >
-                  {(p as any).linkUrl ?? (p as any).link_url}
-                </a>
-              )}
-
               {/* VIDEO (simple) */}
-              {p.kind === "video" && imageSrc(p) && (
+              {p.kind === PostKind.VIDEO && imageSrc(p) && (
                 <video
                   controls
                   src={imageSrc(p)}

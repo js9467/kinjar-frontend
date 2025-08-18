@@ -1,5 +1,7 @@
 // src/lib/api.ts
-import type { Post } from "@prisma/client";
+import { PostKind, type Post } from "@prisma/client";
+export { PostKind };
+export type { Post };
 
 export type Capsule = { id: string; title: string; opensAt: string; coverUrl?: string };
 
@@ -41,5 +43,18 @@ export async function presignUpload(filename: string, contentType: string) {
 
 // simple stub so /app/capsules/page.tsx compiles
 export async function getCapsules(_family?: string): Promise<Capsule[]> {
+  return [];
+}
+
+// stubs used by app/[family] and app/kids pages
+export async function getMembers(): Promise<any[]> {
+  return [];
+}
+
+export async function getFeed(_family: string): Promise<any[]> {
+  return [];
+}
+
+export async function getPublicFeed(_family: string): Promise<Post[]> {
   return [];
 }

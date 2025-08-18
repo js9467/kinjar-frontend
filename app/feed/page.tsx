@@ -1,6 +1,6 @@
 // app/feed/page.tsx
 import React from "react";
-import { sameMonthDay } from "@/utils/dates";
+import { sameMonthDay } from "../../utils/dates";
 
 // Force runtime rendering (prevents static export from running fetch at build)
 export const dynamic = "force-dynamic";
