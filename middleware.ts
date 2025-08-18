@@ -1,34 +1,23 @@
 import { NextResponse, type NextRequest } from "next/server";
 
-const ROOT_DOMAIN = "kinjar.com";
+function sanitizeFamily(f: string | null) {
+  const v = (f || "").trim().toLowerCase();
+  return v && /^[a-z0-9_-]{1,48}$/.test(v) ? v : null;
+}
 
 export function middleware(req: NextRequest) {
-  const url = req.nextUrl;
-  const host = req.headers.get("host") || "";
+  const url = req.nextUrl.clone();
   const res = NextResponse.next();
 
-  let family: string | null = null;
-
-  if (host.includes("localhost") || /^[0-9.]+$/.test(host)) {
-    family = req.cookies.get("family")?.value || process.env.KINJAR_LOCAL_FAMILY || null;
-  } else {
-    const parts = host.toLowerCase().split(".");
-    if (parts.length >= 3 && host.toLowerCase().endsWith(ROOT_DOMAIN)) {
-      family = parts[0]; // <family>.kinjar.com
-    }
-  }
-
-  if (family) {
-    res.cookies.set("family", family, { path: "/", httpOnly: false, sameSite: "lax" });
-    if (url.pathname === "/") {
-      url.pathname = `/${family}`; // rewrite subdomain root to /[family]
-      return NextResponse.rewrite(url, res);
-    }
+  // If ?family= is present anywhere, set a cookie then clean the URL
+  const qp = sanitizeFamily(url.searchParams.get("family"));
+  if (qp) {
+    res.cookies.set("family", qp, { path: "/", httpOnly: false, sameSite: "lax" });
+    url.searchParams.delete("family");
+    return NextResponse.redirect(url);
   }
 
   return res;
 }
 
-export const config = {
-  matcher: ["/((?!_next/|api/).*)"],
-};
+export const config = { matcher: ["/((?!_next/|api/).*)"] };
