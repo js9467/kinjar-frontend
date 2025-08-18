@@ -1,31 +1,47 @@
 import { getPublicFeed } from "../../lib/api";
 
 export default async function PublicFamilyPage({ params }: { params: { family: string } }) {
-  const family = params.family?.trim();
-  if (!family) {
-    throw new Error("Invalid family subdomain.");
-  }
-
+  const family = params.family?.trim().toLowerCase();
   let posts: any[] = [];
   try {
     posts = await getPublicFeed(family);
-  } catch (e: any) {
-    throw new Error(`Failed to load public feed for '${family}'. ${e?.message || e}`);
+  } catch {
+    posts = [];
   }
 
   return (
-    <div>
-      <h1>{family} — Public Highlights</h1>
-      {posts.length === 0 && <p>No public posts yet.</p>}
-      {posts.map((p) => (
-        <article key={p.id} style={{ borderBottom: "1px solid #eee", padding: "12px 0" }}>
-          <div style={{ fontSize: 12, opacity: 0.7 }}>{new Date(p.created_at).toLocaleString()}</div>
-          {p.kind === "text" && p.body && <p style={{ marginTop: 6 }}>{p.body}</p>}
-          {p.kind === "image" && p.image_url && (
-            <img src={p.image_url} alt="" style={{ marginTop: 8, maxWidth: "100%", borderRadius: 8 }} />
+    <section className="card">
+      <div className="card-body">
+        <h1 className="card-title" style={{ textTransform: "capitalize" }}>{family}</h1>
+        <p className="fade">Public highlights</p>
+        <div className="hr" />
+        <div style={{ display: "grid", gap: 12 }}>
+          {posts.map((p: any) => (
+            <article key={p.id} className="card" style={{ background:"#12161e" }}>
+              <div className="card-body">
+                <div className="meta">
+                  {new Date(p.created_at).toLocaleString()} • Public
+                </div>
+                {p.kind === "text" && p.body && (
+                  <p style={{ marginTop: 8 }}>{p.body}</p>
+                )}
+                {p.kind === "image" && p.image_url && (
+                  <img
+                    src={p.image_url}
+                    alt=""
+                    style={{ width: "100%", borderRadius: 12, marginTop: 10, border: "1px solid var(--line)" }}
+                  />
+                )}
+              </div>
+            </article>
+          ))}
+          {posts.length === 0 && (
+            <div className="fade">No public posts yet.</div>
           )}
-        </article>
-      ))}
-    </div>
+        </div>
+        <div className="hr" />
+        <a className="btn ghost" href={`/feed?family=${encodeURIComponent(family)}`}>Open private feed</a>
+      </div>
+    </section>
   );
 }
