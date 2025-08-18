@@ -1,4 +1,3 @@
 export const runtime = "nodejs";
-// CHANGE: stop using "@/auth"
-import { handlers } from "../../../src/auth";
-export const { GET, POST } = handlers;
+// Re-export NextAuth handlers via relative import to avoid path aliases
+export { GET, POST } from "../../../../src/auth";
