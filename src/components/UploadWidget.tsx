@@ -1,3 +1,4 @@
+// src/components/UploadWidget.tsx
 "use client";
 
 import { useRef, useState } from "react";
@@ -17,16 +18,14 @@ export default function UploadWidget() {
       body: JSON.stringify({ filename: f.name, contentType: f.type || "application/octet-stream" }),
     }).then(r => r.json());
 
-    if (!pres.ok) { setMsg("Presign failed"); return; }
+    if (!pres.ok) { setMsg(pres.error || "Presign failed"); return; }
 
-    const { put: { url }, key, maxMB } = pres;
+    const { put: { url, headers }, key, maxMB } = pres;
+    if (f.size > maxMB * 1024 * 1024) { setMsg(`File too large (max ${maxMB}MB)`); return; }
 
-    if (f.size > maxMB * 1024 * 1024) {
-      setMsg(`File too large (max ${maxMB}MB)`); return;
-    }
-
-    setMsg("Uploading to R2...");
-    await uploadWithProgress(url, f, setProgress, f.type);
+    setMsg("Uploading to storage...");
+    const ok = await uploadWithProgress(url, f, setProgress, headers?.["Content-Type"] || f.type || "application/octet-stream");
+    if (!ok) { setMsg("Upload failed"); return; }
 
     setMsg("Saving post...");
     const kind = f.type.startsWith("video/") ? "VIDEO" : (f.type.startsWith("image/") ? "PHOTO" : "TEXT");
@@ -35,11 +34,11 @@ export default function UploadWidget() {
       headers: { "content-type": "application/json" },
       body: JSON.stringify({
         kind, mediaKey: key, mediaType: f.type, mediaSize: f.size,
-        isPublic: true, // default public; tweak in UI
+        isPublic: true
       }),
     }).then(r=>r.json());
 
-    if (!save.ok) { setMsg("Post save failed"); return; }
+    if (!save.ok) { setMsg(save.error || "Post save failed"); return; }
     setMsg("Done!");
     setProgress(0);
     if (fileRef.current) fileRef.current.value = "";
@@ -52,7 +51,6 @@ export default function UploadWidget() {
         ref={fileRef}
         type="file"
         accept="image/*,video/*"
-        // Hints for mobile cameras:
         capture="environment"
         onChange={handleFile}
       />
@@ -63,13 +61,8 @@ export default function UploadWidget() {
 }
 
 async function uploadWithProgress(url: string, file: File, onProg: (n:number)=>void, contentType: string) {
-  const resp = await fetch(url, {
-    method: "PUT",
-    headers: { "Content-Type": contentType },
-    body: file,
-  });
-  if (!resp.ok) {
-    throw new Error("Upload failed");
-  }
+  const resp = await fetch(url, { method: "PUT", headers: { "Content-Type": contentType }, body: file });
+  if (!resp.ok) return false;
   onProg(100);
+  return true;
 }
