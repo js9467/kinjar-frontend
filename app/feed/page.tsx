@@ -30,10 +30,13 @@ export default async function FeedPage({ searchParams }: PageProps) {
   // getFeed can accept string | undefined
   const posts: Post[] = await getFeed(fam);
 
-  const today = new Date();
   const onThisDay = posts
-    .filter((p) => sameMonthDay(createdTs(p), today)) // <-- guarded use
-    .slice(0, 3);
+  .filter((p) => {
+    const ts = (p as any).createdAt ?? (p as any).created_at;
+    return ts ? sameMonthDay(ts, today) : false;
+  })
+  .slice(0, 3);
+
 
   return (
     <main style={{ maxWidth: 760, margin: "24px auto", padding: "0 16px" }}>
