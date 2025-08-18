@@ -7,32 +7,38 @@ type PageProps = {
 };
 
 function toStr(v: string | string[] | undefined): string | undefined {
-  if (Array.isArray(v)) return v[0];
-  return v;
+  return Array.isArray(v) ? v[0] : v;
 }
 
 // Safely get a post's timestamp (camelCase or snake_case)
 function createdTs(p: Post): string | undefined {
-  return (p as any).createdAt ?? (p as any).created_at;
+  // Allow mixed casing from the backend without breaking type-checking
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const anyp = p as any;
+  return anyp.createdAt ?? anyp.created_at;
 }
 
-// Month/day match helper that accepts undefined safely
-function sameMonthDay(ts: string | undefined, today: Date): boolean {
-  if (!ts) return false;
+// Month/day match helper (expects a defined string)
+function sameMonthDay(ts: string, today: Date): boolean {
   const d = new Date(ts);
   if (Number.isNaN(d.getTime())) return false;
   return d.getMonth() === today.getMonth() && d.getDate() === today.getDate();
 }
 
 export default async function FeedPage({ searchParams }: PageProps) {
-  // Optional: allow ?family= in case you want to preview different tenants
+  // Optional: allow ?family= to preview different tenants; getFeed ignores it if you rely on cookies
   const fam = toStr(searchParams?.family)?.trim().toLowerCase();
 
-  // Our lib/api.getFeed ignores the arg (cookie-based), but passing a string | undefined is fine.
+  // lib/api.getFeed accepts string | undefined, so this is fine
   const posts: Post[] = await getFeed(fam);
 
   const today = new Date();
-  const onThisDay = posts.filter((p) => sameMonthDay(createdTs(p), today)).slice(0, 3);
+  const onThisDay = posts
+    .filter((p) => {
+      const ts = createdTs(p);
+      return ts ? sameMonthDay(ts, today) : false;
+    })
+    .slice(0, 3);
 
   return (
     <main style={{ maxWidth: 760, margin: "24px auto", padding: "0 16px" }}>
@@ -44,7 +50,14 @@ export default async function FeedPage({ searchParams }: PageProps) {
           <ul style={{ margin: 0, paddingLeft: 18 }}>
             {onThisDay.map((p) => (
               <li key={p.id} style={{ marginBottom: 6 }}>
-                {(p as any).body ?? (p as any).linkUrl ?? (p as any).link_url ?? "(post)"}
+                {/* Prefer body; fall back to link text if present */}
+                {
+                  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                  ((p as any).body ??
+                    (p as any).linkUrl ??
+                    (p as any).link_url ??
+                    "(post)")
+                }
               </li>
             ))}
           </ul>
@@ -70,28 +83,75 @@ export default async function FeedPage({ searchParams }: PageProps) {
                 })()}
               </div>
 
-              {p.kind === "text" && (p as any).body && (
-                <p style={{ marginTop: 8, whiteSpace: "pre-wrap" }}>{(p as any).body}</p>
-              )}
+              {/* TEXT */}
+              {
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                p.kind === "text" && (p as any).body && (
+                  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                  <p style={{ marginTop: 8, whiteSpace: "pre-wrap" }}>{(p as any).body}</p>
+                )
+              }
 
-              {p.kind === "image" && ((p as any).mediaUrl ?? (p as any).image_url) && (
-                <img
-                  src={(p as any).mediaUrl ?? (p as any).image_url}
-                  alt=""
-                  style={{ display: "block", width: "100%", height: "auto", marginTop: 8, borderRadius: 8 }}
-                />
-              )}
+              {/* IMAGE */}
+              {(() => {
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                const anyp = p as any;
+                const src = anyp.mediaUrl ?? anyp.image_url;
+                return p.kind === "image" && src ? (
+                  <img
+                    src={src}
+                    alt=""
+                    style={{
+                      display: "block",
+                      width: "100%",
+                      height: "auto",
+                      marginTop: 8,
+                      borderRadius: 8,
+                    }}
+                  />
+                ) : null;
+              })()}
 
-              {p.kind === "link" && ((p as any).linkUrl ?? (p as any).link_url) && (
-                <a
-                  href={(p as any).linkUrl ?? (p as any).link_url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  style={{ marginTop: 8, display: "inline-block", color: "#2563eb", textDecoration: "underline" }}
-                >
-                  {(p as any).linkUrl ?? (p as any).link_url}
-                </a>
-              )}
+              {/* LINK */}
+              {(() => {
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                const anyp = p as any;
+                const href = anyp.linkUrl ?? anyp.link_url;
+                return p.kind === "link" && href ? (
+                  <a
+                    href={href}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    style={{
+                      marginTop: 8,
+                      display: "inline-block",
+                      color: "#2563eb",
+                      textDecoration: "underline",
+                    }}
+                  >
+                    {href}
+                  </a>
+                ) : null;
+              })()}
+
+              {/* VIDEO (simple) */}
+              {(() => {
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                const anyp = p as any;
+                const src = anyp.mediaUrl ?? anyp.image_url;
+                return p.kind === "video" && src ? (
+                  <video
+                    controls
+                    src={src}
+                    style={{
+                      display: "block",
+                      width: "100%",
+                      marginTop: 8,
+                      borderRadius: 8,
+                    }}
+                  />
+                ) : null;
+              })()}
             </div>
           </article>
         ))}
