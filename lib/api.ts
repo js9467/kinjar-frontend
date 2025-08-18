@@ -1,5 +1,21 @@
 const API_BASE = process.env.KINJAR_API_BASE!;
 
+export async function createPostViaProxy(
+  data: { kind: "text" | "image"; body?: string; image_url?: string; public?: boolean; author?: string; family?: string }
+) {
+  const res = await fetch("/api/posts", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(data),
+    cache: "no-store",
+  });
+  if (!res.ok) {
+    const msg = await res.text().catch(() => "");
+    throw new Error(msg || `POST /api/posts failed (${res.status})`);
+  }
+  return res.json();
+}
+
 export type KinjarPost = {
   id: string;
   kind: "text" | "image";
