@@ -4,26 +4,42 @@ import { addComment, getComments, type Comment } from "@/lib/api";
 
 export default function CommentList({ postId }: { postId: string }) {
   const [items, setItems] = useState<Comment[]>([]);
+  const [open, setOpen] = useState(false);
   const [text, setText] = useState("");
-  async function load(){ setItems(await getComments(postId)); }
-  useEffect(()=>{ load(); },[postId]);
-  async function submit(e: React.FormEvent){ e.preventDefault(); if(!text.trim()) return; await addComment(postId, text.trim()); setText(""); load(); }
+  async function load(){ setItems(await getComments(postId).catch(()=>[])); }
+  useEffect(()=>{ if(open) load(); },[open, postId]);
+
+  async function submit(e: React.FormEvent){
+    e.preventDefault();
+    if(!text.trim()) return;
+    await addComment(postId, text.trim()).catch(()=>{});
+    setText(""); load();
+  }
 
   return (
     <div style={{ marginTop:8 }}>
-      <form onSubmit={submit} style={{ display:"flex", gap:6 }}>
-        <input value={text} onChange={e=>setText(e.target.value)} placeholder="Add a comment…" style={{ flex:1 }}/>
-        <button type="submit">Send</button>
-      </form>
-      <ul style={{ listStyle:"none", padding:0, marginTop:8 }}>
-        {items.map(c=>(
-          <li key={c.id} style={{ padding:"6px 8px", background:"#fafafa", border:"1px solid #eee", borderRadius:8, marginBottom:6 }}>
-            <div style={{ fontSize:12, opacity:.6 }}>{new Date(c.created_at).toLocaleString()}</div>
-            {c.kind==="text" && c.body}
-          </li>
-        ))}
-        {items.length===0 && <li style={{ fontSize:12, opacity:.6 }}>No comments yet.</li>}
-      </ul>
+      <button className="btn ghost" onClick={()=>setOpen(!open)}>{open ? "Hide" : "Comments"} ({items.length})</button>
+      {open && (
+        <div className="card" style={{ marginTop:8 }}>
+          <div className="card-body">
+            <form onSubmit={submit} style={{ display:"flex", gap:8, marginBottom:10 }}>
+              <input className="input" placeholder="Add a comment…" value={text} onChange={e=>setText(e.target.value)} />
+              <button className="btn" type="submit">Send</button>
+            </form>
+            <div style={{ display:"grid", gap:8 }}>
+              {items.map(c=>(
+                <div key={c.id} className="card" style={{ background:"#0f141b" }}>
+                  <div className="card-body">
+                    <div className="meta">{new Date(c.created_at).toLocaleString()}</div>
+                    {c.kind==="text" && <div style={{ marginTop:6 }}>{c.body}</div>}
+                  </div>
+                </div>
+              ))}
+              {items.length===0 && <div className="fade">Be the first to comment.</div>}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
