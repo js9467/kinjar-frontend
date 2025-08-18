@@ -1,5 +1,5 @@
 import { Post } from "@prisma/client";
-import { fmtDate } from "@/utils/dates";
+import { fmtDate } from "../utils/dates";
 
 function mediaUrl(key?: string) {
   if (!key) return "";
