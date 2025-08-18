@@ -1,6 +1,10 @@
 "use client";
 import type { KinjarPost } from "@/lib/api";
-
+import ReactionBar from "@/components/ReactionBar";
+import CommentList from "@/components/CommentList";
+// …inside your component’s return, after the post content:
+<ReactionBar postId={post.id} />
+<CommentList postId={post.id} />
 export default function PostCard({ post }: { post: KinjarPost }) {
   return (
     <article style={{ border: "1px solid #eee", padding: 12, borderRadius: 10, marginBottom: 12 }}>
