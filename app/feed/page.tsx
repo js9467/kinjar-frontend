@@ -10,33 +10,34 @@ function toStr(v: string | string[] | undefined): string | undefined {
   return Array.isArray(v) ? v[0] : v;
 }
 
+// sameMonthDay expects a defined string (keep your original signature)
+function sameMonthDay(ts: string, today: Date): boolean {
+  const d = new Date(ts);
+  if (Number.isNaN(d.getTime())) return false;
+  return d.getMonth() === today.getMonth() && d.getDate() === today.getDate();
+}
+
 // Prefer camelCase; fall back to snake_case
 function createdTs(p: Post): string | undefined {
   const anyp = p as any;
   return anyp.createdAt ?? anyp.created_at;
 }
 
-// Accept possibly-undefined and guard inside (prevents TS error)
-function sameMonthDay(ts: string | undefined, today: Date): boolean {
-  if (!ts) return false;
-  const d = new Date(ts);
-  if (Number.isNaN(d.getTime())) return false;
-  return d.getMonth() === today.getMonth() && d.getDate() === today.getDate();
-}
-
 export default async function FeedPage({ searchParams }: PageProps) {
   const fam = toStr(searchParams?.family)?.trim().toLowerCase();
 
-  // getFeed can accept string | undefined
+  // getFeed can accept string | undefined; OK to pass fam
   const posts: Post[] = await getFeed(fam);
 
-  const onThisDay = posts
-  .filter((p) => {
-    const ts = (p as any).createdAt ?? (p as any).created_at;
-    return ts ? sameMonthDay(ts, today) : false;
-  })
-  .slice(0, 3);
+  const today = new Date();
 
+  // ✅ Guard before calling sameMonthDay so we never pass undefined
+  const onThisDay = posts
+    .filter((p) => {
+      const ts = createdTs(p);
+      return ts ? sameMonthDay(ts, today) : false;
+    })
+    .slice(0, 3);
 
   return (
     <main style={{ maxWidth: 760, margin: "24px auto", padding: "0 16px" }}>
