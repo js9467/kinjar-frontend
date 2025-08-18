@@ -2,44 +2,75 @@
 import React from "react";
 import { sameMonthDay } from "@/utils/dates";
 
-// If you already have this type elsewhere, use that instead.
+// Force runtime rendering (prevents static export from running fetch at build)
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
+// ---- Types ----
 type Post = {
   id: string;
   author?: string;
   kind?: "text" | "image" | "link" | string;
   body?: string;
-  created_at?: string; // <-- may be undefined in your data, hence the guard below
+  created_at?: string;
 };
 
-// If getFeed is defined elsewhere, keep that import.
-// This placeholder shows the expected signature/shape.
-async function getFeed(fam: string): Promise<Post[]> {
-  // Replace with your actual data fetch:
-  const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/posts`, {
-    headers: { "X-Family": fam },
-    // If this page is a server component (default), you can cache/revalidate as needed:
-    // next: { revalidate: 60 },
-  });
-  if (!res.ok) return [];
-  return (await res.json()) as Post[];
+// ---- Helpers ----
+function getApiBase(): string {
+  // Prefer explicit envs; fall back to your public domain
+  const env =
+    process.env.NEXT_PUBLIC_API_URL ||
+    process.env.KINJAR_API_URL ||
+    "";
+
+  const fallback = "https://api.kinjar.com"; // <-- adjust if needed
+
+  try {
+    const base = (env || "").trim() || fallback;
+    // Validate URL (throws for invalid)
+    new URL(base);
+    return base.replace(/\/+$/, ""); // no trailing slash
+  } catch {
+    return fallback;
+  }
 }
 
-// Narrowing helper so TypeScript knows created_at is a string after the filter.
 const hasCreatedAt = (p: Post): p is Post & { created_at: string } =>
   typeof p.created_at === "string" && p.created_at.length > 0;
 
-// If you’re reading family from headers, cookies, or searchParams, adjust here.
+async function getFeed(fam: string): Promise<Post[]> {
+  const base = getApiBase();
+  try {
+    const res = await fetch(`${base}/posts`, {
+      method: "GET",
+      headers: { "X-Family": fam },
+      // no-store ensures runtime fetch, no accidental caching during SSR
+      cache: "no-store",
+    });
+    if (!res.ok) {
+      // Swallow and return empty so the page still builds/renders
+      console.error("getFeed non-200:", res.status, await res.text());
+      return [];
+    }
+    const data = (await res.json()) as Post[];
+    return Array.isArray(data) ? data : [];
+  } catch (e) {
+    console.error("getFeed error:", e);
+    return [];
+  }
+}
+
 async function getFamily(): Promise<string> {
-  // Example: read from env or default
+  // Replace with your actual source of truth (headers/cookies/etc.)
   return process.env.NEXT_PUBLIC_DEFAULT_FAMILY || "slaughterbecks";
 }
 
+// ---- Page ----
 export default async function Page() {
   const fam = await getFamily();
   const posts = await getFeed(fam);
   const today = new Date();
 
-  // ✅ Type-safe: first ensure created_at exists, then call sameMonthDay
   const onThisDay = posts
     .filter(hasCreatedAt)
     .filter((p) => sameMonthDay(p.created_at, today))
