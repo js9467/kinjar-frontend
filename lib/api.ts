@@ -21,3 +21,9 @@ export async function createMember(m: Partial<Member>){ return j<Member>(await f
 export async function getCapsules(){ return j<Capsule[]>(await fetch("/api/capsules",{ cache:"no-store" })); }
 export async function createCapsule(c: Partial<Capsule>){ return j<Capsule>(await fetch("/api/capsules",{ method:"POST", headers:{ "Content-Type":"application/json" }, body: JSON.stringify(c) })); }
 export async function unlockCapsule(id: string){ return j<Capsule>(await fetch(`/api/capsules/${id}/unlock`,{ method:"POST" })); }
+// ... keep your existing types & functions above
+
+export async function getPublicFeed(family: string) {
+  async function j<T>(r: Response){ if(!r.ok) throw new Error(await r.text()); return r.json() as Promise<T>; }
+  return j(await fetch(`/api/public/${encodeURIComponent(family)}/feed`, { cache: "no-store" }));
+}
