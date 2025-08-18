@@ -1,21 +1,68 @@
-import { getCapsules } from "@/lib/api";
+// app/capsules/page.tsx
 
-export default async function CapsulesPage(){
-  const caps = await getCapsules();
+import { getCapsules, type Capsule } from "@/lib/api";
+
+type PageProps = {
+  searchParams?: { [key: string]: string | string[] | undefined };
+};
+
+function toStr(v: string | string[] | undefined): string | undefined {
+  if (Array.isArray(v)) return v[0];
+  return v;
+}
+
+export default async function CapsulesPage({ searchParams }: PageProps) {
+  const family = (toStr(searchParams?.family) ?? "public").trim().toLowerCase();
+  const caps: Capsule[] = await getCapsules(family);
+
   return (
-    <main style={{ maxWidth:760, margin:"24px auto", padding:"0 16px" }}>
-      <h1>Time Capsules</h1>
-      <a href="/capsules/new">Create capsule</a>
-      <ul style={{ marginTop:16 }}>
-        {caps.map((c:any)=>(
-          <li key={c.id} style={{ padding:"10px 0", borderBottom:"1px solid #eee" }}>
-            <b>{c.title}</b> — {c.status}
-            <div style={{ fontSize:12, opacity:.7 }}>{new Date(c.created_at).toLocaleString()}</div>
-            <div>{c.message}</div>
-          </li>
+    <main style={{ maxWidth: 760, margin: "24px auto", padding: "0 16px" }}>
+      <h1 style={{ fontSize: 24, fontWeight: 700, marginBottom: 12 }}>Time Capsules</h1>
+      <div style={{ color: "#6b7280", fontSize: 12, marginBottom: 16 }}>
+        Family: <code>{family}</code>
+      </div>
+
+      {caps.length === 0 && (
+        <div
+          style={{
+            padding: 16,
+            borderRadius: 8,
+            border: "1px solid #e5e7eb",
+            background: "#fff",
+          }}
+        >
+          <p style={{ margin: 0 }}>No capsules yet.</p>
+        </div>
+      )}
+
+      <div style={{ display: "grid", gap: 12 }}>
+        {caps.map((c) => (
+          <article
+            key={c.id}
+            style={{
+              border: "1px solid #e5e7eb",
+              borderRadius: 12,
+              overflow: "hidden",
+              background: "#fff",
+            }}
+          >
+            <div style={{ padding: 16 }}>
+              <div style={{ fontWeight: 600, fontSize: 16 }}>{c.title}</div>
+              <div style={{ color: "#6b7280", fontSize: 12, marginTop: 4 }}>
+                Opens: {new Date(c.opensAt).toLocaleString()}
+              </div>
+
+              {c.coverUrl && (
+                <img
+                  src={c.coverUrl}
+                  alt=""
+                  style={{ display: "block", width: "100%", height: "auto", marginTop: 8, borderRadius: 8 }}
+                />
+              )}
+            </div>
+          </article>
         ))}
-        {caps.length===0 && <li>No capsules yet.</li>}
-      </ul>
+      </div>
     </main>
   );
 }
