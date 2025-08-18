@@ -1,6 +1,9 @@
-import { auth } from "@/auth";
-import { db } from "@/lib/db";
+
+import { auth } from "../../../src/auth";
+import { db } from "../../../src/lib/db";
 import { z } from "zod";
+
+
 
 const CreateBody = z.object({
   kind: z.enum(["TEXT","PHOTO","VIDEO"]),
