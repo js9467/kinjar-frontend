@@ -1,4 +1,7 @@
-import { Post } from "@prisma/client";
+// src/lib/api.ts
+import type { Post } from "@prisma/client";
+
+export type Capsule = { id: string; title: string; opensAt: string; coverUrl?: string };
 
 export async function listPosts(limit = 20): Promise<Post[]> {
   const res = await fetch(`/api/posts?limit=${limit}`, { cache: "no-store" });
@@ -9,11 +12,8 @@ export async function listPosts(limit = 20): Promise<Post[]> {
 
 export async function createPost(input: {
   kind: "TEXT" | "PHOTO" | "VIDEO";
-  title?: string;
-  body?: string;
-  mediaKey?: string;
-  mediaType?: string;
-  mediaSize?: number;
+  title?: string; body?: string;
+  mediaKey?: string; mediaType?: string; mediaSize?: number;
   isPublic?: boolean;
   audience?: "EVERYONE" | "ADULTS_ONLY" | "KIDS";
   unlockAt?: string;
@@ -36,13 +36,10 @@ export async function presignUpload(filename: string, contentType: string) {
   });
   const j = await res.json();
   if (!j.ok) throw new Error(j.error || "Presign failed");
-  return j as {
-    ok: true;
-    key: string;
-    maxMB: number;
-    put: { url: string; headers: Record<string, string> };
-  };
+  return j as { ok: true; key: string; maxMB: number; put: { url: string; headers: Record<string, string> } };
 }
 
-const api = { listPosts, createPost, presignUpload };
-export default api;
+// simple stub so /app/capsules/page.tsx compiles
+export async function getCapsules(_family?: string): Promise<Capsule[]> {
+  return [];
+}
