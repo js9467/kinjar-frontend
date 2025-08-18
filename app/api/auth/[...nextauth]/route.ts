@@ -1,4 +1,4 @@
 export const runtime = "nodejs";
-// CHANGE: stop using "@/auth"
-import { handlers } from "../../../src/auth";
+// Using relative import to avoid path alias
+import { handlers } from "../../../../src/auth";
 export const { GET, POST } = handlers;
