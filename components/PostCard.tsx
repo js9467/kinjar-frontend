@@ -1,18 +1,14 @@
 "use client";
 
+import type { KinjarPost } from "@/lib/api"; // <-- use the canonical type
 import ReactionBar from "@/components/ReactionBar";
 import CommentList from "@/components/CommentList";
 
-type KinjarPost = {
-  id: string;
-  author: string;
-  kind: "text" | "image" | "link";
-  body?: string;
-  imageUrl?: string;
-  createdAt?: string;
-};
-
 export default function PostCard({ post }: { post: KinjarPost }) {
+  const author = post.author ?? "Unknown";
+  const createdAt =
+    post.createdAt ? new Date(post.createdAt).toLocaleString() : "";
+
   return (
     <article
       style={{
@@ -22,15 +18,20 @@ export default function PostCard({ post }: { post: KinjarPost }) {
         marginBottom: 12,
       }}
     >
-      <header style={{ display: "flex", justifyContent: "space-between", marginBottom: 8 }}>
-        <strong>{post.author}</strong>
-        <time style={{ color: "#666", fontSize: 12 }}>
-          {post.createdAt ? new Date(post.createdAt).toLocaleString() : ""}
-        </time>
+      <header
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          marginBottom: 8,
+        }}
+      >
+        <strong>{author}</strong>
+        <time style={{ color: "#666", fontSize: 12 }}>{createdAt}</time>
       </header>
 
       <div style={{ marginBottom: 10 }}>
         {post.kind === "text" && <p style={{ margin: 0 }}>{post.body}</p>}
+
         {post.kind === "image" && post.imageUrl && (
           <img
             src={post.imageUrl}
@@ -38,6 +39,7 @@ export default function PostCard({ post }: { post: KinjarPost }) {
             style={{ display: "block", maxWidth: "100%", borderRadius: 8 }}
           />
         )}
+
         {post.kind === "link" && post.body && (
           <a href={post.body} target="_blank" rel="noreferrer">
             {post.body}
