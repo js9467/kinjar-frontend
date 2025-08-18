@@ -1,6 +1,6 @@
 "use client";
 import { useState } from "react";
-import { createPost } from "@/lib/api";
+import { createPostViaProxy } from "@/lib/api"; // <— use the proxy
 
 export default function NewPostForm({ family }: { family: string }) {
   const [kind, setKind] = useState<"text" | "image">("text");
@@ -8,20 +8,29 @@ export default function NewPostForm({ family }: { family: string }) {
   const [imageUrl, setImageUrl] = useState("");
   const [isPublic, setIsPublic] = useState(false);
   const [author, setAuthor] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
-    const payload: any = { kind, public: isPublic };
-    if (author) payload.author = author;
-    if (kind === "text") payload.body = body;
-    if (kind === "image") payload.image_url = imageUrl;
+    setError(null);
+    setSubmitting(true);
+    try {
+      const payload: any = { kind, public: isPublic, author: author || undefined, family };
+      if (kind === "text") payload.body = body;
+      if (kind === "image") payload.image_url = imageUrl;
 
-    await createPost(family, payload);
-    // soft reset
-    setBody("");
-    setImageUrl("");
-    // reload the page data
-    window.location.reload();
+      await createPostViaProxy(payload);
+      // reset
+      setBody("");
+      setImageUrl("");
+      // refresh the page data
+      window.location.reload();
+    } catch (err: any) {
+      setError(err?.message || "Failed to create post.");
+    } finally {
+      setSubmitting(false);
+    }
   }
 
   return (
@@ -42,7 +51,10 @@ export default function NewPostForm({ family }: { family: string }) {
         <label>
           <input type="checkbox" checked={isPublic} onChange={e => setIsPublic(e.target.checked)} /> Make this post public
         </label>
-        <button type="submit">Post</button>
+        <button type="submit" disabled={submitting}>
+          {submitting ? "Posting..." : "Post"}
+        </button>
+        {error && <div style={{ color: "crimson", fontSize: 13 }}>{error}</div>}
       </div>
     </form>
   );
