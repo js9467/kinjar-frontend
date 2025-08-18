@@ -1,4 +1,4 @@
-
+// app/feed/page.tsx
 
 import { getFeed, type Post } from "@/lib/api";
 
@@ -16,8 +16,9 @@ function createdTs(p: Post): string | undefined {
   return anyp.createdAt ?? anyp.created_at;
 }
 
-// Month/day matcher — expects a defined string
-function sameMonthDay(ts: string, today: Date): boolean {
+// Accepts possibly undefined and guards inside (fixes TS error)
+function sameMonthDay(ts: string | undefined, today: Date): boolean {
+  if (!ts) return false;
   const d = new Date(ts);
   if (Number.isNaN(d.getTime())) return false;
   return d.getMonth() === today.getMonth() && d.getDate() === today.getDate();
@@ -32,10 +33,7 @@ export default async function FeedPage({ searchParams }: PageProps) {
 
   const today = new Date();
   const onThisDay = posts
-    .filter((p) => {
-      const ts = createdTs(p);
-      return ts ? sameMonthDay(ts, today) : false; // <-- guard fixes the TS error
-    })
+    .filter((p) => sameMonthDay(createdTs(p), today)) // <— safe call
     .slice(0, 3);
 
   return (
