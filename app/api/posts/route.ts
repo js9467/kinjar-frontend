@@ -1,6 +1,7 @@
 
 import { auth } from "../../../src/auth";
 import { db } from "../../../src/lib/db";
+import type { Post } from "@prisma/client";
 import { z } from "zod";
 
 
@@ -70,7 +71,7 @@ export async function GET(req: Request) {
       })
     : null;
 
-  const posts = await db.post.findMany({
+  const posts: Post[] = await db.post.findMany({
     where: { tenant: { slug } },
     orderBy: { publishedAt: "desc" },
     take: limit,
