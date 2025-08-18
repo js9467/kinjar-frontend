@@ -3,12 +3,17 @@ export const metadata = {
   description: "Family feed",
 };
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default function RootLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   return (
     <html lang="en">
       <body
         style={{
-          fontFamily: 'system-ui, -apple-system, "Segoe UI", Roboto, sans-serif',
+          fontFamily:
+            'system-ui, -apple-system, "Segoe UI", Roboto, sans-serif',
           margin: 0,
         }}
       >
@@ -32,7 +37,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           </nav>
         </header>
 
-        <main style={{ padding: 16, maxWidth: 900, margin: "0 auto" }}>{children}</main>
+        <main style={{ padding: 16, maxWidth: 900, margin: "0 auto" }}>
+          {children}
+        </main>
       </body>
     </html>
   );
