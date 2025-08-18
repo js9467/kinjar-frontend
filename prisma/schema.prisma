@@ -1,0 +1,137 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum GlobalRole {
+  ROOT
+  USER
+}
+
+enum TenantRole {
+  OWNER
+  ADMIN
+  ADULT
+  CHILD
+  VIEWER
+}
+
+model User {
+  id            String      @id @default(cuid())
+  name          String?
+  email         String?     @unique
+  image         String?
+  globalRole    GlobalRole  @default(USER)
+  accounts      Account[]
+  sessions      Session[]
+  memberships   Membership[]
+  posts         Post[]      @relation("AuthorPosts")
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+}
+
+model Tenant {
+  id          String        @id @default(cuid())
+  slug        String        @unique
+  name        String
+  members     Membership[]
+  posts       Post[]
+  createdById String
+  createdBy   User          @relation(fields: [createdById], references: [id])
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+}
+
+model Membership {
+  id        String     @id @default(cuid())
+  userId    String
+  tenantId  String
+  role      TenantRole @default(VIEWER)
+  // Optional age bucket to vary experience (extend as needed)
+  ageGroup  String?    // "child" | "teen" | "adult" etc.
+
+  user      User       @relation(fields: [userId], references: [id])
+  tenant    Tenant     @relation(fields: [tenantId], references: [id])
+
+  @@unique([userId, tenantId])
+}
+
+enum PostKind {
+  TEXT
+  PHOTO
+  VIDEO
+}
+
+enum Audience {
+  EVERYONE
+  ADULTS_ONLY
+  KIDS
+}
+
+model Post {
+  id            String     @id @default(cuid())
+  tenantId      String
+  authorId      String
+  kind          PostKind
+  title         String?
+  body          String?
+  // Media stored in R2; keep the S3 key + type & size
+  mediaKey      String?
+  mediaType     String?
+  mediaSize     Int?
+  // Visibility
+  isPublic      Boolean    @default(false)
+  audience      Audience   @default(EVERYONE)
+  // Time capsule (locked until this time)
+  unlockAt      DateTime?
+  // Daily blog vibe
+  publishedAt   DateTime   @default(now())
+
+  tenant        Tenant     @relation(fields: [tenantId], references: [id])
+  author        User       @relation("AuthorPosts", fields: [authorId], references: [id])
+
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
+
+  @@index([tenantId, publishedAt])
+}
+  
+// --- Auth.js tables --- //
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  user              User    @relation(fields: [userId], references: [id])
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+
+  user         User     @relation(fields: [userId], references: [id])
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+  @@unique([identifier, token])
+}
