@@ -10,15 +10,13 @@ function toStr(v: string | string[] | undefined): string | undefined {
   return Array.isArray(v) ? v[0] : v;
 }
 
-// Safely get a post's timestamp (camelCase or snake_case)
+// Safely read a post's created timestamp (camelCase or snake_case)
 function createdTs(p: Post): string | undefined {
-  // Allow mixed casing from the backend without breaking type-checking
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const anyp = p as any;
   return anyp.createdAt ?? anyp.created_at;
 }
 
-// Month/day match helper (expects a defined string)
+// Month/day matcher — expects a defined string
 function sameMonthDay(ts: string, today: Date): boolean {
   const d = new Date(ts);
   if (Number.isNaN(d.getTime())) return false;
@@ -26,17 +24,17 @@ function sameMonthDay(ts: string, today: Date): boolean {
 }
 
 export default async function FeedPage({ searchParams }: PageProps) {
-  // Optional: allow ?family= to preview different tenants; getFeed ignores it if you rely on cookies
+  // Optional: allow ?family= to preview a tenant; getFeed can ignore it if you rely on cookies
   const fam = toStr(searchParams?.family)?.trim().toLowerCase();
 
-  // lib/api.getFeed accepts string | undefined, so this is fine
+  // getFeed accepts string | undefined; OK to pass fam
   const posts: Post[] = await getFeed(fam);
 
   const today = new Date();
   const onThisDay = posts
     .filter((p) => {
       const ts = createdTs(p);
-      return ts ? sameMonthDay(ts, today) : false;
+      return ts ? sameMonthDay(ts, today) : false; // <-- guard fixes the TS error
     })
     .slice(0, 3);
 
@@ -50,14 +48,10 @@ export default async function FeedPage({ searchParams }: PageProps) {
           <ul style={{ margin: 0, paddingLeft: 18 }}>
             {onThisDay.map((p) => (
               <li key={p.id} style={{ marginBottom: 6 }}>
-                {/* Prefer body; fall back to link text if present */}
-                {
-                  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                  ((p as any).body ??
-                    (p as any).linkUrl ??
-                    (p as any).link_url ??
-                    "(post)")
-                }
+                {(p as any).body ??
+                  (p as any).linkUrl ??
+                  (p as any).link_url ??
+                  "(post)"}
               </li>
             ))}
           </ul>
@@ -65,41 +59,34 @@ export default async function FeedPage({ searchParams }: PageProps) {
       )}
 
       <section style={{ display: "grid", gap: 12 }}>
-        {posts.map((p) => (
-          <article
-            key={p.id}
-            style={{
-              border: "1px solid #e5e7eb",
-              borderRadius: 12,
-              overflow: "hidden",
-              background: "#fff",
-            }}
-          >
-            <div style={{ padding: 16 }}>
-              <div style={{ color: "#6b7280", fontSize: 12, marginBottom: 4 }}>
-                {(() => {
-                  const ts = createdTs(p);
-                  return ts ? new Date(ts).toLocaleString() : "—";
-                })()}
-              </div>
+        {posts.map((p) => {
+          const anyp = p as any;
+          const ts = createdTs(p);
+          const imageSrc = anyp.mediaUrl ?? anyp.image_url;
+          const linkHref = anyp.linkUrl ?? anyp.link_url;
 
-              {/* TEXT */}
-              {
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                p.kind === "text" && (p as any).body && (
-                  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                  <p style={{ marginTop: 8, whiteSpace: "pre-wrap" }}>{(p as any).body}</p>
-                )
-              }
+          return (
+            <article
+              key={p.id}
+              style={{
+                border: "1px solid #e5e7eb",
+                borderRadius: 12,
+                overflow: "hidden",
+                background: "#fff",
+              }}
+            >
+              <div style={{ padding: 16 }}>
+                <div style={{ color: "#6b7280", fontSize: 12, marginBottom: 4 }}>
+                  {ts ? new Date(ts).toLocaleString() : "—"}
+                </div>
 
-              {/* IMAGE */}
-              {(() => {
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                const anyp = p as any;
-                const src = anyp.mediaUrl ?? anyp.image_url;
-                return p.kind === "image" && src ? (
+                {p.kind === "text" && anyp.body && (
+                  <p style={{ marginTop: 8, whiteSpace: "pre-wrap" }}>{anyp.body}</p>
+                )}
+
+                {p.kind === "image" && imageSrc && (
                   <img
-                    src={src}
+                    src={imageSrc}
                     alt=""
                     style={{
                       display: "block",
@@ -109,17 +96,11 @@ export default async function FeedPage({ searchParams }: PageProps) {
                       borderRadius: 8,
                     }}
                   />
-                ) : null;
-              })()}
+                )}
 
-              {/* LINK */}
-              {(() => {
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                const anyp = p as any;
-                const href = anyp.linkUrl ?? anyp.link_url;
-                return p.kind === "link" && href ? (
+                {p.kind === "link" && linkHref && (
                   <a
-                    href={href}
+                    href={linkHref}
                     target="_blank"
                     rel="noopener noreferrer"
                     style={{
@@ -129,20 +110,14 @@ export default async function FeedPage({ searchParams }: PageProps) {
                       textDecoration: "underline",
                     }}
                   >
-                    {href}
+                    {linkHref}
                   </a>
-                ) : null;
-              })()}
+                )}
 
-              {/* VIDEO (simple) */}
-              {(() => {
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                const anyp = p as any;
-                const src = anyp.mediaUrl ?? anyp.image_url;
-                return p.kind === "video" && src ? (
+                {p.kind === "video" && imageSrc && (
                   <video
                     controls
-                    src={src}
+                    src={imageSrc}
                     style={{
                       display: "block",
                       width: "100%",
@@ -150,11 +125,11 @@ export default async function FeedPage({ searchParams }: PageProps) {
                       borderRadius: 8,
                     }}
                   />
-                ) : null;
-              })()}
-            </div>
-          </article>
-        ))}
+                )}
+              </div>
+            </article>
+          );
+        })}
       </section>
     </main>
   );
