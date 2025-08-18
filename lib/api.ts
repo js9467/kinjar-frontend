@@ -65,15 +65,23 @@ function normalizeCapsule(c: any): Capsule {
  * ------------------------*/
 
 export async function getFeed(_family?: string): Promise<KinjarPost[]> {
-  const arr = await getJSON<any[]>("/api/feed");
-  return Array.isArray(arr) ? arr.map(normalizePost) : [];
+  try {
+    const arr = await getJSON<any[]>("/api/feed");
+    return Array.isArray(arr) ? arr.map(normalizePost) : [];
+  } catch {
+    return [];
+  }
 }
 
 // Public feed uses explicit family in the path
 export async function getPublicFeed(family: string): Promise<KinjarPost[]> {
   const fam = (family || "").trim().toLowerCase();
-  const arr = await getJSON<any[]>(`/api/public/${encodeURIComponent(fam)}/feed`);
-  return Array.isArray(arr) ? arr.map(normalizePost) : [];
+  try {
+    const arr = await getJSON<any[]>(`/api/public/${encodeURIComponent(fam)}/feed`);
+    return Array.isArray(arr) ? arr.map(normalizePost) : [];
+  } catch {
+    return [];
+  }
 }
 
 // New post (text or image). UI already passes author/public in payload.
@@ -121,8 +129,12 @@ export async function addReaction(postId: string, emoji: string): Promise<void> 
  * ------------------------*/
 
 export async function getMembers(_family?: string): Promise<Member[]> {
-  const list = await getJSON<Member[]>(`/api/members`);
-  return Array.isArray(list) ? list : [];
+  try {
+    const list = await getJSON<Member[]>(`/api/members`);
+    return Array.isArray(list) ? list : [];
+  } catch {
+    return [];
+  }
 }
 
 /* -------------------------
@@ -130,8 +142,12 @@ export async function getMembers(_family?: string): Promise<Member[]> {
  * ------------------------*/
 
 export async function getCapsules(_family?: string): Promise<Capsule[]> {
-  const list = await getJSON<any[]>(`/api/capsules`);
-  return Array.isArray(list) ? list.map(normalizeCapsule) : [];
+  try {
+    const list = await getJSON<any[]>(`/api/capsules`);
+    return Array.isArray(list) ? list.map(normalizeCapsule) : [];
+  } catch {
+    return [];
+  }
 }
 
 /* -------------------------
