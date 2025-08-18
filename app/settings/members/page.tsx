@@ -17,7 +17,7 @@ function AddMember() {
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
-    // TODO: point this to your actual API route
+    // TODO: point to your API route
     await fetch("/api/members", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
