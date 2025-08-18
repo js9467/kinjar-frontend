@@ -1,7 +1,7 @@
 import NextAuth from "next-auth";
 import Google from "next-auth/providers/google";
 import { PrismaAdapter } from "@auth/prisma-adapter";
-import { db } from "@/lib/db";
+import { db } from "./lib/db";
 
 declare module "next-auth" {
   interface Session {
@@ -14,12 +14,12 @@ declare module "next-auth" {
     };
   }
 }
-
-
-export const GET = handlers.GET;
-export const POST = handlers.POST;
-
-export const { handlers, auth, signIn, signOut } = NextAuth({
+export const {
+  handlers: { GET, POST },
+  auth,
+  signIn,
+  signOut,
+} = NextAuth({
   adapter: PrismaAdapter(db),
   session: { strategy: "jwt" },
   providers: [
