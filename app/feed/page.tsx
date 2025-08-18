@@ -10,30 +10,29 @@ function toStr(v: string | string[] | undefined): string | undefined {
   return Array.isArray(v) ? v[0] : v;
 }
 
-// Safely read a post's created timestamp (camelCase or snake_case)
+// Prefer camelCase; fall back to snake_case
 function createdTs(p: Post): string | undefined {
   const anyp = p as any;
   return anyp.createdAt ?? anyp.created_at;
 }
 
-// Accepts possibly undefined and guards inside (fixes TS error)
-function sameMonthDay(ts: string | undefined, today: Date): boolean {
-  if (!ts) return false;
-  const d = new Date(ts);
-  if (Number.isNaN(d.getTime())) return false;
-  return d.getMonth() === today.getMonth() && d.getDate() === today.getDate();
-}
-
 export default async function FeedPage({ searchParams }: PageProps) {
-  // Optional: allow ?family= to preview a tenant; getFeed can ignore it if you rely on cookies
   const fam = toStr(searchParams?.family)?.trim().toLowerCase();
 
-  // getFeed accepts string | undefined; OK to pass fam
+  // getFeed can accept string | undefined
   const posts: Post[] = await getFeed(fam);
 
   const today = new Date();
+
+  // *** FIX: inline guard instead of calling a helper that requires string ***
   const onThisDay = posts
-    .filter((p) => sameMonthDay(createdTs(p), today)) // <— safe call
+    .filter((p) => {
+      const ts = createdTs(p);
+      if (!ts) return false;
+      const d = new Date(ts);
+      if (Number.isNaN(d.getTime())) return false;
+      return d.getMonth() === today.getMonth() && d.getDate() === today.getDate();
+    })
     .slice(0, 3);
 
   return (
