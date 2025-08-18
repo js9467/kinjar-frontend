@@ -1,13 +1,19 @@
 "use client";
 
-import type { KinjarPost } from "@/lib/api"; // <-- use the canonical type
+import type { KinjarPost } from "@/lib/api"; // use the API's source of truth
 import ReactionBar from "@/components/ReactionBar";
 import CommentList from "@/components/CommentList";
 
 export default function PostCard({ post }: { post: KinjarPost }) {
   const author = post.author ?? "Unknown";
+
+  // Prefer API field `created_at`; fall back to `createdAt` if present in older data
+  const rawCreated =
+    (post as any).created_at ?? (post as any).createdAt ?? null;
   const createdAt =
-    post.createdAt ? new Date(post.createdAt).toLocaleString() : "";
+    typeof rawCreated === "string" && rawCreated
+      ? new Date(rawCreated).toLocaleString()
+      : "";
 
   return (
     <article
@@ -30,7 +36,9 @@ export default function PostCard({ post }: { post: KinjarPost }) {
       </header>
 
       <div style={{ marginBottom: 10 }}>
-        {post.kind === "text" && <p style={{ margin: 0 }}>{post.body}</p>}
+        {post.kind === "text" && post.body && (
+          <p style={{ margin: 0 }}>{post.body}</p>
+        )}
 
         {post.kind === "image" && post.imageUrl && (
           <img
