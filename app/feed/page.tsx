@@ -1,4 +1,4 @@
-// app/feed/page.tsx
+
 
 import { getFeed, type Post } from "@/lib/api";
 
