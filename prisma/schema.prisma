@@ -21,17 +21,21 @@ enum TenantRole {
 }
 
 model User {
-  id            String      @id @default(cuid())
-  name          String?
-  email         String?     @unique
-  image         String?
-  globalRole    GlobalRole  @default(USER)
-  accounts      Account[]
-  sessions      Session[]
-  memberships   Membership[]
-  posts         Post[]      @relation("AuthorPosts")
-  createdAt     DateTime    @default(now())
-  updatedAt     DateTime    @updatedAt
+  id              String        @id @default(cuid())
+  name            String?
+  email           String?       @unique
+  image           String?
+  globalRole      GlobalRole    @default(USER)
+  accounts        Account[]
+  sessions        Session[]
+  memberships     Membership[]
+  posts           Post[]        @relation("AuthorPosts")
+
+  // ⬇️ back-relation to Tenant.createdBy
+  tenantsCreated  Tenant[]      @relation("UserCreatedTenants")
+
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
 }
 
 model Tenant {
@@ -40,11 +44,15 @@ model Tenant {
   name        String
   members     Membership[]
   posts       Post[]
+
   createdById String
-  createdBy   User          @relation(fields: [createdById], references: [id])
+  // ⬇️ name the relation so Prisma can disambiguate
+  createdBy   User          @relation("UserCreatedTenants", fields: [createdById], references: [id])
+
   createdAt   DateTime      @default(now())
   updatedAt   DateTime      @updatedAt
 }
+
 
 model Membership {
   id        String     @id @default(cuid())
