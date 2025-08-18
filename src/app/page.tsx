@@ -1,7 +1,7 @@
-import { auth } from "@/auth";
-import { db } from "@/lib/db";
-import { tenantFromHost } from "@/lib/tenant";
-import UploadWidget from "@/components/UploadWidget";
+import { auth } from "../auth";
+import { db } from "../lib/db";
+import { tenantFromHost } from "../lib/tenant";
+import UploadWidget from "../components/UploadWidget";
 
 function fmtDate(d: Date) {
   return new Intl.DateTimeFormat("en", { dateStyle: "medium", timeStyle: "short" }).format(d);

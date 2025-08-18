@@ -16,3 +16,9 @@ export function timeAgo(d: Date | string) {
   const day = Math.floor(hr / 24);
   return `${day}d ago`;
 }
+
+export function sameMonthDay(a: Date | string, b: Date | string) {
+  const da = typeof a === "string" ? new Date(a) : a;
+  const db = typeof b === "string" ? new Date(b) : b;
+  return da.getMonth() === db.getMonth() && da.getDate() === db.getDate();
+}
