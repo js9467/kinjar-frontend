@@ -1,4 +1,5 @@
-import { auth } from "@/auth";
+// CHANGE: stop using "@/auth"
+import { auth } from "../../../src/auth";
 
 export async function POST(req: Request) {
   const session = await auth();
@@ -9,7 +10,7 @@ export async function POST(req: Request) {
   const slug =
     host === base || !host.endsWith(`.${base}`) ? "www" : host.split(".")[0];
 
-  const body = await req.json(); // { filename, contentType }
+  const body = await req.json();
   const res = await fetch(`${process.env.KINJAR_API_URL}/presign`, {
     method: "POST",
     headers: {
