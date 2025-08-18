@@ -4,16 +4,24 @@ export type PostKind = 'text' | 'image' | 'video' | 'link';
 
 export interface KinjarPost {
   id: string;
-  family: string;           // tenant key sent via X-Family
+  family: string;
   author: string;
   kind: PostKind;
-  body?: string;            // for text/link
-  mediaUrl?: string;        // for image/video
-  linkUrl?: string;         // for link kind
-  createdAt: string;        // ISO string
-  updatedAt?: string;       // ISO string
-  reactions?: Record<string, number>; // e.g., { like: 3, heart: 2 }
+  body?: string;
+  mediaUrl?: string;
+  linkUrl?: string;
+  createdAt: string;          // ISO
+  updatedAt?: string;         // ISO
+  reactions?: Record<string, number>;
   commentsCount?: number;
+}
+
+export interface NewPostPayload {
+  kind: PostKind;
+  body?: string;
+  mediaUrl?: string;
+  linkUrl?: string;
+  author: string;
 }
 
 export interface KinjarComment {
@@ -21,11 +29,22 @@ export interface KinjarComment {
   postId: string;
   author: string;
   body: string;
-  createdAt: string;        // ISO string
+  createdAt: string;          // ISO
 }
 
-export interface ReactionPayload {
-  postId: string;
-  reaction: string;         // e.g., "like" | "heart"
-  delta: 1 | -1;
+export interface ReactionSummary {
+  [reaction: string]: number; // e.g. { like: 2, heart: 5 }
+}
+
+export interface Member {
+  id: string;
+  name: string;
+  avatarUrl?: string;
+}
+
+export interface Capsule {
+  id: string;
+  title: string;
+  opensAt: string;            // ISO
+  coverUrl?: string;
 }
