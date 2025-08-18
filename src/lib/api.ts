@@ -43,3 +43,16 @@ export async function presignUpload(filename: string, contentType: string) {
 export async function getCapsules(_family?: string): Promise<Capsule[]> {
   return [];
 }
+
+// additional stubs for app pages
+export async function getMembers(): Promise<any[]> {
+  return [];
+}
+
+export async function getFeed(_family: string): Promise<any[]> {
+  return [];
+}
+
+export async function getPublicFeed(_family: string): Promise<Post[]> {
+  return [];
+}

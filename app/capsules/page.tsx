@@ -1,6 +1,6 @@
 // app/capsules/page.tsx
 
-import { getCapsules, type Capsule } from "@/lib/api";
+import { getCapsules, type Capsule } from "../../src/lib/api";
 
 type PageProps = {
   searchParams?: { [key: string]: string | string[] | undefined };
