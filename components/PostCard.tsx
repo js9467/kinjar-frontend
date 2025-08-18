@@ -1,6 +1,6 @@
 "use client";
 
-import type { KinjarPost } from "@/lib/api"; // use the API's canonical type
+import type { KinjarPost } from "@/lib/api"; // API is the source of truth
 import ReactionBar from "@/components/ReactionBar";
 import CommentList from "@/components/CommentList";
 
@@ -20,6 +20,9 @@ export default function PostCard({ post }: { post: KinjarPost }) {
   // body may be missing for non-text posts—guard it
   const body: string | null =
     typeof (post as any).body === "string" ? (post as any).body : null;
+
+  // API currently says "text" | "image" — but support legacy "link" safely
+  const kind = ((post as any).kind as string | undefined) ?? undefined;
 
   return (
     <article
@@ -42,9 +45,9 @@ export default function PostCard({ post }: { post: KinjarPost }) {
       </header>
 
       <div style={{ marginBottom: 10 }}>
-        {post.kind === "text" && body && <p style={{ margin: 0 }}>{body}</p>}
+        {kind === "text" && body && <p style={{ margin: 0 }}>{body}</p>}
 
-        {post.kind === "image" && imageUrl && (
+        {kind === "image" && imageUrl && (
           <img
             src={imageUrl}
             alt=""
@@ -52,7 +55,9 @@ export default function PostCard({ post }: { post: KinjarPost }) {
           />
         )}
 
-        {post.kind === "link" && body && (
+        {/* Legacy support: if a saved post had kind === "link", render it.
+            We *don't* compare against post.kind directly to satisfy TS. */}
+        {kind === "link" && body && (
           <a href={body} target="_blank" rel="noreferrer">
             {body}
           </a>
