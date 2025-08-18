@@ -1,6 +1,7 @@
 export const runtime = "nodejs";
 import { API_BASE } from "../../../_upstream";
 
+
 export async function GET(_: Request, { params }: { params: { family: string } }) {
   if (!API_BASE) return new Response("KINJAR_API_BASE not set", { status: 500 });
   const fam = (params.family || "").trim().toLowerCase();
