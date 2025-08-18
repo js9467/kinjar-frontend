@@ -1,137 +1,103 @@
 // app/feed/page.tsx
+import React from "react";
+import { sameMonthDay } from "@/utils/dates";
 
-import { getFeed, type Post } from "@/lib/api";
-
-type PageProps = {
-  searchParams?: { [key: string]: string | string[] | undefined };
+// If you already have this type elsewhere, use that instead.
+type Post = {
+  id: string;
+  author?: string;
+  kind?: "text" | "image" | "link" | string;
+  body?: string;
+  created_at?: string; // <-- may be undefined in your data, hence the guard below
 };
 
-function toStr(v: string | string[] | undefined): string | undefined {
-  return Array.isArray(v) ? v[0] : v;
+// If getFeed is defined elsewhere, keep that import.
+// This placeholder shows the expected signature/shape.
+async function getFeed(fam: string): Promise<Post[]> {
+  // Replace with your actual data fetch:
+  const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/posts`, {
+    headers: { "X-Family": fam },
+    // If this page is a server component (default), you can cache/revalidate as needed:
+    // next: { revalidate: 60 },
+  });
+  if (!res.ok) return [];
+  return (await res.json()) as Post[];
 }
 
-// sameMonthDay expects a defined string (keep your original signature)
-function sameMonthDay(ts: string, today: Date): boolean {
-  const d = new Date(ts);
-  if (Number.isNaN(d.getTime())) return false;
-  return d.getMonth() === today.getMonth() && d.getDate() === today.getDate();
+// Narrowing helper so TypeScript knows created_at is a string after the filter.
+const hasCreatedAt = (p: Post): p is Post & { created_at: string } =>
+  typeof p.created_at === "string" && p.created_at.length > 0;
+
+// If you’re reading family from headers, cookies, or searchParams, adjust here.
+async function getFamily(): Promise<string> {
+  // Example: read from env or default
+  return process.env.NEXT_PUBLIC_DEFAULT_FAMILY || "slaughterbecks";
 }
 
-// Prefer camelCase; fall back to snake_case
-function createdTs(p: Post): string | undefined {
-  const anyp = p as any;
-  return anyp.createdAt ?? anyp.created_at;
-}
-
-export default async function FeedPage({ searchParams }: PageProps) {
-  const fam = toStr(searchParams?.family)?.trim().toLowerCase();
-
-  // getFeed can accept string | undefined; OK to pass fam
-  const posts: Post[] = await getFeed(fam);
-
+export default async function Page() {
+  const fam = await getFamily();
+  const posts = await getFeed(fam);
   const today = new Date();
 
-  // ✅ Guard before calling sameMonthDay so we never pass undefined
+  // ✅ Type-safe: first ensure created_at exists, then call sameMonthDay
   const onThisDay = posts
-    .filter((p) => {
-      const ts = createdTs(p);
-      return ts ? sameMonthDay(ts, today) : false;
-    })
+    .filter(hasCreatedAt)
+    .filter((p) => sameMonthDay(p.created_at, today))
     .slice(0, 3);
 
   return (
-    <main style={{ maxWidth: 760, margin: "24px auto", padding: "0 16px" }}>
-      <h1 style={{ fontSize: 24, fontWeight: 700, marginBottom: 12 }}>Your Feed</h1>
-
-      {onThisDay.length > 0 && (
-        <section style={{ marginBottom: 16 }}>
-          <h2 style={{ fontSize: 16, fontWeight: 600, marginBottom: 8 }}>On This Day</h2>
-          <ul style={{ margin: 0, paddingLeft: 18 }}>
+    <div className="grid gap-6 p-6">
+      <section>
+        <h2 className="text-xl font-semibold mb-3">On This Day</h2>
+        {onThisDay.length === 0 ? (
+          <p className="text-sm text-neutral-500">No memories for today.</p>
+        ) : (
+          <ul className="space-y-3">
             {onThisDay.map((p) => (
-              <li key={p.id} style={{ marginBottom: 6 }}>
-                {(p as any).body ??
-                  (p as any).linkUrl ??
-                  (p as any).link_url ??
-                  "(post)"}
+              <li
+                key={p.id}
+                className="rounded-lg border border-neutral-200 p-4"
+              >
+                <div className="text-sm text-neutral-600">
+                  {new Date(p.created_at!).toLocaleDateString()}
+                </div>
+                <div className="mt-1">{p.body || <em>(no text)</em>}</div>
+                {p.author && (
+                  <div className="mt-2 text-xs text-neutral-500">
+                    — {p.author}
+                  </div>
+                )}
               </li>
             ))}
           </ul>
-        </section>
-      )}
-
-      <section style={{ display: "grid", gap: 12 }}>
-        {posts.map((p) => {
-          const anyp = p as any;
-          const ts = createdTs(p);
-          const imageSrc = anyp.mediaUrl ?? anyp.image_url;
-          const linkHref = anyp.linkUrl ?? anyp.link_url;
-
-          return (
-            <article
-              key={p.id}
-              style={{
-                border: "1px solid #e5e7eb",
-                borderRadius: 12,
-                overflow: "hidden",
-                background: "#fff",
-              }}
-            >
-              <div style={{ padding: 16 }}>
-                <div style={{ color: "#6b7280", fontSize: 12, marginBottom: 4 }}>
-                  {ts ? new Date(ts).toLocaleString() : "—"}
-                </div>
-
-                {p.kind === "text" && anyp.body && (
-                  <p style={{ marginTop: 8, whiteSpace: "pre-wrap" }}>{anyp.body}</p>
-                )}
-
-                {p.kind === "image" && imageSrc && (
-                  <img
-                    src={imageSrc}
-                    alt=""
-                    style={{
-                      display: "block",
-                      width: "100%",
-                      height: "auto",
-                      marginTop: 8,
-                      borderRadius: 8,
-                    }}
-                  />
-                )}
-
-                {p.kind === "link" && linkHref && (
-                  <a
-                    href={linkHref}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    style={{
-                      marginTop: 8,
-                      display: "inline-block",
-                      color: "#2563eb",
-                      textDecoration: "underline",
-                    }}
-                  >
-                    {linkHref}
-                  </a>
-                )}
-
-                {p.kind === "video" && imageSrc && (
-                  <video
-                    controls
-                    src={imageSrc}
-                    style={{
-                      display: "block",
-                      width: "100%",
-                      marginTop: 8,
-                      borderRadius: 8,
-                    }}
-                  />
-                )}
-              </div>
-            </article>
-          );
-        })}
+        )}
       </section>
-    </main>
+
+      <section>
+        <h2 className="text-xl font-semibold mb-3">Latest</h2>
+        {posts.length === 0 ? (
+          <p className="text-sm text-neutral-500">No posts yet.</p>
+        ) : (
+          <ul className="space-y-3">
+            {posts.slice(0, 20).map((p) => (
+              <li
+                key={p.id}
+                className="rounded-lg border border-neutral-200 p-4"
+              >
+                <div className="flex items-center justify-between">
+                  <div className="text-sm font-medium">{p.author || "Anon"}</div>
+                  <div className="text-xs text-neutral-500">
+                    {p.created_at
+                      ? new Date(p.created_at).toLocaleString()
+                      : "—"}
+                  </div>
+                </div>
+                <div className="mt-2">{p.body || <em>(no text)</em>}</div>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
+    </div>
   );
 }
