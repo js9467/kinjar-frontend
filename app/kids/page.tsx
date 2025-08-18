@@ -1,6 +1,6 @@
-import { getFeed, getMembers } from "@/lib/api";
-import ReactionBar from "@/components/ReactionBar";
-import PostCard from "@/components/PostCard";
+import { getFeed, getMembers } from "../../src/lib/api";
+import ReactionBar from "../../src/components/ReactionBar";
+import PostCard from "../../src/components/PostCard";
 
 export default async function KidsPage(){
   // show latest 5 posts + reaction buttons; no free-form text yet
