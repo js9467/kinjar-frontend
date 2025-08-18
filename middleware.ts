@@ -1,23 +1,35 @@
 import { NextResponse, type NextRequest } from "next/server";
 
-function sanitizeFamily(f: string | null) {
-  const v = (f || "").trim().toLowerCase();
-  return v && /^[a-z0-9_-]{1,48}$/.test(v) ? v : null;
-}
+export const config = {
+  matcher: ["/((?!_next/static|_next/image|favicon.ico|robots.txt|sitemap.xml).*)"],
+};
 
 export function middleware(req: NextRequest) {
-  const url = req.nextUrl.clone();
+  const url = req.nextUrl;
   const res = NextResponse.next();
 
-  // If ?family= is present anywhere, set a cookie then clean the URL
-  const qp = sanitizeFamily(url.searchParams.get("family"));
-  if (qp) {
-    res.cookies.set("family", qp, { path: "/", httpOnly: false, sameSite: "lax" });
-    url.searchParams.delete("family");
-    return NextResponse.redirect(url);
+  // 1) Query param wins
+  const qFamily = url.searchParams.get("family");
+  if (qFamily) {
+    res.cookies.set("family", qFamily.toLowerCase(), { path: "/", httpOnly: false, sameSite: "lax" });
+    return res;
+  }
+
+  // 2) Subdomain (ignore www)
+  const host = req.headers.get("host") || "";
+  const parts = host.split(".");
+  if (parts.length >= 3) {
+    const sub = parts[0].toLowerCase();
+    if (sub !== "www") {
+      res.cookies.set("family", sub, { path: "/", httpOnly: false, sameSite: "lax" });
+      return res;
+    }
+  }
+
+  // 3) Default if cookie missing
+  if (!req.cookies.get("family")?.value) {
+    res.cookies.set("family", "slaughterbecks", { path: "/", httpOnly: false, sameSite: "lax" });
   }
 
   return res;
 }
-
-export const config = { matcher: ["/((?!_next/|api/).*)"] };
