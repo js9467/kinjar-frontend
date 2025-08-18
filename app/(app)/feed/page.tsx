@@ -1,8 +1,8 @@
 import { cookies, headers } from "next/headers";
-import { getFeed } from "../../lib/api";
-import NewPostForm from "../../components/NewPostForm";
-import PostCard from "../../components/PostCard";
-import { resolveFamily } from "../../lib/family";
+import { getFeed } from "../../../lib/api";
+import NewPostForm from "../../../components/NewPostForm";
+import PostCard from "../../../components/PostCard";
+import { resolveFamily } from "../../../lib/family";import { resolveFamily } from "../../lib/family";
 
 export default async function FeedPage() {
   const hdrs = headers();
