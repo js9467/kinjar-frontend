@@ -1,0 +1,206 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Kinjar</title>
+<style>
+  :root { --bg:#0b1220; --card:#121a2b; --muted:#8ea0be; --text:#e8efff; --brand:#6db3ff; --ok:#2ecc71; --err:#ff6b6b; }
+  *{box-sizing:border-box} body{margin:0;font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;background:var(--bg);color:var(--text)}
+  header{display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid #1d2741;background:linear-gradient(180deg,#0d1526,#0a1120)}
+  header h1{margin:0;font-size:18px;letter-spacing:.3px}
+  header .status{font-size:12px;color:var(--muted)}
+  main{max-width:920px;margin:0 auto;padding:20px;display:grid;gap:16px}
+  .row{display:grid;gap:16px;grid-template-columns:1fr 1fr}
+  @media (max-width:900px){.row{grid-template-columns:1fr}}
+  .card{background:var(--card);border:1px solid #1d2741;border-radius:16px;padding:16px}
+  .card h2{margin:0 0 10px 0;font-size:16px}
+  label{display:block;font-size:13px;color:var(--muted);margin-bottom:6px}
+  input[type=text], textarea, input[type=file]{width:100%;padding:10px 12px;border-radius:10px;border:1px solid #263153;background:#0b1324;color:var(--text)}
+  textarea{min-height:92px;resize:vertical}
+  button{appearance:none;border:0;border-radius:12px;padding:10px 14px;background:var(--brand);color:#051023;font-weight:600;cursor:pointer}
+  button:disabled{opacity:.6;cursor:not-allowed}
+  .posts{display:grid;gap:12px}
+  .post{background:#0e172b;border:1px solid #233055;border-radius:12px;padding:12px}
+  .post small{color:var(--muted)}
+  .pill{display:inline-flex;align-items:center;gap:6px;font-size:12px;padding:4px 8px;border-radius:999px;border:1px solid #2a3a62;color:#bcd0ff}
+  .flex{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+  .toast{position:fixed;right:16px;top:16px;background:#0e172b;border:1px solid #2a3a62;color:#e8efff;padding:10px 12px;border-radius:12px;box-shadow:0 10px 30px rgba(0,0,0,.35);display:none}
+  .ok{border-color:#224d35}
+  .err{border-color:#5a2731}
+  img.post-photo{max-width:100%;border-radius:10px;border:1px solid #233055;margin-top:8px}
+</style>
+</head>
+<body>
+<header>
+  <h1>Kinjar — Family Feed</h1>
+  <div class="status" id="status">Checking API…</div>
+</header>
+
+<main>
+  <div class="row">
+    <section class="card">
+      <h2>Create a text post</h2>
+      <form id="textForm">
+        <label>Family (X-Family header)</label>
+        <input id="familyText" type="text" placeholder="slaughterbecks" value="slaughterbecks" required />
+        <label>Author</label>
+        <input id="authorText" type="text" placeholder="Your name" value="You" required />
+        <label>Message</label>
+        <textarea id="bodyText" placeholder="Say something nice…" required></textarea>
+        <div class="flex" style="margin-top:10px">
+          <button id="btnText" type="submit">Post</button>
+          <span class="pill">kind: <strong>text</strong></span>
+        </div>
+      </form>
+    </section>
+
+    <section class="card">
+      <h2>Upload a photo</h2>
+      <form id="photoForm">
+        <label>Family (X-Family header)</label>
+        <input id="familyPhoto" type="text" placeholder="slaughterbecks" value="slaughterbecks" required />
+        <label>Author</label>
+        <input id="authorPhoto" type="text" placeholder="Your name" value="You" required />
+        <label>Caption</label>
+        <input id="bodyPhoto" type="text" placeholder="Caption (optional)" />
+        <label>File</label>
+        <input id="filePhoto" type="file" accept=".jpg,.jpeg,.png,.webp,.gif,.mp4,.mov,.avi,.pdf,.txt,.json" required />
+        <div class="flex" style="margin-top:10px">
+          <button id="btnPhoto" type="submit">Upload</button>
+          <span class="pill">kind: <strong>photo</strong></span>
+        </div>
+      </form>
+    </section>
+  </div>
+
+  <section class="card">
+    <h2>Posts</h2>
+    <div class="flex" style="margin-bottom:8px">
+      <label style="margin:0">Family</label>
+      <input id="familyList" type="text" value="slaughterbecks" style="max-width:220px" />
+      <button id="btnRefresh">Refresh</button>
+    </div>
+    <div id="posts" class="posts"></div>
+  </section>
+</main>
+
+<div id="toast" class="toast"></div>
+
+<script>
+const API = 'https://api.kinjar.com'; // change if needed
+const el = s => document.querySelector(s);
+const postsEl = el('#posts');
+const toast = el('#toast');
+const statusEl = el('#status');
+
+function showToast(msg, ok=true){
+  toast.textContent = msg;
+  toast.className = 'toast ' + (ok?'ok':'err');
+  toast.style.display = 'block';
+  clearTimeout(showToast._t);
+  showToast._t = setTimeout(()=>toast.style.display='none', 3000);
+}
+
+async function checkHealth(){
+  try{
+    const r = await fetch(`${API}/health`, {mode:'cors'});
+    const j = await r.json();
+    statusEl.textContent = j.status === 'ok' ? 'API: OK' : 'API: Degraded';
+  }catch(e){
+    statusEl.textContent = 'API unreachable';
+  }
+}
+
+function postItemView(p){
+  const d = new Date((p.ts||0)*1000).toLocaleString();
+  const fileHtml = p.file ? `<img class="post-photo" src="${API}${p.file}" alt="photo" loading="lazy">` : '';
+  return `
+    <div class="post">
+      <div class="flex">
+        <span class="pill">${p.kind || 'text'}</span>
+        <small>${d}</small>
+        <small>•</small>
+        <small>by ${p.author||'—'}</small>
+      </div>
+      <div style="margin-top:6px">${(p.body||'').replace(/</g,'&lt;')}</div>
+      ${fileHtml}
+    </div>
+  `;
+}
+
+async function loadPosts(){
+  const family = el('#familyList').value.trim();
+  postsEl.innerHTML = 'Loading…';
+  try{
+    const r = await fetch(`${API}/posts`, {
+      headers: { 'X-Family': family },
+      mode: 'cors'
+    });
+    if(!r.ok) throw new Error(await r.text());
+    const j = await r.json();
+    const arr = j.posts || [];
+    postsEl.innerHTML = arr.length ? arr.map(postItemView).join('') : '<div class="post"><small>No posts yet.</small></div>';
+  }catch(e){
+    postsEl.innerHTML = `<div class="post"><small style="color:var(--err)">Error: ${e.message}</small></div>`;
+  }
+}
+
+el('#btnRefresh').addEventListener('click', e => { e.preventDefault(); loadPosts(); });
+
+el('#textForm').addEventListener('submit', async e=>{
+  e.preventDefault();
+  const family = el('#familyText').value.trim();
+  const author = el('#authorText').value.trim();
+  const body   = el('#bodyText').value.trim();
+  if(!family || !author || !body) return showToast('Fill all fields', false);
+  el('#btnText').disabled = true;
+  try{
+    const r = await fetch(`${API}/posts`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Family': family
+      },
+      body: JSON.stringify({ author, kind:'text', body })
+    });
+    if(!r.ok) throw new Error(await r.text());
+    showToast('Posted!');
+    el('#bodyText').value='';
+    await loadPosts();
+  }catch(e){ showToast('Error: ' + e.message, false); }
+  finally{ el('#btnText').disabled=false; }
+});
+
+el('#photoForm').addEventListener('submit', async e=>{
+  e.preventDefault();
+  const family = el('#familyPhoto').value.trim();
+  const author = el('#authorPhoto').value.trim();
+  const body   = el('#bodyPhoto').value.trim();
+  const file   = el('#filePhoto').files[0];
+  if(!family || !author || !file) return showToast('Pick a file and fill fields', false);
+  el('#btnPhoto').disabled = true;
+  try{
+    const form = new FormData();
+    form.append('author', author);
+    form.append('kind', 'photo');
+    form.append('body', body);
+    form.append('file', file);
+    const r = await fetch(`${API}/posts`, {
+      method: 'POST',
+      headers: { 'X-Family': family },
+      body: form
+    });
+    if(!r.ok) throw new Error(await r.text());
+    showToast('Uploaded!');
+    el('#filePhoto').value='';
+    el('#bodyPhoto').value='';
+    await loadPosts();
+  }catch(e){ showToast('Error: ' + e.message, false); }
+  finally{ el('#btnPhoto').disabled=false; }
+});
+
+checkHealth().then(loadPosts);
+</script>
+</body>
+</html>
