@@ -1,19 +1,25 @@
 "use client";
 
-import type { KinjarPost } from "@/lib/api"; // use the API's source of truth
+import type { KinjarPost } from "@/lib/api"; // use the API's canonical type
 import ReactionBar from "@/components/ReactionBar";
 import CommentList from "@/components/CommentList";
 
 export default function PostCard({ post }: { post: KinjarPost }) {
   const author = post.author ?? "Unknown";
 
-  // Prefer API field `created_at`; fall back to `createdAt` if present in older data
-  const rawCreated =
-    (post as any).created_at ?? (post as any).createdAt ?? null;
+  // created_at (API) with fallback to createdAt (legacy)
+  const rawCreated = (post as any).created_at ?? (post as any).createdAt ?? null;
   const createdAt =
     typeof rawCreated === "string" && rawCreated
       ? new Date(rawCreated).toLocaleString()
       : "";
+
+  // image_url (API) with fallback to imageUrl (legacy)
+  const imageUrl = (post as any).image_url ?? (post as any).imageUrl ?? null;
+
+  // body may be missing for non-text posts—guard it
+  const body: string | null =
+    typeof (post as any).body === "string" ? (post as any).body : null;
 
   return (
     <article
@@ -36,21 +42,19 @@ export default function PostCard({ post }: { post: KinjarPost }) {
       </header>
 
       <div style={{ marginBottom: 10 }}>
-        {post.kind === "text" && post.body && (
-          <p style={{ margin: 0 }}>{post.body}</p>
-        )}
+        {post.kind === "text" && body && <p style={{ margin: 0 }}>{body}</p>}
 
-        {post.kind === "image" && post.imageUrl && (
+        {post.kind === "image" && imageUrl && (
           <img
-            src={post.imageUrl}
+            src={imageUrl}
             alt=""
             style={{ display: "block", maxWidth: "100%", borderRadius: 8 }}
           />
         )}
 
-        {post.kind === "link" && post.body && (
-          <a href={post.body} target="_blank" rel="noreferrer">
-            {post.body}
+        {post.kind === "link" && body && (
+          <a href={body} target="_blank" rel="noreferrer">
+            {body}
           </a>
         )}
       </div>
