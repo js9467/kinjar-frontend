@@ -48,3 +48,30 @@ export interface Capsule {
   opensAt: string;            // ISO
   coverUrl?: string;
 }
+// lib/types.ts
+
+export type PostKind = 'text' | 'image' | 'video' | 'link';
+
+export interface KinjarPost {
+  id: string;
+  family: string;
+  author: string;
+  kind: PostKind;
+
+  // camelCase (preferred)
+  body?: string;
+  mediaUrl?: string;
+  linkUrl?: string;
+  createdAt: string;          // ISO
+  updatedAt?: string;         // ISO
+
+  reactions?: Record<string, number>;
+  commentsCount?: number;
+
+  // --- snake_case aliases to match existing UI usage ---
+  // (kept optional to avoid breaking camelCase callers)
+  created_at?: string;
+  updated_at?: string;
+  image_url?: string;
+  link_url?: string;
+}
