@@ -1,27 +1,30 @@
-// src/middleware.ts
 import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
 
-/**
- * Minimal, non-destructive middleware:
- * - Does NOT rewrite or redirect anything.
- * - (Optional) attaches x-tenant header if subdomain is present.
- */
+const PUBLIC_FILE = /\.(.*)$/;
+
 export function middleware(req: NextRequest) {
-  const res = NextResponse.next();
+  const { pathname } = req.nextUrl;
 
-  const host = req.headers.get("host") || "";
-  const base = process.env.TENANT_BASE_DOMAIN; // e.g. "kinjar.com"
-
-  if (base && host.endsWith(`.${base}`) && host !== base && host !== `www.${base}`) {
-    const sub = host.slice(0, -(`.${base}`).length);
-    if (sub) res.headers.set("x-tenant", sub);
+  // ✅ Always bypass these
+  if (
+    pathname.startsWith("/api/auth") ||   // <-- critical for UnknownAction
+    pathname.startsWith("/api/") ||
+    pathname.startsWith("/_next/") ||
+    pathname.startsWith("/static/") ||
+    pathname === "/favicon.ico" ||
+    pathname === "/robots.txt" ||
+    pathname === "/sitemap.xml" ||
+    PUBLIC_FILE.test(pathname)
+  ) {
+    return NextResponse.next();
   }
 
-  return res;
+  // Your app-specific logic (optional). Keep it non-destructive.
+  return NextResponse.next();
 }
 
 export const config = {
-  // Skip static assets and image optimizer
-  matcher: ["/((?!_next/static|_next/image|favicon.ico).*)"]
+  // Don’t even run the middleware for these paths
+  matcher: ["/((?!api|_next/static|_next/image|favicon.ico|robots.txt|sitemap.xml).*)"],
 };
