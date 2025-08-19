@@ -1,0 +1,14 @@
+name: Block ts-expect-error
+
+on:
+  pull_request:
+  push:
+
+jobs:
+  grep:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Fail if @ts-expect-error is present in presign route
+        run: |
+          ! grep -R "@ts-expect-error next options in edge/runtime" -n app/api/presign/route.ts

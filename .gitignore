@@ -1,0 +1,9 @@
+# deps / build
+node_modules
+.next
+out
+
+# env files
+.env
+.env.*
+!.env.example
