@@ -1,43 +1,33 @@
+// src/auth.ts
+import type { NextAuthOptions } from "next-auth";
 import NextAuth from "next-auth";
-import Google from "next-auth/providers/google";
-import { PrismaAdapter } from "@auth/prisma-adapter";
-import { db } from "@/lib/db";
+import CredentialsProvider from "next-auth/providers/credentials";
+import { getServerSession } from "next-auth";
 
-declare module "next-auth" {
-  interface Session {
-    user: {
-      id: string;
-      email?: string | null;
-      name?: string | null;
-      image?: string | null;
-      globalRole?: "ROOT" | "USER";
-    };
-  }
+// Minimal demo config — replace with your real provider(s) later
+export const authOptions: NextAuthOptions = {
+  providers: [
+    CredentialsProvider({
+      name: "Demo",
+      credentials: {
+        username: { label: "Username", type: "text" },
+        password: { label: "Password", type: "password" }
+      },
+      async authorize(creds) {
+        if (creds?.username && creds?.password) {
+          return { id: "demo", name: creds.username };
+        }
+        return null;
+      }
+    })
+  ],
+  session: { strategy: "jwt" }
+};
+
+// Helper so other server code can do `const session = await auth()`
+export async function auth() {
+  return getServerSession(authOptions);
 }
 
-
-export const GET = handlers.GET;
-export const POST = handlers.POST;
-
-export const { handlers, auth, signIn, signOut } = NextAuth({
-  adapter: PrismaAdapter(db),
-  session: { strategy: "jwt" },
-  providers: [
-    Google({
-      clientId: process.env.AUTH_GOOGLE_ID!,
-      clientSecret: process.env.AUTH_GOOGLE_SECRET!,
-    }),
-  ],
-  callbacks: {
-    async jwt({ token, user }) {
-      const root = process.env.ROOT_EMAIL?.toLowerCase();
-      if (user?.email && user.email.toLowerCase() === root) (token as any).globalRole = "ROOT";
-      return token;
-    },
-    async session({ session, token }) {
-      (session.user as any).id = token.sub!;
-      (session.user as any).globalRole = (token as any).globalRole ?? "USER";
-      return session;
-    },
-  },
-});
+// Default export is used by the route handler
+export default NextAuth(authOptions);
