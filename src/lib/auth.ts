@@ -1,17 +1,86 @@
-// /auth.ts
-import NextAuth from "next-auth";
+import NextAuth, { type NextAuthConfig } from "next-auth";
 import Google from "next-auth/providers/google";
+import { PrismaAdapter } from "@auth/prisma-adapter";
+import { prisma } from "./db";
 
-export const { handlers, auth, signIn, signOut } = NextAuth({
-  // IMPORTANT: set these envs in Vercel:
-  // AUTH_GOOGLE_ID, AUTH_GOOGLE_SECRET, AUTH_SECRET, AUTH_URL (e.g. https://kinjar.com)
-  // If you actually use www, set AUTH_URL to https://www.kinjar.com (pick ONE canonical host).
+/** Comma-separated list of ROOT admin emails (from env ROOT_EMAILS). */
+function rootEmails(): Set<string> {
+  const raw = process.env.ROOT_EMAILS || "";
+  return new Set(
+    raw
+      .split(",")
+      .map((s) => s.trim().toLowerCase())
+      .filter(Boolean)
+  );
+}
+
+const config: NextAuthConfig = {
+  adapter: PrismaAdapter(prisma),
+  session: { strategy: "jwt" },
   trustHost: true,
-  secret: process.env.AUTH_SECRET,
+
+  // Share session cookie across subdomains (e.g., *.kinjar.com) in production.
+  cookies: {
+    sessionToken: {
+      name:
+        process.env.NODE_ENV === "production"
+          ? "__Secure-next-auth.session-token"
+          : "next-auth.session-token",
+      options: {
+        domain: process.env.COOKIE_DOMAIN || undefined, // e.g. ".kinjar.com"
+        path: "/",
+        httpOnly: true,
+        sameSite: "lax",
+        secure: process.env.NODE_ENV === "production"
+      }
+    }
+  },
+
   providers: [
     Google({
-      clientId: process.env.AUTH_GOOGLE_ID!,
-      clientSecret: process.env.AUTH_GOOGLE_SECRET!,
-    }),
+      clientId: process.env.GOOGLE_CLIENT_ID!,
+      clientSecret: process.env.GOOGLE_CLIENT_SECRET!
+    })
   ],
-});
+
+  callbacks: {
+    async signIn({ user }) {
+      // Promote to ROOT if in ROOT_EMAILS
+      if (user?.email && rootEmails().has(user.email.toLowerCase())) {
+        await prisma.user.update({
+          where: { id: user.id },
+          data: { globalRole: "ROOT" }
+        });
+      }
+      return true;
+    },
+
+    async jwt({ token, user }) {
+      if (user) {
+        const dbUser = await prisma.user.findUnique({
+          where: { id: user.id },
+          select: { id: true, globalRole: true }
+        });
+        (token as any).uid = dbUser?.id;
+        (token as any).globalRole = dbUser?.globalRole ?? "USER";
+      } else if (!(token as any).globalRole && token.sub) {
+        const dbUser = await prisma.user.findUnique({
+          where: { id: token.sub },
+          select: { globalRole: true }
+        });
+        (token as any).globalRole = dbUser?.globalRole ?? "USER";
+      }
+      return token;
+    },
+
+    async session({ session, token }) {
+      if (session.user) {
+        (session.user as any).id = (token as any).uid ?? token.sub;
+        (session.user as any).globalRole = (token as any).globalRole ?? "USER";
+      }
+      return session;
+    }
+  }
+};
+
+export const { handlers, auth, signIn, signOut } = NextAuth(config);
