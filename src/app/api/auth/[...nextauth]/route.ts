@@ -1,2 +1,4 @@
-// /app/api/auth/[...nextauth]/route.ts
-export { GET, POST } from "@/auth";
+import { handlers } from "@/lib/auth";
+
+// Do NOT wrap or modify; just re-export.
+export const { GET, POST } = handlers;
