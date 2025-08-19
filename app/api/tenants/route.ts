@@ -1,38 +1,29 @@
-
-import { auth } from "../../../src/auth";
-import { db } from "../../../src/lib/db";
+import { NextRequest, NextResponse } from "next/server";
+import { prisma } from "@/src/lib/db";
 import { z } from "zod";
 
+export async function GET() {
+  const tenants = await prisma.tenant.findMany({ orderBy: { createdAt: "desc" } });
+  return NextResponse.json({ ok: true, tenants });
+}
 
-
-const Body = z.object({
-  name: z.string().min(2),
-  slug: z.string().regex(/^[a-z0-9-]+$/).min(2),
-  ownerEmail: z.string().email(),
+const CreateTenant = z.object({
+  slug: z.string().min(2).max(64).regex(/^[a-z0-9-]+$/),
+  name: z.string().min(2).max(128)
 });
 
-export async function POST(req: Request) {
-  const session = await auth();
-  if (!session?.user || session.user.globalRole !== "ROOT") {
-    return new Response(JSON.stringify({ ok: false, error: "Forbidden" }), { status: 403 });
+export async function POST(req: NextRequest) {
+  const json = await req.json().catch(() => ({}));
+  const parsed = CreateTenant.safeParse(json);
+  if (!parsed.success) {
+    return NextResponse.json({ ok: false, error: parsed.error.message }, { status: 400 });
   }
+  const { slug, name } = parsed.data;
 
-  const body = Body.parse(await req.json());
-
-  const owner = await db.user.upsert({
-    where: { email: body.ownerEmail },
-    update: {},
-    create: { email: body.ownerEmail, name: body.ownerEmail.split("@")[0] },
-  });
-
-  const tenant = await db.tenant.create({
-    data: {
-      name: body.name,
-      slug: body.slug,
-      createdById: session.user.id,
-      members: { create: [{ userId: owner.id, role: "OWNER" }] },
-    },
-  });
-
-  return Response.json({ ok: true, tenant });
+  try {
+    const tenant = await prisma.tenant.create({ data: { slug, name } });
+    return NextResponse.json({ ok: true, tenant });
+  } catch (e: any) {
+    return NextResponse.json({ ok: false, error: e?.message ?? "Create failed" }, { status: 500 });
+  }
 }
