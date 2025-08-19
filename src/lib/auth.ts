@@ -14,6 +14,17 @@ function rootEmails(): Set<string> {
   );
 }
 
+const providers: NextAuthConfig["providers"] = [];
+
+if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
+  providers.push(
+    Google({
+      clientId: process.env.GOOGLE_CLIENT_ID,
+      clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+    })
+  );
+}
+
 const config: NextAuthConfig = {
   adapter: PrismaAdapter(prisma),
   session: { strategy: "jwt" },
@@ -31,17 +42,12 @@ const config: NextAuthConfig = {
         path: "/",
         httpOnly: true,
         sameSite: "lax",
-        secure: process.env.NODE_ENV === "production"
-      }
-    }
+        secure: process.env.NODE_ENV === "production",
+      },
+    },
   },
 
-  providers: [
-    Google({
-      clientId: process.env.GOOGLE_CLIENT_ID!,
-      clientSecret: process.env.GOOGLE_CLIENT_SECRET!
-    })
-  ],
+  providers,
 
   callbacks: {
     async signIn({ user }) {
@@ -49,7 +55,7 @@ const config: NextAuthConfig = {
       if (user?.email && rootEmails().has(user.email.toLowerCase())) {
         await prisma.user.update({
           where: { id: user.id },
-          data: { globalRole: "ROOT" }
+          data: { globalRole: "ROOT" },
         });
       }
       return true;
@@ -59,14 +65,14 @@ const config: NextAuthConfig = {
       if (user) {
         const dbUser = await prisma.user.findUnique({
           where: { id: user.id },
-          select: { id: true, globalRole: true }
+          select: { id: true, globalRole: true },
         });
         (token as any).uid = dbUser?.id;
         (token as any).globalRole = dbUser?.globalRole ?? "USER";
       } else if (!(token as any).globalRole && token.sub) {
         const dbUser = await prisma.user.findUnique({
           where: { id: token.sub },
-          select: { globalRole: true }
+          select: { globalRole: true },
         });
         (token as any).globalRole = dbUser?.globalRole ?? "USER";
       }
@@ -79,8 +85,9 @@ const config: NextAuthConfig = {
         (session.user as any).globalRole = (token as any).globalRole ?? "USER";
       }
       return session;
-    }
-  }
+    },
+  },
 };
 
 export const { handlers, auth, signIn, signOut } = NextAuth(config);
+
