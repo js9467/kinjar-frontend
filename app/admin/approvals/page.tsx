@@ -33,16 +33,24 @@ export default async function ApprovalsPage() {
       <h1>Signup Approvals</h1>
       {q.items.length === 0 && <p>No pending requests.</p>}
       {q.items.map((it: any) => (
-        <form key={it.id} style={{border:'1px solid #ddd', padding:16, margin:'12px 0'}}
-              action={`/admin/approvals/handle?id=${it.id}`} method="post">
-          <div><strong>{it.tenant_name}</strong> — desired slug: <code>{it.desired_slug || '(auto)'}</code></div>
-          <div>{it.email}</div>
-          <div>Requested: {new Date(it.created_at).toLocaleString()}</div>
-          <div style={{marginTop:8, display:'flex', gap:8}}>
-            <button formAction={`/admin/approvals/approve?id=${it.id}`}>Approve</button>
-            <button formAction={`/admin/approvals/deny?id=${it.id}`}>Deny</button>
-          </div>
-        </form>
+    
+  <form
+    key={it.id}
+    method="post"
+    action="/admin/approvals"
+    style={{border:'1px solid #ddd', padding:16, margin:'12px 0'}}
+  >
+    <input type="hidden" name="id" value={it.id} />
+    <div><strong>{it.tenant_name}</strong> — desired slug: <code>{it.desired_slug || '(auto)'}</code></div>
+    <div>{it.email}</div>
+    <div>Requested: {new Date(it.created_at).toLocaleString()}</div>
+    <div style={{marginTop:8, display:'flex', gap:8}}>
+      <button name="op" value="approve">Approve</button>
+      <button name="op" value="deny">Deny</button>
+    </div>
+  </form>
+))}
+
       ))}
     </main>
   );
