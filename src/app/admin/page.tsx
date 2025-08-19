@@ -3,9 +3,10 @@ import { prisma } from "@/lib/db";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 
-export const dynamic = "force-dynamic"; // ensure it's built as a dynamic route
+export const dynamic = "force-dynamic";
 
-async function createTenant(_prevState: any, formData: FormData) {
+// Server Action used directly in <form action={createTenant}>
+async function createTenant(formData: FormData) {
   "use server";
   const session = await auth();
   const user = session?.user as any;
@@ -16,10 +17,8 @@ async function createTenant(_prevState: any, formData: FormData) {
 
   const nameRaw = String(formData.get("name") || "").trim();
   let slugRaw = String(formData.get("slug") || "").trim().toLowerCase();
-
   if (!nameRaw || !slugRaw) return;
 
-  // normalize slug
   const slug = slugRaw
     .replace(/[^a-z0-9-]/g, "-")
     .replace(/-+/g, "-")
@@ -29,11 +28,7 @@ async function createTenant(_prevState: any, formData: FormData) {
   if (exists) throw new Error("Slug already exists");
 
   await prisma.tenant.create({
-    data: {
-      name: nameRaw,
-      slug,
-      createdById: user.id
-    }
+    data: { name: nameRaw, slug, createdById: user.id }
   });
 
   revalidatePath("/admin");
@@ -58,20 +53,42 @@ export default async function AdminPage() {
         Create a tenant (family). Subdomain becomes <code>{`<slug>.kinjar.com`}</code>.
       </p>
 
-      <form action={createTenant} style={{ display: "grid", gap: 12, marginTop: 20, padding: 16, border: "1px solid #e5e7eb", borderRadius: 12 }}>
+      <form
+        action={createTenant}
+        style={{ display: "grid", gap: 12, marginTop: 20, padding: 16, border: "1px solid #e5e7eb", borderRadius: 12 }}
+      >
         <label style={{ display: "grid", gap: 6 }}>
           <span>Name</span>
-          <input name="name" placeholder="Slaughterbecks" required
-                 style={{ padding: 10, borderRadius: 8, border: "1px solid #d1d5db" }} />
+          <input
+            name="name"
+            placeholder="Slaughterbecks"
+            required
+            style={{ padding: 10, borderRadius: 8, border: "1px solid #d1d5db" }}
+          />
         </label>
 
         <label style={{ display: "grid", gap: 6 }}>
           <span>Slug</span>
-          <input name="slug" placeholder="slaughterbecks" pattern="[a-z0-9-]+" required
-                 style={{ padding: 10, borderRadius: 8, border: "1px solid #d1d5db" }} />
+          <input
+            name="slug"
+            placeholder="slaughterbecks"
+            pattern="[a-z0-9-]+"
+            required
+            style={{ padding: 10, borderRadius: 8, border: "1px solid #d1d5db" }}
+          />
         </label>
 
-        <button type="submit" style={{ padding: "10px 14px", borderRadius: 8, border: "1px solid #d1d5db", background: "white", cursor: "pointer", width: "fit-content" }}>
+        <button
+          type="submit"
+          style={{
+            padding: "10px 14px",
+            borderRadius: 8,
+            border: "1px solid #d1d5db",
+            background: "white",
+            cursor: "pointer",
+            width: "fit-content"
+          }}
+        >
           Create tenant
         </button>
       </form>
@@ -89,8 +106,10 @@ export default async function AdminPage() {
                     <div style={{ fontWeight: 600 }}>{t.name}</div>
                     <div style={{ color: "#6b7280", fontSize: 12 }}>{t.slug}.kinjar.com</div>
                   </div>
-                  <a href={`https://${t.slug}.kinjar.com/dashboard`}
-                     style={{ padding: "8px 12px", borderRadius: 8, border: "1px solid #d1d5db", textDecoration: "none", color: "black" }}>
+                  <a
+                    href={`https://${t.slug}.kinjar.com/dashboard`}
+                    style={{ padding: "8px 12px", borderRadius: 8, border: "1px solid #d1d5db", textDecoration: "none", color: "black" }}
+                  >
                     Open dashboard
                   </a>
                 </div>
@@ -102,4 +121,3 @@ export default async function AdminPage() {
     </main>
   );
 }
-TSX
