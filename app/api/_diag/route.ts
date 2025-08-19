@@ -5,8 +5,7 @@ export async function GET() {
     "NEXTAUTH_URL","AUTH_URL",
     "NEXTAUTH_SECRET","AUTH_SECRET",
     "GOOGLE_CLIENT_ID","AUTH_GOOGLE_ID",
-    "GOOGLE_CLIENT_SECRET","AUTH_GOOGLE_SECRET"
+    "GOOGLE_CLIENT_SECRET","AUTH_GOOGLE_SECRET",
   ];
-  const env = Object.fromEntries(keys.map(k => [k, !!process.env[k as any]]));
-  return Response.json({ ok: true, env });
+  return Response.json(Object.fromEntries(keys.map(k => [k, !!process.env[k as any]])));
 }
