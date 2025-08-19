@@ -1,20 +1,9 @@
-import NextAuth from "next-auth";
+import NextAuth, { type NextAuthConfig } from "next-auth";
 import Google from "next-auth/providers/google";
 import { PrismaAdapter } from "@auth/prisma-adapter";
 import { prisma } from "./db";
 
-function rootEmails(): Set<string> {
-  const raw = process.env.ROOT_EMAILS || "";
-  return new Set(
-    rawimport NextAuth, { type NextAuthConfig } from "next-auth";
-import Google from "next-auth/providers/google";
-import { PrismaAdapter } from "@auth/prisma-adapter";
-import { prisma } from "./db";
-
-/**
- * Comma-separated list of global admin emails (ROOT role).
- * Example: "you@example.com,other@example.com"
- */
+/** Comma-separated list of ROOT admin emails (from env ROOT_EMAILS). */
 function rootEmails(): Set<string> {
   const raw = process.env.ROOT_EMAILS || "";
   return new Set(
@@ -25,12 +14,12 @@ function rootEmails(): Set<string> {
   );
 }
 
-const config = {
+const config: NextAuthConfig = {
   adapter: PrismaAdapter(prisma),
   session: { strategy: "jwt" },
   trustHost: true,
 
-  // Share auth cookies across subdomains in production (e.g., *.kinjar.com)
+  // Share session cookie across subdomains (e.g., *.kinjar.com) in production.
   cookies: {
     sessionToken: {
       name:
@@ -56,7 +45,7 @@ const config = {
 
   callbacks: {
     async signIn({ user }) {
-      // Promote to ROOT if the email is in ROOT_EMAILS
+      // Promote to ROOT if in ROOT_EMAILS
       if (user?.email && rootEmails().has(user.email.toLowerCase())) {
         await prisma.user.update({
           where: { id: user.id },
@@ -67,7 +56,6 @@ const config = {
     },
 
     async jwt({ token, user }) {
-      // On first sign-in, attach id & globalRole
       if (user) {
         const dbUser = await prisma.user.findUnique({
           where: { id: user.id },
@@ -96,59 +84,3 @@ const config = {
 };
 
 export const { handlers, auth, signIn, signOut } = NextAuth(config);
-
-      .split(",")
-      .map((s) => s.trim().toLowerCase())
-      .filter(Boolean)
-  );
-}
-
-const config: NextAuthConfig = {
-  adapter: PrismaAdapter(prisma),
-  session: { strategy: "jwt" },
-  trustHost: true,
-  providers: [
-    Google({
-      clientId: process.env.GOOGLE_CLIENT_ID!,
-      clientSecret: process.env.GOOGLE_CLIENT_SECRET!
-    })
-  ],
-  callbacks: {
-    async signIn({ user }) {
-      // Upgrade to ROOT if email is in ROOT_EMAILS
-      if (user?.email && rootEmails().has(user.email.toLowerCase())) {
-        await prisma.user.update({
-          where: { id: user.id },
-          data: { globalRole: "ROOT" }
-        });
-      }
-      return true;
-    },
-    async jwt({ token, user }) {
-      if (user) {
-        const dbUser = await prisma.user.findUnique({
-          where: { id: user.id },
-          select: { id: true, globalRole: true }
-        });
-        token.uid = dbUser?.id;
-        token.globalRole = dbUser?.globalRole ?? "USER";
-      } else if (!token.globalRole && token.sub) {
-        const dbUser = await prisma.user.findUnique({
-          where: { id: token.sub },
-          select: { globalRole: true }
-        });
-        token.globalRole = dbUser?.globalRole ?? "USER";
-      }
-      return token as any;
-    },
-    async session({ session, token }) {
-      if (session.user) {
-        (session.user as any).id = (token as any).uid ?? token.sub;
-        (session.user as any).globalRole = (token as any).globalRole ?? "USER";
-      }
-      return session;
-    }
-  }
-};
-
-export const { handlers, auth, signIn, signOut } = NextAuth(config as any);
