@@ -1,47 +1,51 @@
+cat > src/app/admin/page.tsx <<'TSX'
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { redirect } from "next/navigation";
+import { revalidatePath } from "next/cache";
 
-function slugify(input: string) {
-  return input
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/(^-|-$)+/g, "");
-}
+export const dynamic = "force-dynamic"; // ensure it's built as a dynamic route
 
-async function createTenantAction(formData: FormData) {
+async function createTenant(_prevState: any, formData: FormData) {
   "use server";
   const session = await auth();
-  if (!session?.user) redirect("/login");
-  const role = (session.user as any).globalRole as string | undefined;
-  if (role !== "ROOT") redirect("/");
+  const user = session?.user as any;
 
-  const name = String(formData.get("name") || "").trim();
-  const slugRaw = String(formData.get("slug") || "").trim();
-  const slug = slugify(slugRaw || name);
-  if (!name || !slug) return;
+  if (!user || user.globalRole !== "ROOT") {
+    throw new Error("Unauthorized");
+  }
 
-  const tenant = await prisma.tenant.create({
+  const nameRaw = String(formData.get("name") || "").trim();
+  let slugRaw = String(formData.get("slug") || "").trim().toLowerCase();
+
+  if (!nameRaw || !slugRaw) return;
+
+  // normalize slug
+  const slug = slugRaw
+    .replace(/[^a-z0-9-]/g, "-")
+    .replace(/-+/g, "-")
+    .replace(/^-|-$/g, "");
+
+  const exists = await prisma.tenant.findUnique({ where: { slug } });
+  if (exists) throw new Error("Slug already exists");
+
+  await prisma.tenant.create({
     data: {
-      name,
+      name: nameRaw,
       slug,
-      createdById: (session.user as any).id
+      createdById: user.id
     }
   });
 
-  // Make creator OWNER of the tenant
-  await prisma.membership.upsert({
-    where: { userId_tenantId: { userId: (session.user as any).id, tenantId: tenant.id } },
-    update: { role: "OWNER" },
-    create: { userId: (session.user as any).id, tenantId: tenant.id, role: "OWNER" }
-  });
+  revalidatePath("/admin");
 }
 
 export default async function AdminPage() {
   const session = await auth();
-  if (!session?.user) redirect("/login");
-  const role = (session.user as any).globalRole as string | undefined;
-  if (role !== "ROOT") redirect("/");
+  const user = session?.user as any;
+
+  if (!user) redirect("/login");
+  if (user.globalRole !== "ROOT") redirect("/");
 
   const tenants = await prisma.tenant.findMany({
     orderBy: { createdAt: "desc" },
@@ -49,32 +53,54 @@ export default async function AdminPage() {
   });
 
   return (
-    <main style={{ maxWidth: 760, margin: "40px auto", padding: 16 }}>
-      <h1>Global Admin</h1>
+    <main style={{ maxWidth: 720, margin: "40px auto", padding: "0 16px" }}>
+      <h1 style={{ marginBottom: 12 }}>Global Admin</h1>
+      <p style={{ color: "#6b7280", marginTop: 0 }}>
+        Create a tenant (family). Subdomain becomes <code>{`<slug>.kinjar.com`}</code>.
+      </p>
 
-      <section style={{ marginTop: 24, marginBottom: 32 }}>
-        <h2 style={{ marginBottom: 8 }}>Create Tenant</h2>
-        <form action={createTenantAction} style={{ display: "flex", gap: 8 }}>
-          <input name="name" placeholder="Family name (e.g., Slaughterbecks)" required
-            style={{ flex: 1, padding: 8, border: "1px solid #d1d5db", borderRadius: 8 }} />
-          <input name="slug" placeholder="slug (optional)" 
-            style={{ width: 220, padding: 8, border: "1px solid #d1d5db", borderRadius: 8 }} />
-          <button type="submit" style={{ padding: "8px 12px", borderRadius: 8, border: "1px solid #d1d5db" }}>
-            Create
-          </button>
-        </form>
-      </section>
+      <form action={createTenant} style={{ display: "grid", gap: 12, marginTop: 20, padding: 16, border: "1px solid #e5e7eb", borderRadius: 12 }}>
+        <label style={{ display: "grid", gap: 6 }}>
+          <span>Name</span>
+          <input name="name" placeholder="Slaughterbecks" required
+                 style={{ padding: 10, borderRadius: 8, border: "1px solid #d1d5db" }} />
+        </label>
 
-      <section>
-        <h2 style={{ marginBottom: 8 }}>Tenants</h2>
-        <ul style={{ padding: 0, listStyle: "none" }}>
-          {tenants.map((t) => (
-            <li key={t.id} style={{ padding: 12, border: "1px solid #e5e7eb", borderRadius: 8, marginBottom: 8 }}>
-              <strong>{t.name}</strong> — <code>{t.slug}</code>
-            </li>
-          ))}
-        </ul>
+        <label style={{ display: "grid", gap: 6 }}>
+          <span>Slug</span>
+          <input name="slug" placeholder="slaughterbecks" pattern="[a-z0-9-]+" required
+                 style={{ padding: 10, borderRadius: 8, border: "1px solid #d1d5db" }} />
+        </label>
+
+        <button type="submit" style={{ padding: "10px 14px", borderRadius: 8, border: "1px solid #d1d5db", background: "white", cursor: "pointer", width: "fit-content" }}>
+          Create tenant
+        </button>
+      </form>
+
+      <section style={{ marginTop: 28 }}>
+        <h2 style={{ marginBottom: 8 }}>Existing tenants</h2>
+        {tenants.length === 0 ? (
+          <div style={{ color: "#6b7280" }}>None yet.</div>
+        ) : (
+          <ul style={{ listStyle: "none", padding: 0, margin: 0 }}>
+            {tenants.map((t) => (
+              <li key={t.id} style={{ padding: "12px 0", borderBottom: "1px solid #f3f4f6" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12 }}>
+                  <div>
+                    <div style={{ fontWeight: 600 }}>{t.name}</div>
+                    <div style={{ color: "#6b7280", fontSize: 12 }}>{t.slug}.kinjar.com</div>
+                  </div>
+                  <a href={`https://${t.slug}.kinjar.com/dashboard`}
+                     style={{ padding: "8px 12px", borderRadius: 8, border: "1px solid #d1d5db", textDecoration: "none", color: "black" }}>
+                    Open dashboard
+                  </a>
+                </div>
+              </li>
+            ))}
+          </ul>
+        )}
       </section>
     </main>
   );
 }
+TSX
