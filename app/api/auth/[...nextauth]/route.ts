@@ -1,19 +1,19 @@
 
+// app/api/auth/[...nextauth]/route.ts
 import NextAuth from "next-auth";
 import Google from "next-auth/providers/google";
 
-export const runtime = "nodejs";
-
-const handler = NextAuth({
-  secret: process.env.AUTH_SECRET,
-  trustHost: true,
+export const { handlers: { GET, POST } } = NextAuth({
   providers: [
     Google({
-      clientId: process.env.AUTH_GOOGLE_ID || process.env.GOOGLE_CLIENT_ID!,
-      clientSecret: process.env.AUTH_GOOGLE_SECRET || process.env.GOOGLE_CLIENT_SECRET!,
-      authorization: { params: { prompt: "consent", access_type: "offline", response_type: "code" } },
+      clientId: process.env.GOOGLE_CLIENT_ID!,
+      clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
     }),
   ],
+  // helps when HOST/URL is dynamic (Vercel)
+  trustHost: true,
+});
+
   callbacks: {
     async redirect({ url, baseUrl }) {
       try {
