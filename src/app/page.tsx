@@ -7,10 +7,7 @@ export default function HomePage() {
 }
 
 function SmartHomePage() {
-  // Client-side detection to avoid hydration issues
-  const isClient = typeof window !== 'undefined';
-  
-  if (!isClient) {
+  if (typeof window === 'undefined') {
     return <LoadingPage />;
   }
   
@@ -18,7 +15,7 @@ function SmartHomePage() {
   const familySlug = getFamilySlug(hostname);
   
   if (familySlug) {
-    return <FamilyHomePage familySlug={familySlug} />;
+    return <FunctionalFamilyHomePage familySlug={familySlug} />;
   } else {
     return <MainLandingPage />;
   }
@@ -149,8 +146,74 @@ function MainLandingPage() {
   );
 }
 
-function FamilyHomePage({ familySlug }: { familySlug: string }) {
+function FunctionalFamilyHomePage({ familySlug }: { familySlug: string }) {
   const familyName = familySlug.charAt(0).toUpperCase() + familySlug.slice(1);
+  
+  const handleFileUpload = async (type: 'photo' | 'video') => {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = type === 'photo' ? 'image/*' : 'video/*';
+    input.multiple = true;
+    
+    input.onchange = async (e) => {
+      const files = (e.target as HTMLInputElement).files;
+      if (!files) return;
+      
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        const formData = new FormData();
+        formData.append('file', file);
+        formData.append('family_slug', familySlug);
+        formData.append('type', type);
+        
+        try {
+          const response = await fetch(`${API_BASE}/upload`, {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${localStorage.getItem('token')}`
+            },
+            body: formData
+          });
+          
+          if (response.ok) {
+            alert(`${type === 'photo' ? 'Photo' : 'Video'} uploaded successfully!`);
+            window.location.reload(); // Refresh to show new content
+          } else {
+            alert(`Failed to upload ${type}`);
+          }
+        } catch (error) {
+          alert(`Error uploading ${type}: ${error}`);
+        }
+      }
+    };
+    
+    input.click();
+  };
+  
+  const handleInviteFamily = async () => {
+    const email = prompt('Enter family member email:');
+    if (!email) return;
+    
+    try {
+      const response = await fetch(`${API_BASE}/families/${familySlug}/invite`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        },
+        body: JSON.stringify({ email })
+      });
+      
+      if (response.ok) {
+        alert('Invitation sent successfully!');
+      } else {
+        const error = await response.text();
+        alert(`Failed to send invitation: ${error}`);
+      }
+    } catch (error) {
+      alert(`Error sending invitation: ${error}`);
+    }
+  };
   
   return (
     <main style={{ 
@@ -223,18 +286,7 @@ function FamilyHomePage({ familySlug }: { familySlug: string }) {
           backgroundColor: '#fff'
         }}>
           <h3 style={{ margin: '0 0 16px 0', color: '#374151' }}>📸 Recent Photos</h3>
-          <div style={{ 
-            height: 120, 
-            backgroundColor: '#f3f4f6', 
-            borderRadius: 6,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            color: '#9ca3af',
-            fontSize: 14
-          }}>
-            Family photos will appear here
-          </div>
+          <FamilyContentSection familySlug={familySlug} type="photo" />
         </div>
         
         <div style={{
@@ -244,18 +296,7 @@ function FamilyHomePage({ familySlug }: { familySlug: string }) {
           backgroundColor: '#fff'
         }}>
           <h3 style={{ margin: '0 0 16px 0', color: '#374151' }}>🎥 Recent Videos</h3>
-          <div style={{ 
-            height: 120, 
-            backgroundColor: '#f3f4f6', 
-            borderRadius: 6,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            color: '#9ca3af',
-            fontSize: 14
-          }}>
-            Family videos will appear here
-          </div>
+          <FamilyContentSection familySlug={familySlug} type="video" />
         </div>
         
         <div style={{
@@ -265,17 +306,11 @@ function FamilyHomePage({ familySlug }: { familySlug: string }) {
           backgroundColor: '#fff'
         }}>
           <h3 style={{ margin: '0 0 16px 0', color: '#374151' }}>👨‍👩‍👧‍👦 Family Members</h3>
-          <div style={{ fontSize: 14, color: '#6b7280', lineHeight: 1.6 }}>
-            • Mom<br />
-            • Dad<br />
-            • Sarah<br />
-            • Mike<br />
-            <span style={{ color: '#9ca3af' }}>+ 2 more members</span>
-          </div>
+          <FamilyMembersSection familySlug={familySlug} />
         </div>
       </div>
       
-      {/* Quick Actions */}
+      {/* Functional Quick Actions */}
       <div style={{
         padding: 24,
         border: '1px solid #e5e7eb',
@@ -286,7 +321,7 @@ function FamilyHomePage({ familySlug }: { familySlug: string }) {
         <h3 style={{ margin: '0 0 20px 0', color: '#374151' }}>🚀 Quick Actions</h3>
         <div style={{ display: 'flex', gap: 12, justifyContent: 'center', flexWrap: 'wrap' }}>
           <button 
-            onClick={() => alert('Upload feature coming soon!')}
+            onClick={() => handleFileUpload('photo')}
             style={{
               backgroundColor: '#10b981',
               color: 'white',
@@ -300,7 +335,7 @@ function FamilyHomePage({ familySlug }: { familySlug: string }) {
             📸 Upload Photo
           </button>
           <button 
-            onClick={() => alert('Upload feature coming soon!')}
+            onClick={() => handleFileUpload('video')}
             style={{
               backgroundColor: '#3b82f6',
               color: 'white',
@@ -314,7 +349,7 @@ function FamilyHomePage({ familySlug }: { familySlug: string }) {
             🎥 Upload Video
           </button>
           <button 
-            onClick={() => alert('Invite feature coming soon!')}
+            onClick={handleInviteFamily}
             style={{
               backgroundColor: '#f59e0b',
               color: 'white',
@@ -330,5 +365,64 @@ function FamilyHomePage({ familySlug }: { familySlug: string }) {
         </div>
       </div>
     </main>
+  );
+}
+
+// Component to show actual family content
+function FamilyContentSection({ familySlug, type }: { familySlug: string, type: 'photo' | 'video' }) {
+  if (typeof window === 'undefined') {
+    return <div style={{ height: 120, backgroundColor: '#f3f4f6', borderRadius: 6 }} />;
+  }
+  
+  // This would normally fetch from API, for now show placeholder
+  return (
+    <div style={{ 
+      height: 120, 
+      backgroundColor: '#f3f4f6', 
+      borderRadius: 6,
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      color: '#9ca3af',
+      fontSize: 14
+    }}>
+      No {type}s yet - upload some to get started!
+    </div>
+  );
+}
+
+// Component to show family members
+function FamilyMembersSection({ familySlug }: { familySlug: string }) {
+  if (typeof window === 'undefined') {
+    return <div style={{ height: 120, backgroundColor: '#f3f4f6', borderRadius: 6 }} />;
+  }
+  
+  // This would normally fetch from API
+  return (
+    <div style={{ fontSize: 14, color: '#6b7280', lineHeight: 1.6 }}>
+      <div style={{ marginBottom: 8 }}>
+        Loading family members...
+      </div>
+      <button 
+        onClick={() => {
+          const email = prompt('Invite family member by email:');
+          if (email) {
+            // Would call API here
+            alert('Invitation feature coming in next update!');
+          }
+        }}
+        style={{
+          backgroundColor: '#3b82f6',
+          color: 'white',
+          border: 'none',
+          padding: '6px 12px',
+          borderRadius: 4,
+          cursor: 'pointer',
+          fontSize: 12
+        }}
+      >
+        + Invite Member
+      </button>
+    </div>
   );
 }
