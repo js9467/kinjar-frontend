@@ -11,25 +11,27 @@ export default function HomePage() {
           <p>Please enable JavaScript to use Kinjar.</p>
         </div>
       </noscript>
-      <ClientOnlyHomePage />
+      <HydratedHomePage />
     </>
   );
 }
 
-function ClientOnlyHomePage() {
-  // Completely prevent SSR to avoid hydration mismatches
-  if (typeof window === 'undefined') {
-    return null; // Return nothing during SSR
+function HydratedHomePage() {
+  // Simple approach: always render the same structure initially
+  // Then use client-side navigation if needed
+  
+  if (typeof window !== 'undefined') {
+    // Client-side only logic
+    const hostname = window.location.hostname;
+    const familySlug = getFamilySlug(hostname);
+    
+    if (familySlug) {
+      return <FunctionalFamilyHomePage familySlug={familySlug} />;
+    }
   }
   
-  const hostname = window.location.hostname;
-  const familySlug = getFamilySlug(hostname);
-  
-  if (familySlug) {
-    return <FunctionalFamilyHomePage familySlug={familySlug} />;
-  } else {
-    return <MainLandingPage />;
-  }
+  // Default to main landing page for SSR and when no family slug
+  return <MainLandingPage />;
 }
 
 function getFamilySlug(hostname: string): string | null {
@@ -161,26 +163,28 @@ function FunctionalFamilyHomePage({ familySlug }: { familySlug: string }) {
   const familyName = familySlug.charAt(0).toUpperCase() + familySlug.slice(1);
   
   const handleFileUpload = async (type: 'photo' | 'video') => {
-    const input = document.createElement('input');
-    input.type = 'file';
-    input.accept = type === 'photo' ? 'image/*' : 'video/*';
-    input.multiple = true;
-    
-    input.onchange = async (e) => {
-      const files = (e.target as HTMLInputElement).files;
-      if (!files) return;
+    // Create a file input element in a React-compatible way
+    const uploadFile = (file: File) => {
+      console.log(`Uploading ${type}:`, file.name, file.size, 'bytes');
+      console.log('API_BASE:', API_BASE);
       
-      for (let i = 0; i < files.length; i++) {
-        const file = files[i];
-        console.log(`Uploading ${type}:`, file.name, file.size, 'bytes');
-        console.log('API_BASE:', API_BASE);
-        
+      return new Promise<void>(async (resolve, reject) => {
         try {
-          // First, test if the API is reachable
+          // First, test if the API is reachable with better error handling
           try {
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+            
             const healthResponse = await fetch(`${API_BASE}/health`, {
-              method: 'GET'
+              method: 'GET',
+              signal: controller.signal,
+              mode: 'cors', // Explicitly set CORS mode
+              headers: {
+                'Accept': 'application/json',
+              }
             });
+            
+            clearTimeout(timeoutId);
             console.log('Health check status:', healthResponse.status);
             
             if (!healthResponse.ok) {
@@ -188,7 +192,17 @@ function FunctionalFamilyHomePage({ familySlug }: { familySlug: string }) {
             }
           } catch (healthError) {
             console.error('Health check failed:', healthError);
-            alert('API is currently unavailable. The server may be starting up. Please try again in a moment.');
+            const errorMessage = healthError instanceof Error ? healthError.message : String(healthError);
+            const errorName = healthError instanceof Error ? healthError.name : '';
+            
+            if (errorName === 'AbortError') {
+              alert('API request timed out. The server may be slow or unavailable.');
+            } else if (errorMessage.includes('CORS')) {
+              alert('Cross-origin request blocked. API may have CORS issues.');
+            } else {
+              alert('API is currently unavailable. The server may be starting up. Please try again in a moment.');
+            }
+            reject(healthError);
             return;
           }
           
@@ -198,30 +212,79 @@ function FunctionalFamilyHomePage({ familySlug }: { familySlug: string }) {
           formData.append('family_slug', familySlug);
           formData.append('type', type);
           
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout for uploads
+          
           const response = await fetch(`${API_BASE}/upload`, {
             method: 'POST',
-            body: formData
-            // Don't set Content-Type header - browser will set it automatically for FormData
-            // Don't require auth for now until we implement proper login flow
+            body: formData,
+            signal: controller.signal,
+            mode: 'cors'
           });
           
+          clearTimeout(timeoutId);
           console.log('Upload response status:', response.status);
+          
           const responseText = await response.text();
           console.log('Upload response:', responseText);
           
           if (response.ok) {
             alert(`${type === 'photo' ? 'Photo' : 'Video'} uploaded successfully!`);
             window.location.reload(); // Refresh to show new content
+            resolve();
           } else {
             alert(`Failed to upload ${type}: ${responseText}`);
+            reject(new Error(responseText));
           }
         } catch (error) {
           console.error('Upload error:', error);
-          alert(`Error uploading ${type}: ${error}. Check the console for details.`);
+          
+          const errorMessage = error instanceof Error ? error.message : String(error);
+          const errorName = error instanceof Error ? error.name : '';
+          
+          if (errorName === 'AbortError') {
+            alert(`Upload timed out. The ${type} may be too large or the connection is slow.`);
+          } else if (errorMessage.includes('Failed to fetch')) {
+            alert(`Network error: Could not connect to the server. Please check your internet connection and try again.`);
+          } else {
+            alert(`Error uploading ${type}: ${errorMessage}. Check the console for details.`);
+          }
+          reject(error);
         }
+      });
+    };
+
+    // Create file input programmatically but handle it better
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = type === 'photo' ? 'image/*' : 'video/*';
+    input.multiple = true;
+    input.style.display = 'none';
+    
+    input.onchange = async (e) => {
+      const files = (e.target as HTMLInputElement).files;
+      if (!files) return;
+      
+      // Process files sequentially to avoid overwhelming the server
+      for (let i = 0; i < files.length; i++) {
+        try {
+          await uploadFile(files[i]);
+        } catch (error) {
+          console.error(`Failed to upload file ${files[i].name}:`, error);
+          // Continue with next file
+        }
+      }
+      
+      // Clean up
+      try {
+        document.body.removeChild(input);
+      } catch (e) {
+        // Input may already be removed
       }
     };
     
+    // Add to DOM temporarily and trigger click
+    document.body.appendChild(input);
     input.click();
   };
   
@@ -411,11 +474,7 @@ function FunctionalFamilyHomePage({ familySlug }: { familySlug: string }) {
 
 // Component to show actual family content
 function FamilyContentSection({ familySlug, type }: { familySlug: string, type: 'photo' | 'video' }) {
-  if (typeof window === 'undefined') {
-    return <div style={{ height: 120, backgroundColor: '#f3f4f6', borderRadius: 6 }} />;
-  }
-  
-  // This would normally fetch from API, for now show placeholder
+  // Simple placeholder - avoid hydration complexity
   return (
     <div style={{ 
       height: 120, 
@@ -434,11 +493,6 @@ function FamilyContentSection({ familySlug, type }: { familySlug: string, type: 
 
 // Component to show family members
 function FamilyMembersSection({ familySlug }: { familySlug: string }) {
-  if (typeof window === 'undefined') {
-    return <div style={{ height: 120, backgroundColor: '#f3f4f6', borderRadius: 6 }} />;
-  }
-  
-  // This would normally fetch from API
   return (
     <div style={{ fontSize: 14, color: '#6b7280', lineHeight: 1.6 }}>
       <div style={{ marginBottom: 8 }}>
