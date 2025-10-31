@@ -3,11 +3,11 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 
-// IMPORTANT: make sure NEXT_PUBLIC_API_BASE is set in Vercel to https://api.kinjar.com
+// IMPORTANT: make sure NEXT_PUBLIC_API_BASE is set in Vercel to https://kinjar-api.fly.dev
 const API_BASE =
   process.env.NEXT_PUBLIC_API_BASE ??
   process.env.NEXT_PUBLIC_API_URL ?? // optional fallback if you already have this
-  'https://api.kinjar.com';
+  'https://kinjar-api.fly.dev';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
@@ -28,7 +28,16 @@ export default function LoginPage() {
         body: JSON.stringify({ email, password: pw }),
       });
       if (!res.ok) throw new Error('Invalid email or password');
-      router.push('/admin/approvals'); // landing page after login
+      
+      // Smart redirect based on domain and user role
+      const hostname = window.location.hostname;
+      if (hostname.endsWith('.kinjar.com') && hostname !== 'www.kinjar.com') {
+        // On family subdomain - go to family admin
+        router.push('/admin');
+      } else {
+        // On main domain - go to appropriate admin (will auto-detect)
+        router.push('/admin');
+      }
     } catch (e: any) {
       setErr(e.message || 'Login failed');
     } finally {
