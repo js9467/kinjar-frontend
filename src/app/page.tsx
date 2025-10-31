@@ -17,7 +17,7 @@ export default function HomePage() {
 }
 
 function ClientOnlyHomePage() {
-  // Completely prevent SSR for this component to avoid hydration mismatches
+  // Completely prevent SSR to avoid hydration mismatches
   if (typeof window === 'undefined') {
     return null; // Return nothing during SSR
   }
