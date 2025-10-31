@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { API_BASE } from "@/lib/api";
 
 export const dynamic = "force-dynamic";
@@ -251,7 +251,7 @@ function FamilyAdminInterface({ familySlug, user }: { familySlug: string | null,
           margin: 0,
           color: "#111"
         }}>
-          👨‍👩‍👧‍👦 {familySlug ? familySlug.charAt(0).toUpperCase() + familySlug.slice(1) : 'Family'} Admin
+          👨‍👩‍👧‍👦 {familySlug?.charAt(0).toUpperCase() + familySlug?.slice(1)} Family Admin
         </h1>
         <p style={{ color: "#666", margin: "8px 0 0 0" }}>
           Manage your family site • Logged in as: {user?.email}
