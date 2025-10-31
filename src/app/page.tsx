@@ -3,12 +3,23 @@
 import { API_BASE } from "@/lib/api";
 
 export default function HomePage() {
-  return <SmartHomePage />;
+  return (
+    <>
+      <noscript>
+        <div style={{ padding: 48, textAlign: 'center', fontFamily: 'system-ui' }}>
+          <h1>JavaScript Required</h1>
+          <p>Please enable JavaScript to use Kinjar.</p>
+        </div>
+      </noscript>
+      <ClientOnlyHomePage />
+    </>
+  );
 }
 
-function SmartHomePage() {
+function ClientOnlyHomePage() {
+  // Completely prevent SSR for this component to avoid hydration mismatches
   if (typeof window === 'undefined') {
-    return <LoadingPage />;
+    return null; // Return nothing during SSR
   }
   
   const hostname = window.location.hostname;
@@ -169,6 +180,30 @@ function FunctionalFamilyHomePage({ familySlug }: { familySlug: string }) {
         formData.append('type', type);
         
         try {
+          console.log(`Uploading ${type}:`, file.name, file.size, 'bytes');
+          console.log('API_BASE:', API_BASE);
+          
+          // First, test if the API is reachable
+          try {
+            const healthResponse = await fetch(`${API_BASE}/health`, {
+              method: 'GET'
+            });
+            console.log('Health check status:', healthResponse.status);
+            
+            if (!healthResponse.ok) {
+              throw new Error(`API is not available (health check failed: ${healthResponse.status})`);
+            }
+          } catch (healthError) {
+            console.error('Health check failed:', healthError);
+            alert('API is currently unavailable. The server may be starting up. Please try again in a moment.');
+            return;
+          }
+          
+          const formData = new FormData();
+          formData.append('file', file);
+          formData.append('family_slug', familySlug);
+          formData.append('type', type);
+          
           const response = await fetch(`${API_BASE}/upload`, {
             method: 'POST',
             body: formData
