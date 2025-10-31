@@ -6,10 +6,3 @@ declare namespace JSX {
     [elemName: string]: any;
   }
 }
-
-declare module 'react' {
-  interface HTMLAttributes<T> extends AriaAttributes, DOMAttributes<T> {
-    className?: string;
-    style?: React.CSSProperties;
-  }
-}
