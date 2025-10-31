@@ -6,3 +6,9 @@ declare namespace JSX {
     [elemName: string]: any;
   }
 }
+
+// Global React hooks
+declare const useState: typeof import('react').useState;
+declare const useEffect: typeof import('react').useEffect;
+declare const useCallback: typeof import('react').useCallback;
+declare const useMemo: typeof import('react').useMemo;
