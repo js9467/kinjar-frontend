@@ -161,6 +161,8 @@ function FunctionalFamilyHomePage({ familySlug }: { familySlug: string }) {
       
       for (let i = 0; i < files.length; i++) {
         const file = files[i];
+        console.log(`Uploading ${type}:`, file.name, file.size, 'bytes');
+        
         const formData = new FormData();
         formData.append('file', file);
         formData.append('family_slug', familySlug);
@@ -169,20 +171,24 @@ function FunctionalFamilyHomePage({ familySlug }: { familySlug: string }) {
         try {
           const response = await fetch(`${API_BASE}/upload`, {
             method: 'POST',
-            headers: {
-              'Authorization': `Bearer ${localStorage.getItem('token')}`
-            },
             body: formData
+            // Don't set Content-Type header - browser will set it automatically for FormData
+            // Don't require auth for now until we implement proper login flow
           });
+          
+          console.log('Upload response status:', response.status);
+          const responseText = await response.text();
+          console.log('Upload response:', responseText);
           
           if (response.ok) {
             alert(`${type === 'photo' ? 'Photo' : 'Video'} uploaded successfully!`);
             window.location.reload(); // Refresh to show new content
           } else {
-            alert(`Failed to upload ${type}`);
+            alert(`Failed to upload ${type}: ${responseText}`);
           }
         } catch (error) {
-          alert(`Error uploading ${type}: ${error}`);
+          console.error('Upload error:', error);
+          alert(`Error uploading ${type}: ${error}. Check the console for details.`);
         }
       }
     };
@@ -195,23 +201,29 @@ function FunctionalFamilyHomePage({ familySlug }: { familySlug: string }) {
     if (!email) return;
     
     try {
+      console.log(`Sending invite to ${email} for family ${familySlug}`);
+      
       const response = await fetch(`${API_BASE}/families/${familySlug}/invite`, {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
+          'Content-Type': 'application/json'
+          // Removed auth for development
         },
         body: JSON.stringify({ email })
       });
       
+      console.log('Invite response status:', response.status);
+      const responseText = await response.text();
+      console.log('Invite response:', responseText);
+      
       if (response.ok) {
         alert('Invitation sent successfully!');
       } else {
-        const error = await response.text();
-        alert(`Failed to send invitation: ${error}`);
+        alert(`Failed to send invitation: ${responseText}`);
       }
     } catch (error) {
-      alert(`Error sending invitation: ${error}`);
+      console.error('Invite error:', error);
+      alert(`Error sending invitation: ${error}. Check the console for details.`);
     }
   };
   
