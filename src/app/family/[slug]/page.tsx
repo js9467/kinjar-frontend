@@ -68,18 +68,24 @@ function FunctionalFamilyHomePage({ familySlug }: { familySlug: string }) {
           formData.append('family_slug', familySlug);
           formData.append('type', type);
           
+          console.log('About to upload with origin:', window.location.origin);
+          console.log('File size:', file.size, 'bytes');
+          console.log('Form data entries:', Array.from(formData.entries()).map(([k, v]) => [k, v instanceof File ? `File: ${v.name}` : v]));
+          
           const controller = new AbortController();
-          const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout for uploads
+          const timeoutId = setTimeout(() => controller.abort(), 60000); // Increase timeout to 60 seconds for large files
           
           const response = await fetch(`${API_BASE}/upload`, {
             method: 'POST',
             body: formData,
             signal: controller.signal,
-            mode: 'cors'
+            mode: 'cors',
+            credentials: 'include' // Include credentials for CORS
           });
           
           clearTimeout(timeoutId);
           console.log('Upload response status:', response.status);
+          console.log('Upload response headers:', Object.fromEntries(response.headers.entries()));
           
           const responseText = await response.text();
           console.log('Upload response:', responseText);
@@ -97,12 +103,16 @@ function FunctionalFamilyHomePage({ familySlug }: { familySlug: string }) {
           const errorMessage = error instanceof Error ? error.message : String(error);
           const errorName = error instanceof Error ? error.name : '';
           
+          console.log('Error details:', { errorName, errorMessage, error });
+          
           if (errorName === 'AbortError') {
-            alert(`Upload timed out. The ${type} may be too large or the connection is slow.`);
+            alert(`Upload timed out. The ${type} may be too large (${Math.round(file.size / 1024 / 1024)}MB) or the connection is slow.`);
           } else if (errorMessage.includes('Failed to fetch')) {
-            alert(`Network error: Could not connect to the server. Please check your internet connection and try again.`);
+            alert(`Network error: Could not connect to the server.\n\nThis could be:\n1. CORS issue - Your domain (${window.location.origin}) may not be whitelisted\n2. Network connectivity problem\n3. Server is not responding\n\nCheck the console for more details.`);
+          } else if (errorMessage.includes('NetworkError')) {
+            alert(`Network error: This is likely a CORS issue. Your domain (${window.location.origin}) may not be allowed to access the API.`);
           } else {
-            alert(`Error uploading ${type}: ${error}. Check the console for details.`);
+            alert(`Error uploading ${type}: ${errorMessage}\n\nFull error details in console.`);
           }
           reject(error);
         }

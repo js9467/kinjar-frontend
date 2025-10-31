@@ -23,20 +23,23 @@ function ClientSideSubdomainChecker() {
     return null;
   }
 
-  // Check for subdomain after page load
-  const checkSubdomain = () => {
+  // Use event listener approach to avoid setTimeout issues
+  const windowAny = window as any;
+  if (!windowAny.kinjarSubdomainChecked) {
+    windowAny.kinjarSubdomainChecked = true;
+    
     const hostname = window.location.hostname;
     const familySlug = getFamilySlug(hostname);
     
     if (familySlug) {
       // Store family slug in sessionStorage and redirect to family route
       sessionStorage.setItem('familySlug', familySlug);
-      window.location.href = `/family/${familySlug}`;
+      // Use requestAnimationFrame for better timing
+      requestAnimationFrame(() => {
+        window.location.href = `/family/${familySlug}`;
+      });
     }
-  };
-
-  // Run check after component mounts
-  setTimeout(checkSubdomain, 0);
+  }
   
   return null;
 }
