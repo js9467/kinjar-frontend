@@ -173,16 +173,9 @@ function FunctionalFamilyHomePage({ familySlug }: { familySlug: string }) {
       for (let i = 0; i < files.length; i++) {
         const file = files[i];
         console.log(`Uploading ${type}:`, file.name, file.size, 'bytes');
-        
-        const formData = new FormData();
-        formData.append('file', file);
-        formData.append('family_slug', familySlug);
-        formData.append('type', type);
+        console.log('API_BASE:', API_BASE);
         
         try {
-          console.log(`Uploading ${type}:`, file.name, file.size, 'bytes');
-          console.log('API_BASE:', API_BASE);
-          
           // First, test if the API is reachable
           try {
             const healthResponse = await fetch(`${API_BASE}/health`, {
@@ -199,6 +192,7 @@ function FunctionalFamilyHomePage({ familySlug }: { familySlug: string }) {
             return;
           }
           
+          // Create form data for upload
           const formData = new FormData();
           formData.append('file', file);
           formData.append('family_slug', familySlug);
