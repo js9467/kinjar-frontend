@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Kinjar API Test</title>
+</head>
+<body>
+    <h1>Kinjar API Connection Test</h1>
+    <div id="status">Testing...</div>
+    <div id="results"></div>
+    
+    <script>
+        async function testAPI() {
+            const statusDiv = document.getElementById('status');
+            const resultsDiv = document.getElementById('results');
+            
+            try {
+                // Test basic API connectivity
+                statusDiv.innerHTML = 'Testing API connection...';
+                
+                const response = await fetch('https://kinjar-api.fly.dev/admin/signup/requests', {
+                    method: 'GET',
+                    credentials: 'include',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Origin': 'https://www.kinjar.com'
+                    }
+                });
+                
+                const data = await response.text();
+                
+                resultsDiv.innerHTML = `
+                    <h3>Response:</h3>
+                    <p><strong>Status:</strong> ${response.status}</p>
+                    <p><strong>Response:</strong> ${data}</p>
+                    <p><strong>Headers:</strong> ${JSON.stringify([...response.headers.entries()])}</p>
+                `;
+                
+                if (response.ok) {
+                    statusDiv.innerHTML = '✅ API connection successful!';
+                } else {
+                    statusDiv.innerHTML = '❌ API error: ' + response.status;
+                }
+                
+            } catch (error) {
+                statusDiv.innerHTML = '❌ Connection failed: ' + error.message;
+                resultsDiv.innerHTML = `<p><strong>Error:</strong> ${error}</p>`;
+            }
+        }
+        
+        // Run test on page load
+        testAPI();
+    </script>
+</body>
+</html>
