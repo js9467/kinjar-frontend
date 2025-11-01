@@ -163,7 +163,7 @@ Check the browser console for technical details.`;
   }
 }
 
-// Usage helper function with toast support
+// Usage helper function with optional toast support
 export function createFileUploadHandler(familySlug: string, showToast?: (toast: any) => void) {
   return async (type: 'photo' | 'video') => {
     const input = document.createElement('input');
@@ -180,11 +180,13 @@ export function createFileUploadHandler(familySlug: string, showToast?: (toast: 
           return;
         }
         
-        showToast?.({
-          type: 'info',
-          title: 'Starting Upload',
-          message: `Uploading ${files.length} ${type}${files.length > 1 ? 's' : ''}...`
-        });
+        if (showToast) {
+          showToast({
+            type: 'info',
+            title: 'Starting Upload',
+            message: `Uploading ${files.length} ${type}${files.length > 1 ? 's' : ''}...`
+          });
+        }
         
         let successCount = 0;
         let errorCount = 0;
@@ -205,21 +207,31 @@ export function createFileUploadHandler(familySlug: string, showToast?: (toast: 
               onSuccess: (result) => {
                 console.log(`✅ File uploaded successfully:`, result);
                 successCount++;
-                showToast?.({
-                  type: 'success',
-                  title: 'Upload Complete',
-                  message: `${file.name} uploaded successfully!`
-                });
+                const message = `${file.name} uploaded successfully!`;
+                if (showToast) {
+                  showToast({
+                    type: 'success',
+                    title: 'Upload Complete',
+                    message
+                  });
+                } else {
+                  alert(message);
+                }
               },
               onError: (error) => {
                 console.error(`❌ File upload failed:`, error);
                 errorCount++;
-                showToast?.({
-                  type: 'error',
-                  title: 'Upload Failed',
-                  message: `Failed to upload ${file.name}: ${error.message}`,
-                  duration: 10000 // Longer duration for errors
-                });
+                const message = `Failed to upload ${file.name}: ${error.message}`;
+                if (showToast) {
+                  showToast({
+                    type: 'error',
+                    title: 'Upload Failed',
+                    message,
+                    duration: 10000 // Longer duration for errors
+                  });
+                } else {
+                  alert(message);
+                }
               }
             });
             
@@ -232,12 +244,17 @@ export function createFileUploadHandler(familySlug: string, showToast?: (toast: 
         
         // Show summary
         if (files.length > 1) {
-          showToast?.({
-            type: successCount === files.length ? 'success' : errorCount === files.length ? 'error' : 'warning',
-            title: 'Upload Complete',
-            message: `${successCount} of ${files.length} files uploaded successfully${errorCount > 0 ? `, ${errorCount} failed` : ''}`,
-            duration: 8000
-          });
+          const message = `${successCount} of ${files.length} files uploaded successfully${errorCount > 0 ? `, ${errorCount} failed` : ''}`;
+          if (showToast) {
+            showToast({
+              type: successCount === files.length ? 'success' : errorCount === files.length ? 'error' : 'warning',
+              title: 'Upload Complete',
+              message,
+              duration: 8000
+            });
+          } else {
+            alert(message);
+          }
         }
         
         // Clean up

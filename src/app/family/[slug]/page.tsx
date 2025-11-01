@@ -2,7 +2,6 @@
 
 import { API_BASE } from "@/lib/api";
 import { createFileUploadHandler } from "@/lib/upload";
-import { useToast } from "@/components/Toast";
 
 interface FamilyPageProps {
   params: {
@@ -19,10 +18,9 @@ export default function FamilyPage({ params }: FamilyPageProps) {
 
 function FunctionalFamilyHomePage({ familySlug }: { familySlug: string }) {
   const familyName = familySlug.charAt(0).toUpperCase() + familySlug.slice(1);
-  const { showToast } = useToast();
   
-  // Use the improved upload handler with toast notifications
-  const handleFileUpload = createFileUploadHandler(familySlug, showToast);
+  // Use the improved upload handler without toast notifications for now
+  const handleFileUpload = createFileUploadHandler(familySlug);
   
   const handleInviteFamily = async () => {
     const email = prompt('Enter family member email:');
@@ -30,12 +28,6 @@ function FunctionalFamilyHomePage({ familySlug }: { familySlug: string }) {
     
     try {
       console.log(`Sending invite to ${email} for family ${familySlug}`);
-      
-      showToast({
-        type: 'info',
-        title: 'Sending Invitation',
-        message: `Sending invite to ${email}...`
-      });
       
       const response = await fetch(`${API_BASE}/families/${familySlug}/invite`, {
         method: 'POST',
@@ -51,27 +43,13 @@ function FunctionalFamilyHomePage({ familySlug }: { familySlug: string }) {
       console.log('Invite response:', responseText);
       
       if (response.ok) {
-        showToast({
-          type: 'success',
-          title: 'Invitation Sent',
-          message: `Family invitation sent to ${email} successfully!`
-        });
+        alert('Invitation sent successfully!');
       } else {
-        showToast({
-          type: 'error',
-          title: 'Invitation Failed',
-          message: `Failed to send invitation: ${responseText}`,
-          duration: 8000
-        });
+        alert(`Failed to send invitation: ${responseText}`);
       }
     } catch (error) {
       console.error('Invite error:', error);
-      showToast({
-        type: 'error',
-        title: 'Invitation Error',
-        message: `Error sending invitation: ${error}. Check the console for details.`,
-        duration: 10000
-      });
+      alert(`Error sending invitation: ${error}. Check the console for details.`);
     }
   };
   

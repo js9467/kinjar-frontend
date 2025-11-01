@@ -21,6 +21,14 @@ const ToastContext = createContext<ToastContextType | undefined>(undefined);
 export function useToast() {
   const context = useContext(ToastContext);
   if (context === undefined) {
+    // Return a no-op implementation for SSR
+    if (typeof window === 'undefined') {
+      return {
+        toasts: [],
+        showToast: () => {},
+        removeToast: () => {}
+      };
+    }
     throw new Error('useToast must be used within a ToastProvider');
   }
   return context;
@@ -34,6 +42,9 @@ export function ToastProvider({ children }: ToastProviderProps) {
   const [toasts, setToasts] = useState<Toast[]>([]);
 
   const showToast = useCallback((toast: Omit<Toast, 'id'>) => {
+    // Only show toasts on client side
+    if (typeof window === 'undefined') return;
+    
     const id = Math.random().toString(36).substr(2, 9);
     const newToast: Toast = {
       ...toast,
@@ -69,7 +80,8 @@ interface ToastContainerProps {
 }
 
 function ToastContainer({ toasts, onRemove }: ToastContainerProps) {
-  if (toasts.length === 0) return null;
+  // Only render on client side
+  if (typeof window === 'undefined' || toasts.length === 0) return null;
 
   return (
     <div style={{
