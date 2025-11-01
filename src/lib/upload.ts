@@ -38,9 +38,21 @@ export async function uploadFile(file: File, options: UploadOptions): Promise<an
     
     onProgress?.(0);
     
+    // Add more debugging for the fetch request
+    console.log('🔍 Making fetch request with options:', {
+      method: 'POST',
+      url: `${API_BASE}/upload`,
+      hasFormData: true,
+      formDataEntries: Array.from(formData.entries()).map(([key, value]) => 
+        value instanceof File ? `${key}: File(${value.name})` : `${key}: ${value}`
+      )
+    });
+    
     const uploadResponse = await fetch(`${API_BASE}/upload`, {
       method: 'POST',
       body: formData,
+      mode: 'cors',
+      credentials: 'omit', // Explicitly omit credentials to avoid CORS issues
     });
     
     console.log('Upload response status:', uploadResponse.status);
