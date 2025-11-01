@@ -177,24 +177,39 @@ function MainLandingPage() {
         try {
           // First, test if the API is reachable with better error handling
           try {
+            console.log('Starting health check to:', `${API_BASE}/health`);
             const controller = new AbortController();
-            const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+            const timeoutId = setTimeout(() => {
+              console.log('Health check timeout reached');
+              controller.abort();
+            }, 30000); // 30 second timeout
             
-            const healthResponse = await fetch(`${API_BASE}/health`, {
+            const healthResponse = await fetch(`${API_BASE}/health?t=${Date.now()}`, {
               method: 'GET',
               signal: controller.signal,
               mode: 'cors', // Explicitly set CORS mode
+              cache: 'no-cache',
               headers: {
                 'Accept': 'application/json',
+                'Cache-Control': 'no-cache, no-store, must-revalidate',
+                'Pragma': 'no-cache',
               }
             });
             
             clearTimeout(timeoutId);
-            console.log('Health check status:', healthResponse.status);
+            console.log('Health check response:', {
+              status: healthResponse.status,
+              statusText: healthResponse.statusText,
+              headers: Object.fromEntries(healthResponse.headers.entries())
+            });
             
             if (!healthResponse.ok) {
-              throw new Error(`API is not available (health check failed: ${healthResponse.status})`);
+              const responseText = await healthResponse.text().catch(() => 'Unable to read response');
+              throw new Error(`API is not available (health check failed: ${healthResponse.status} ${healthResponse.statusText}): ${responseText}`);
             }
+            
+            const healthData = await healthResponse.json().catch(() => null);
+            console.log('Health check data:', healthData);
           } catch (healthError) {
             console.error('Health check failed:', healthError);
             const errorMessage = healthError instanceof Error ? healthError.message : String(healthError);
@@ -224,7 +239,12 @@ function MainLandingPage() {
             method: 'POST',
             body: formData,
             signal: controller.signal,
-            mode: 'cors'
+            mode: 'cors',
+            cache: 'no-cache',
+            headers: {
+              'Cache-Control': 'no-cache, no-store, must-revalidate',
+              'Pragma': 'no-cache',
+            }
           });
           
           clearTimeout(timeoutId);
