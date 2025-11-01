@@ -89,3 +89,123 @@ export async function uploadFile(file: File, options: UploadOptions): Promise<an
     throw finalError;
   }
 }
+
+// Usage helper function with optional toast support
+export function createFileUploadHandler(familySlug: string, showToast?: (toast: any) => void) {
+  return async (type: 'photo' | 'video') => {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = type === 'photo' ? 'image/*' : 'video/*';
+    input.multiple = true;
+    input.style.display = 'none';
+    
+    return new Promise<void>((resolve, reject) => {
+      input.onchange = async (e) => {
+        const files = (e.target as HTMLInputElement).files;
+        if (!files || files.length === 0) {
+          resolve();
+          return;
+        }
+        
+        if (showToast) {
+          showToast({
+            type: 'info',
+            title: 'Starting Upload',
+            message: `Uploading ${files.length} ${type}${files.length > 1 ? 's' : ''}...`
+          });
+        }
+        
+        let successCount = 0;
+        let errorCount = 0;
+        
+        // Process files sequentially to avoid overwhelming the server
+        for (let i = 0; i < files.length; i++) {
+          const file = files[i];
+          
+          try {
+            console.log(`\n🚀 Processing file ${i + 1}/${files.length}: ${file.name}`);
+            
+            await uploadFile(file, {
+              familySlug,
+              type,
+              onProgress: (progress) => {
+                console.log(`📈 Upload progress: ${progress}%`);
+              },
+              onSuccess: (result) => {
+                console.log(`✅ File uploaded successfully:`, result);
+                successCount++;
+                const message = `${file.name} uploaded successfully!`;
+                if (showToast) {
+                  showToast({
+                    type: 'success',
+                    title: 'Upload Complete',
+                    message
+                  });
+                } else {
+                  alert(message);
+                }
+              },
+              onError: (error) => {
+                console.error(`❌ File upload failed:`, error);
+                errorCount++;
+                const message = `Failed to upload ${file.name}: ${error.message}`;
+                if (showToast) {
+                  showToast({
+                    type: 'error',
+                    title: 'Upload Failed',
+                    message,
+                    duration: 10000 // Longer duration for errors
+                  });
+                } else {
+                  alert(message);
+                }
+              }
+            });
+            
+          } catch (error) {
+            console.error(`💥 Failed to upload file ${file.name}:`, error);
+            errorCount++;
+            // Continue with next file instead of stopping
+          }
+        }
+        
+        // Show summary
+        if (files.length > 1) {
+          const message = `${successCount} of ${files.length} files uploaded successfully${errorCount > 0 ? `, ${errorCount} failed` : ''}`;
+          if (showToast) {
+            showToast({
+              type: successCount === files.length ? 'success' : errorCount === files.length ? 'error' : 'warning',
+              title: 'Upload Complete',
+              message,
+              duration: 8000
+            });
+          } else {
+            alert(message);
+          }
+        }
+        
+        // Clean up
+        try {
+          document.body.removeChild(input);
+        } catch (e) {
+          // Input may already be removed
+        }
+        
+        resolve();
+      };
+      
+      input.oncancel = () => {
+        try {
+          document.body.removeChild(input);
+        } catch (e) {
+          // Input may already be removed
+        }
+        resolve();
+      };
+      
+      // Add to DOM and trigger
+      document.body.appendChild(input);
+      input.click();
+    });
+  };
+}
