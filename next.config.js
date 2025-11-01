@@ -1,5 +1,9 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  experimental: {
+    forceSwcTransforms: true,
+  },
+  
   // Development configuration
   ...(process.env.NODE_ENV === 'development' && {
     // Disable minification in development to avoid React errors
