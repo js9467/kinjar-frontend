@@ -35,8 +35,7 @@ export async function uploadFile(file: File, options: UploadOptions): Promise<an
             cache: 'no-cache',
             headers: {
               'Origin': window.location.origin,
-              'Access-Control-Request-Method': 'POST',
-              'Access-Control-Request-Headers': 'content-type,x-tenant-slug'
+              'Access-Control-Request-Method': 'POST'
             }
           });
           
