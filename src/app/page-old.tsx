@@ -165,6 +165,8 @@ function MainLandingPage() {
     </main>
   );
 }
+
+function FunctionalFamilyHomePage({ familySlug }: { familySlug: string }) {
   const familyName = familySlug.charAt(0).toUpperCase() + familySlug.slice(1);
   
   const handleFileUpload = async (type: 'photo' | 'video') => {
