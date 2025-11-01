@@ -18,67 +18,104 @@ export async function uploadFile(file: File, options: UploadOptions): Promise<an
   console.log(`Type: ${type}`);
   
   try {
-    console.log('Preparing upload data...');
+    console.log('Step 1: Requesting presigned URL...');
     
-    const formData = new FormData();
-    formData.append('file', file);
-    formData.append('family_slug', familySlug);
-    formData.append('type', type);
-    
-    console.log('Form data entries:');
-    for (const [key, value] of formData.entries()) {
-      if (value instanceof File) {
-        console.log(`  ${key}: File(${value.name}, ${value.size} bytes, ${value.type})`);
-      } else {
-        console.log(`  ${key}: ${value}`);
-      }
-    }
-    
-    console.log('Starting file upload...');
-    
-    onProgress?.(0);
-    
-    // Add more debugging for the fetch request
-    console.log('🔍 Making fetch request with options:', {
+    // Step 1: Get presigned URL from API
+    const presignResponse = await fetch(`${API_BASE}/presign`, {
       method: 'POST',
-      url: `${API_BASE}/upload`,
-      hasFormData: true,
-      formDataEntries: Array.from(formData.entries()).map(([key, value]) => 
-        value instanceof File ? `${key}: File(${value.name})` : `${key}: ${value}`
-      )
-    });
-    
-    const uploadResponse = await fetch(`${API_BASE}/upload`, {
-      method: 'POST',
-      body: formData,
+      headers: {
+        'Content-Type': 'application/json',
+        'x-tenant-slug': familySlug,
+      },
+      body: JSON.stringify({
+        filename: file.name,
+        contentType: file.type
+      }),
       mode: 'cors',
-      credentials: 'omit', // Explicitly omit credentials to avoid CORS issues
+      credentials: 'omit',
     });
     
-    console.log('Upload response status:', uploadResponse.status);
-    console.log('Upload response headers:', Object.fromEntries(uploadResponse.headers.entries()));
+    if (!presignResponse.ok) {
+      const errorText = await presignResponse.text();
+      throw new Error(`Failed to get presigned URL: ${errorText}`);
+    }
     
-    const responseText = await uploadResponse.text();
-    console.log('Raw response:', responseText);
+    const presignData = await presignResponse.json();
+    console.log('Presign response:', presignData);
     
-    let responseData: any;
+    if (!presignData.ok || !presignData.put?.url) {
+      throw new Error('Invalid presign response: ' + JSON.stringify(presignData));
+    }
+    
+    console.log('Step 2: Uploading directly to R2...');
+    onProgress?.(10); // Show some initial progress
+    
+    // Step 2: Upload directly to R2 using presigned URL
+    const uploadResponse = await fetch(presignData.put.url, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': file.type,
+        ...presignData.put.headers
+      },
+      body: file,
+      mode: 'cors',
+    });
+    
+    console.log('R2 upload response status:', uploadResponse.status);
+    
+    if (!uploadResponse.ok) {
+      const errorText = await uploadResponse.text();
+      throw new Error(`Failed to upload to R2: ${uploadResponse.status} ${errorText}`);
+    }
+    
+    onProgress?.(90);
+    
+    console.log('Step 3: Notifying API of upload completion...');
+    
+    // Step 3: Notify API that upload is complete (optional but recommended)
     try {
-      responseData = JSON.parse(responseText);
-    } catch (parseError) {
-      console.warn('Response is not valid JSON:', parseError);
-      responseData = { rawResponse: responseText };
+      const completeResponse = await fetch(`${API_BASE}/upload/complete`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-tenant-slug': familySlug,
+        },
+        body: JSON.stringify({
+          id: presignData.id,
+          key: presignData.key,
+          type: type,
+          size: file.size
+        }),
+        mode: 'cors',
+        credentials: 'omit',
+      });
+      
+      if (completeResponse.ok) {
+        const completeData = await completeResponse.json();
+        console.log('Upload completion notified:', completeData);
+      } else {
+        console.warn('Failed to notify upload completion, but file was uploaded successfully');
+      }
+    } catch (completeError) {
+      console.warn('Failed to notify upload completion:', completeError);
+      // Don't fail the entire upload for this
     }
     
-    if (uploadResponse.ok) {
-      console.log('Upload successful!', responseData);
-      onProgress?.(100);
-      onSuccess?.(responseData);
-      return responseData;
-    } else {
-      const errorMessage = responseData?.error || responseText || `HTTP ${uploadResponse.status}`;
-      console.error('Upload failed:', errorMessage);
-      throw new Error(`Upload failed: ${errorMessage}`);
-    }
+    onProgress?.(100);
+    
+    const result = {
+      ok: true,
+      id: presignData.id,
+      key: presignData.key,
+      publicUrl: presignData.publicUrl,
+      filename: file.name,
+      size: file.size,
+      type: file.type
+    };
+    
+    console.log('Upload successful!', result);
+    onSuccess?.(result);
+    return result;
     
   } catch (error) {
     console.error('Upload error:', error);
