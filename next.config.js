@@ -4,6 +4,11 @@ const nextConfig = {
     forceSwcTransforms: true,
   },
   
+  // Disable static generation for problematic pages
+  generateBuildId: async () => {
+    return 'kinjar-build-' + Date.now()
+  },
+  
   async headers() {
     return [
       {

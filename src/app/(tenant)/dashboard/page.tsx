@@ -1,4 +1,4 @@
-"use client";"use client";"use client";"use client";"use client";"use client";
+"use client";"use client";"use client";"use client";"use client";"use client";"use client";"use client";
 
 
 
@@ -8,6 +8,24 @@ export default function DashboardPage() {
 
     <div style={{ padding: '2rem', fontFamily: 'system-ui' }}>export default function DashboardPage() {
 
+      <h1>Dashboard</h1>
+
+      <p>Welcome to your dashboard.</p>  return (
+
+    </div>
+
+  );    <div style={{ padding: '2rem', fontFamily: 'system-ui' }}>export default function DashboardPage() {
+
+}
+      <h1>Dashboard</h1>
+
+      <p>Welcome to your dashboard.</p>  return (
+
+    </div>
+
+  );    <div style={{ padding: '2rem', fontFamily: 'system-ui' }}>export default function DashboardPage() {
+
+}
       <h1>Dashboard</h1>
 
       <p>Welcome to your dashboard.</p>  return (
