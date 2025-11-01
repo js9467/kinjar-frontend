@@ -1,5 +1,6 @@
 // Enhanced upload functionality with better CORS and error handling
 import { API_BASE } from "@/lib/api";
+import { retryWithBackoff, fetchWithRetry, getUserFriendlyErrorMessage } from "@/lib/api-utils";
 
 export interface UploadOptions {
   familySlug: string;
@@ -18,46 +19,43 @@ export async function uploadFile(file: File, options: UploadOptions): Promise<an
   console.log(`📁 Type: ${type}`);
   
   try {
-    // Step 1: Health check with better error handling
+    // Step 1: Health check with retry logic
     console.log('🔍 Checking API health...');
     
-    const healthController = new AbortController();
-    const healthTimeout = setTimeout(() => healthController.abort(), 10000);
-    
     try {
-      const healthResponse = await fetch(`${API_BASE}/health`, {
-        method: 'GET',
-        signal: healthController.signal,
-        mode: 'cors',
-        cache: 'no-cache',
-        headers: {
-          'Accept': 'application/json',
+      await retryWithBackoff(async () => {
+        const healthController = new AbortController();
+        const healthTimeout = setTimeout(() => healthController.abort(), 10000);
+        
+        try {
+          const healthResponse = await fetch(`${API_BASE}/health`, {
+            method: 'GET',
+            signal: healthController.signal,
+            mode: 'cors',
+            cache: 'no-cache',
+            headers: {
+              'Accept': 'application/json',
+            }
+          });
+          
+          clearTimeout(healthTimeout);
+          
+          if (!healthResponse.ok) {
+            throw new Error(`HTTP ${healthResponse.status}: ${healthResponse.statusText}`);
+          }
+          
+          const healthData = await healthResponse.json();
+          console.log('✅ API health check passed:', healthData);
+          
+        } catch (error) {
+          clearTimeout(healthTimeout);
+          throw error;
         }
-      });
-      
-      clearTimeout(healthTimeout);
-      
-      if (!healthResponse.ok) {
-        throw new Error(`API health check failed: ${healthResponse.status} ${healthResponse.statusText}`);
-      }
-      
-      const healthData = await healthResponse.json();
-      console.log('✅ API health check passed:', healthData);
+      }, { maxRetries: 2, initialDelay: 1000 });
       
     } catch (healthError) {
-      clearTimeout(healthTimeout);
-      console.error('❌ API health check failed:', healthError);
-      
-      const errorMessage = healthError instanceof Error ? healthError.message : String(healthError);
-      const errorName = healthError instanceof Error ? healthError.name : '';
-      
-      if (errorName === 'AbortError') {
-        throw new Error('API health check timed out. The server may be slow or unavailable.');
-      } else if (errorMessage.includes('Failed to fetch') || errorMessage.includes('NetworkError')) {
-        throw new Error('Cannot connect to the API server. This may be a CORS issue or network problem.');
-      } else {
-        throw new Error(`API is not available: ${errorMessage}`);
-      }
+      console.error('❌ API health check failed after retries:', healthError);
+      throw new Error(getUserFriendlyErrorMessage(healthError));
     }
     
     // Step 2: Prepare form data
@@ -165,8 +163,8 @@ Check the browser console for technical details.`;
   }
 }
 
-// Usage helper function
-export function createFileUploadHandler(familySlug: string) {
+// Usage helper function with toast support
+export function createFileUploadHandler(familySlug: string, showToast?: (toast: any) => void) {
   return async (type: 'photo' | 'video') => {
     const input = document.createElement('input');
     input.type = 'file';
@@ -181,6 +179,15 @@ export function createFileUploadHandler(familySlug: string) {
           resolve();
           return;
         }
+        
+        showToast?.({
+          type: 'info',
+          title: 'Starting Upload',
+          message: `Uploading ${files.length} ${type}${files.length > 1 ? 's' : ''}...`
+        });
+        
+        let successCount = 0;
+        let errorCount = 0;
         
         // Process files sequentially to avoid overwhelming the server
         for (let i = 0; i < files.length; i++) {
@@ -197,18 +204,40 @@ export function createFileUploadHandler(familySlug: string) {
               },
               onSuccess: (result) => {
                 console.log(`✅ File uploaded successfully:`, result);
-                alert(`${type === 'photo' ? 'Photo' : 'Video'} "${file.name}" uploaded successfully!`);
+                successCount++;
+                showToast?.({
+                  type: 'success',
+                  title: 'Upload Complete',
+                  message: `${file.name} uploaded successfully!`
+                });
               },
               onError: (error) => {
                 console.error(`❌ File upload failed:`, error);
-                alert(error.message);
+                errorCount++;
+                showToast?.({
+                  type: 'error',
+                  title: 'Upload Failed',
+                  message: `Failed to upload ${file.name}: ${error.message}`,
+                  duration: 10000 // Longer duration for errors
+                });
               }
             });
             
           } catch (error) {
             console.error(`💥 Failed to upload file ${file.name}:`, error);
+            errorCount++;
             // Continue with next file instead of stopping
           }
+        }
+        
+        // Show summary
+        if (files.length > 1) {
+          showToast?.({
+            type: successCount === files.length ? 'success' : errorCount === files.length ? 'error' : 'warning',
+            title: 'Upload Complete',
+            message: `${successCount} of ${files.length} files uploaded successfully${errorCount > 0 ? `, ${errorCount} failed` : ''}`,
+            duration: 8000
+          });
         }
         
         // Clean up
