@@ -1,6 +1,6 @@
 // Enhanced upload functionality with better CORS and error handling
 import { API_BASE } from "@/lib/api";
-import { retryWithBackoff, getUserFriendlyErrorMessage } from "@/lib/api-utils";
+import { getUserFriendlyErrorMessage } from "@/lib/api-utils";
 
 function replaceSpecialCharacters(input: string): string {
   const replacements: Record<string, string> = {
@@ -69,46 +69,7 @@ export async function uploadFile(file: File, options: UploadOptions): Promise<an
   }
 
   try {
-    // Step 1: Check if upload endpoint is available with CORS preflight
-    console.log('🔍 Checking upload endpoint availability...');
-    
-    try {
-      await retryWithBackoff(async () => {
-        const preflightController = new AbortController();
-        const preflightTimeout = setTimeout(() => preflightController.abort(), 10000);
-        
-        try {
-          const preflightResponse = await fetch(`${API_BASE}/upload`, {
-            method: 'OPTIONS',
-            signal: preflightController.signal,
-            mode: 'cors',
-            cache: 'no-cache',
-            headers: {
-              'Origin': window.location.origin,
-              'Access-Control-Request-Method': 'POST'
-            }
-          });
-          
-          clearTimeout(preflightTimeout);
-          
-          if (!preflightResponse.ok) {
-            throw new Error(`HTTP ${preflightResponse.status}: ${preflightResponse.statusText}`);
-          }
-          
-          console.log('✅ Upload endpoint check passed');
-          
-        } catch (error) {
-          clearTimeout(preflightTimeout);
-          throw error;
-        }
-      }, { maxRetries: 2, initialDelay: 1000 });
-      
-    } catch (preflightError) {
-      console.error('❌ Upload endpoint check failed after retries:', preflightError);
-      throw new Error(getUserFriendlyErrorMessage(preflightError));
-    }
-    
-    // Step 2: Prepare form data
+    // Step 1: Prepare form data
     console.log('📦 Preparing upload data...');
     
     const formData = new FormData();
@@ -129,7 +90,7 @@ export async function uploadFile(file: File, options: UploadOptions): Promise<an
       }
     }
     
-    // Step 3: Upload with better configuration
+    // Step 2: Upload with better configuration
     console.log('⬆️ Starting file upload...');
     
     const uploadController = new AbortController();
@@ -152,7 +113,7 @@ export async function uploadFile(file: File, options: UploadOptions): Promise<an
     console.log('📊 Upload response status:', uploadResponse.status);
     console.log('📊 Upload response headers:', Object.fromEntries(uploadResponse.headers.entries()));
     
-    // Step 4: Process response
+    // Step 3: Process response
     let responseData: any;
     const responseText = await uploadResponse.text();
     
