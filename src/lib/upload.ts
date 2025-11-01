@@ -1,6 +1,49 @@
 // Enhanced upload functionality with better CORS and error handling
 import { API_BASE } from "@/lib/api";
-import { retryWithBackoff, fetchWithRetry, getUserFriendlyErrorMessage } from "@/lib/api-utils";
+import { retryWithBackoff, getUserFriendlyErrorMessage } from "@/lib/api-utils";
+
+function replaceSpecialCharacters(input: string): string {
+  const replacements: Record<string, string> = {
+    '’': "'",
+    '‘': "'",
+    '“': '"',
+    '”': '"',
+    '–': '-',
+    '—': '-',
+    '…': '...',
+  };
+
+  return input
+    .split('')
+    .map((char) => replacements[char] ?? char)
+    .join('');
+}
+
+export function sanitizeFileName(originalName: string): string {
+  if (!originalName) {
+    return 'upload';
+  }
+
+  const replaced = replaceSpecialCharacters(originalName).normalize('NFKD');
+  const withoutDiacritics = replaced.replace(/[\u0300-\u036f]/g, '');
+  const trimmed = withoutDiacritics.trim();
+
+  const lastDotIndex = trimmed.lastIndexOf('.');
+  const baseName = lastDotIndex > 0 ? trimmed.slice(0, lastDotIndex) : trimmed;
+  const extension = lastDotIndex > 0 ? trimmed.slice(lastDotIndex + 1) : '';
+
+  const safeBase = baseName
+    .replace(/[^a-zA-Z0-9-_]+/g, '_')
+    .replace(/_+/g, '_')
+    .replace(/^_+|_+$/g, '');
+
+  const safeExtension = extension.replace(/[^a-zA-Z0-9]+/g, '');
+
+  const finalBase = safeBase || 'upload';
+  const finalExtension = safeExtension ? `.${safeExtension}` : '';
+
+  return `${finalBase}${finalExtension}`;
+}
 
 export interface UploadOptions {
   familySlug: string;
@@ -8,16 +51,23 @@ export interface UploadOptions {
   onProgress?: (progress: number) => void;
   onSuccess?: (result: any) => void;
   onError?: (error: Error) => void;
+  fileNameOverride?: string;
 }
 
 export async function uploadFile(file: File, options: UploadOptions): Promise<any> {
-  const { familySlug, type, onProgress, onSuccess, onError } = options;
-  
+  const { familySlug, type, onProgress, onSuccess, onError, fileNameOverride } = options;
+
   console.log(`🚀 Starting upload: ${file.name} (${(file.size / 1024 / 1024).toFixed(2)}MB)`);
   console.log(`📡 API Base: ${API_BASE}`);
   console.log(`🏠 Family: ${familySlug}`);
   console.log(`📁 Type: ${type}`);
-  
+
+  const sanitizedFileName = fileNameOverride ?? sanitizeFileName(file.name);
+
+  if (sanitizedFileName !== file.name) {
+    console.log(`✏️ Sanitized file name for upload: "${file.name}" → "${sanitizedFileName}"`);
+  }
+
   try {
     // Step 1: Check if upload endpoint is available with CORS preflight
     console.log('🔍 Checking upload endpoint availability...');
@@ -62,15 +112,18 @@ export async function uploadFile(file: File, options: UploadOptions): Promise<an
     console.log('📦 Preparing upload data...');
     
     const formData = new FormData();
-    formData.append('file', file);
+    formData.append('file', file, sanitizedFileName);
     formData.append('family_slug', familySlug);
     formData.append('type', type);
-    
+
     // Log form data for debugging
     console.log('📋 Form data entries:');
     for (const [key, value] of formData.entries()) {
       if (value instanceof File) {
-        console.log(`  ${key}: File(${value.name}, ${value.size} bytes, ${value.type})`);
+        const loggedName = sanitizedFileName !== file.name
+          ? `${sanitizedFileName} (original: ${file.name})`
+          : value.name;
+        console.log(`  ${key}: File(${loggedName}, ${value.size} bytes, ${value.type})`);
       } else {
         console.log(`  ${key}: ${value}`);
       }
@@ -194,20 +247,28 @@ export function createFileUploadHandler(familySlug: string, showToast?: (toast: 
         // Process files sequentially to avoid overwhelming the server
         for (let i = 0; i < files.length; i++) {
           const file = files[i];
-          
+          const sanitizedFileName = sanitizeFileName(file.name);
+
           try {
             console.log(`\n🚀 Processing file ${i + 1}/${files.length}: ${file.name}`);
-            
+            if (sanitizedFileName !== file.name) {
+              console.log(`✏️ Using sanitized name: ${sanitizedFileName}`);
+            }
+
             await uploadFile(file, {
               familySlug,
               type,
+              fileNameOverride: sanitizedFileName,
               onProgress: (progress) => {
                 console.log(`📈 Upload progress: ${progress}%`);
               },
               onSuccess: (result) => {
                 console.log(`✅ File uploaded successfully:`, result);
                 successCount++;
-                const message = `${file.name} uploaded successfully!`;
+                const displayName = sanitizedFileName !== file.name
+                  ? `${file.name} (saved as ${sanitizedFileName})`
+                  : file.name;
+                const message = `${displayName} uploaded successfully!`;
                 if (showToast) {
                   showToast({
                     type: 'success',
