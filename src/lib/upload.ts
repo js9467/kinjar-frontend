@@ -19,43 +19,44 @@ export async function uploadFile(file: File, options: UploadOptions): Promise<an
   console.log(`📁 Type: ${type}`);
   
   try {
-    // Step 1: Health check with retry logic
-    console.log('🔍 Checking API health...');
+    // Step 1: Check if upload endpoint is available with CORS preflight
+    console.log('🔍 Checking upload endpoint availability...');
     
     try {
       await retryWithBackoff(async () => {
-        const healthController = new AbortController();
-        const healthTimeout = setTimeout(() => healthController.abort(), 10000);
+        const preflightController = new AbortController();
+        const preflightTimeout = setTimeout(() => preflightController.abort(), 10000);
         
         try {
-          const healthResponse = await fetch(`${API_BASE}/health`, {
-            method: 'GET',
-            signal: healthController.signal,
+          const preflightResponse = await fetch(`${API_BASE}/upload`, {
+            method: 'OPTIONS',
+            signal: preflightController.signal,
             mode: 'cors',
             cache: 'no-cache',
             headers: {
-              'Accept': 'application/json',
+              'Origin': window.location.origin,
+              'Access-Control-Request-Method': 'POST',
+              'Access-Control-Request-Headers': 'content-type,x-tenant-slug'
             }
           });
           
-          clearTimeout(healthTimeout);
+          clearTimeout(preflightTimeout);
           
-          if (!healthResponse.ok) {
-            throw new Error(`HTTP ${healthResponse.status}: ${healthResponse.statusText}`);
+          if (!preflightResponse.ok) {
+            throw new Error(`HTTP ${preflightResponse.status}: ${preflightResponse.statusText}`);
           }
           
-          const healthData = await healthResponse.json();
-          console.log('✅ API health check passed:', healthData);
+          console.log('✅ Upload endpoint check passed');
           
         } catch (error) {
-          clearTimeout(healthTimeout);
+          clearTimeout(preflightTimeout);
           throw error;
         }
       }, { maxRetries: 2, initialDelay: 1000 });
       
-    } catch (healthError) {
-      console.error('❌ API health check failed after retries:', healthError);
-      throw new Error(getUserFriendlyErrorMessage(healthError));
+    } catch (preflightError) {
+      console.error('❌ Upload endpoint check failed after retries:', preflightError);
+      throw new Error(getUserFriendlyErrorMessage(preflightError));
     }
     
     // Step 2: Prepare form data
