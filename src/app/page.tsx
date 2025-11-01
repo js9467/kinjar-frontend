@@ -1,7 +1,5 @@
 "use client";
 
-export const dynamic = 'force-dynamic';
-
 import { API_BASE } from "@/lib/api";
 
 export default function HomePage() {

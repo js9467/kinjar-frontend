@@ -1,61 +1,207 @@
-import { auth } from "@/lib/auth";
-import { prisma } from "@/lib/db";
-import { headers } from "next/headers";
-import { redirect } from "next/navigation";
+"use client";"use client";"use client";"use client";"use client";"use client";
 
-async function addMemberAction(formData: FormData) {
-  "use server";
-  const session = await auth();
-  if (!session?.user) redirect("/login");
 
-  const tenantSlug = String(formData.get("tenantSlug") || "");
-  const email = String(formData.get("email") || "").trim().toLowerCase();
-  const role = String(formData.get("role") || "VIEWER") as any;
 
-  const tenant = await prisma.tenant.findUnique({ where: { slug: tenantSlug } });
-  if (!tenant) return;
+export default function DashboardPage() {
 
-  // Ensure current user is ADMIN/OWNER
-  const me = await prisma.membership.findUnique({
-    where: { userId_tenantId: { userId: (session.user as any).id, tenantId: tenant.id } }
-  });
-  if (!me || (me.role !== "OWNER" && me.role !== "ADMIN")) return;
+  return (
 
-  // Create user placeholder if they haven't signed in yet
-  let user = await prisma.user.findUnique({ where: { email } });
-  if (!user) {
-    user = await prisma.user.create({ data: { email, name: email.split("@")[0] } });
+    <div style={{ padding: '2rem', fontFamily: 'system-ui' }}>export default function DashboardPage() {
+
+      <h1>Dashboard</h1>
+
+      <p>Welcome to your dashboard.</p>  return (
+
+    </div>
+
+  );    <div style={{ export default function DashboardPage() {
+
+}
+      padding: '2rem',
+
+      fontFamily: 'system-ui'  return (
+
+    }}>
+
+      <h1>Dashboard</h1>    <div style={{ import { useEffect, useState } from "react";
+
+      <p>Welcome to your dashboard.</p>
+
+    </div>      padding: '2rem',
+
+  );
+
+}      fontFamily: 'system-ui'import { useRouter } from "next/navigation";
+
+    }}>
+
+      <h1>Dashboard</h1>import { API_BASE } from "@/lib/api";import { API_BASE } from "@/lib/api";
+
+      <p>Welcome to your dashboard.</p>
+
+    </div>export default function DashboardPage() {
+
+  );
+
+}  const [isLoading, setIsLoading] = useState(true);import { useEffect, useState } from "react";import { useEffect, useState } from "react";
+
+  const router = useRouter();
+
+import { useRouter } from "next/navigation";import { useRouter } from "next/navigation";
+
+  useEffect(() => {
+
+    const timer = setTimeout(() => {
+
+      setIsLoading(false);
+
+    }, 1000);export default function DashboardPage() {interface User {
+
+
+
+    return () => clearTimeout(timer);  const [isLoading, setIsLoading] = useState(true);  id: string;
+
+  }, []);
+
+  const [error, setError] = useState<string | null>(null);  email: string;
+
+  if (isLoading) {
+
+    return (  const router = useRouter();  displayName?: string;
+
+      <div style={{ 
+
+        padding: '2rem',   role: string;
+
+        textAlign: 'center',
+
+        fontFamily: 'system-ui'  useEffect(() => {  createdAt: string;
+
+      }}>
+
+        <div>Loading dashboard...</div>    const checkAuth = async () => {}
+
+      </div>
+
+    );      try {
+
   }
 
-  await prisma.membership.upsert({
-    where: { userId_tenantId: { userId: user.id, tenantId: tenant.id } },
-    update: { role },
-    create: { userId: user.id, tenantId: tenant.id, role }
+        const response = await fetch(`${API_BASE}/auth/me`, {async function addMemberAction(formData: FormData) {
+
+  return (
+
+    <div style={{           credentials: 'include'  "use server";
+
+      padding: '2rem',
+
+      fontFamily: 'system-ui'        });  const session = await auth();
+
+    }}>
+
+      <h1>Dashboard</h1>          if (!session?.user) redirect("/login");
+
+      <p>Welcome to your dashboard. This page is under development.</p>
+
+    </div>        if (!response.ok) {
+
+  );
+
+}          router.push('/login');  const tenantSlug = String(formData.get("tenantSlug") || "");
+
+          return;  const email = String(formData.get("email") || "").trim().toLowerCase();
+
+        }  const role = String(formData.get("role") || "VIEWER") as any;
+
+        
+
+        setIsLoading(false);  const tenant = await prisma.tenant.findUnique({ where: { slug: tenantSlug } });
+
+      } catch (err) {  if (!tenant) return;
+
+        setError('Failed to authenticate');
+
+        setIsLoading(false);  // Ensure current user is ADMIN/OWNER
+
+      }  const me = await prisma.membership.findUnique({
+
+    };    where: { userId_tenantId: { userId: (session.user as any).id, tenantId: tenant.id } }
+
   });
-}
 
-async function updateRoleAction(formData: FormData) {
-  "use server";
-  const session = await auth();
-  if (!session?.user) redirect("/login");
+    checkAuth();  if (!me || (me.role !== "OWNER" && me.role !== "ADMIN")) return;
 
-  const tenantSlug = String(formData.get("tenantSlug") || "");
-  const membershipId = String(formData.get("membershipId") || "");
-  const role = String(formData.get("role") || "VIEWER") as any;
+  }, [router]);
 
-  const tenant = await prisma.tenant.findUnique({ where: { slug: tenantSlug } });
-  if (!tenant) return;
+  // Create user placeholder if they haven't signed in yet
 
-  const me = await prisma.membership.findUnique({
-    where: { userId_tenantId: { userId: (session.user as any).id, tenantId: tenant.id } }
-  });
-  if (!me || (me.role !== "OWNER" && me.role !== "ADMIN")) return;
+  if (isLoading) {  let user = await prisma.user.findUnique({ where: { email } });
 
-  await prisma.membership.update({ where: { id: membershipId }, data: { role } });
-}
+    return (  if (!user) {
 
-export default async function TenantDashboard() {
-  const session = await auth();
+      <div style={{     user = await prisma.user.create({ data: { email, name: email.split("@")[0] } });
+
+        padding: '2rem',   }
+
+        textAlign: 'center',
+
+        fontFamily: 'system-ui'  await prisma.membership.upsert({
+
+      }}>    where: { userId_tenantId: { userId: user.id, tenantId: tenant.id } },
+
+        <div>Loading dashboard...</div>    update: { role },
+
+      </div>    create: { userId: user.id, tenantId: tenant.id, role }
+
+    );  });
+
+  }}
+
+
+
+  if (error) {async function updateRoleAction(formData: FormData) {
+
+    return (  "use server";
+
+      <div style={{   const session = await auth();
+
+        padding: '2rem',   if (!session?.user) redirect("/login");
+
+        textAlign: 'center',
+
+        fontFamily: 'system-ui'  const tenantSlug = String(formData.get("tenantSlug") || "");
+
+      }}>  const membershipId = String(formData.get("membershipId") || "");
+
+        <div style={{ color: 'red' }}>{error}</div>  const role = String(formData.get("role") || "VIEWER") as any;
+
+      </div>
+
+    );  const tenant = await prisma.tenant.findUnique({ where: { slug: tenantSlug } });
+
+  }  if (!tenant) return;
+
+
+
+  return (  const me = await prisma.membership.findUnique({
+
+    <div style={{     where: { userId_tenantId: { userId: (session.user as any).id, tenantId: tenant.id } }
+
+      padding: '2rem',  });
+
+      fontFamily: 'system-ui'  if (!me || (me.role !== "OWNER" && me.role !== "ADMIN")) return;
+
+    }}>
+
+      <h1>Dashboard</h1>  await prisma.membership.update({ where: { id: membershipId }, data: { role } });
+
+      <p>Welcome to your dashboard. This page is under development.</p>}
+
+    </div>
+
+  );export default async function TenantDashboard() {
+
+}  const session = await auth();
   if (!session?.user) redirect("/login");
 
   const hdrs = headers();
