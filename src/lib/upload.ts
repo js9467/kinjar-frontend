@@ -1,6 +1,8 @@
 // Enhanced upload functionality with better CORS and error handling
 import { API_BASE } from "@/lib/api";
 
+const UPLOAD_API_BASE = typeof window !== "undefined" ? "/api/storage" : API_BASE;
+
 export interface UploadOptions {
   familySlug: string;
   type: 'photo' | 'video';
@@ -13,7 +15,7 @@ export async function uploadFile(file: File, options: UploadOptions): Promise<an
   const { familySlug, type, onProgress, onSuccess, onError } = options;
   
   console.log(`Starting upload: ${file.name} (${(file.size / 1024 / 1024).toFixed(2)}MB)`);
-  console.log(`API Base: ${API_BASE}`);
+  console.log(`Upload API Base: ${UPLOAD_API_BASE}`);
   console.log(`Family: ${familySlug}`);
   console.log(`Type: ${type}`);
   
@@ -21,7 +23,7 @@ export async function uploadFile(file: File, options: UploadOptions): Promise<an
     console.log('Step 1: Requesting presigned URL...');
     
     // Step 1: Get presigned URL from API
-    const presignResponse = await fetch(`${API_BASE}/presign`, {
+    const presignResponse = await fetch(`${UPLOAD_API_BASE}/presign`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -74,7 +76,7 @@ export async function uploadFile(file: File, options: UploadOptions): Promise<an
     
     // Step 3: Notify API that upload is complete (optional but recommended)
     try {
-      const completeResponse = await fetch(`${API_BASE}/upload/complete`, {
+      const completeResponse = await fetch(`${UPLOAD_API_BASE}/upload/complete`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
