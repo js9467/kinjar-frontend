@@ -6,7 +6,7 @@ import { api, User } from './api';
 interface AuthContextType {
   user: User | null;
   loading: boolean;
-  login: (email: string, password: string) => Promise<void>;
+  login: (email: string, password: string) => Promise<User>;
   register: (userData: {
     email: string;
     password: string;
@@ -47,12 +47,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       const result = await api.login(email, password);
 
-      if (result.user) {
-        setUser(result.user);
-      } else {
+      let resolvedUser = result.user;
+
+      if (!resolvedUser) {
         const currentUser = await api.getCurrentUser();
         setUser(currentUser);
+        return currentUser;
       }
+
+      setUser(resolvedUser);
+      return resolvedUser;
     } catch (error) {
       setUser(null);
       throw error;

@@ -1,17 +1,17 @@
 'use client';
 
 import React, { useState, useRef } from 'react';
-import { api, MediaUpload } from '../lib/api';
+import { api, MediaUpload, Post } from '../lib/api';
 
 interface UploadComponentProps {
-  familySlug: string;
-  onUploadSuccess?: (post: any) => void;
+  familyId?: number | null;
+  onUploadSuccess?: (post: Post) => void;
   onUploadError?: (error: string) => void;
   className?: string;
 }
 
 export default function UploadComponent({
-  familySlug,
+  familyId,
   onUploadSuccess,
   onUploadError,
   className = ''
@@ -22,14 +22,28 @@ export default function UploadComponent({
   const [postContent, setPostContent] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  const isFamilyReady = typeof familyId === 'number';
+
+  const ensureFamilyId = (): number | null => {
+    if (typeof familyId !== 'number') {
+      onUploadError?.('Your family space is still loading. Please try again in a moment.');
+      return null;
+    }
+
+    return familyId;
+  };
+
   const handleFileSelect = (files: FileList | null) => {
     if (!files || files.length === 0) return;
-    
+
     const file = files[0];
     validateAndUpload(file);
   };
 
   const validateAndUpload = async (file: File) => {
+    const resolvedFamilyId = ensureFamilyId();
+    if (resolvedFamilyId === null) return;
+
     // Validate file type
     const validTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'video/mp4', 'video/webm', 'video/mov'];
     if (!validTypes.includes(file.type)) {
@@ -54,21 +68,16 @@ export default function UploadComponent({
 
       // Create post with media
       const mediaType = file.type.startsWith('image/') ? 'image' : 'video';
-      // TODO: Update this to use family slug when backend supports it
-      // For now, we'll skip post creation and just handle media upload
-      const post = {
-        id: Date.now(), // temporary ID
-        content: postContent || `Shared a ${mediaType}`,
+      const createdPost = await api.createPost({
+        content: postContent.trim() || `Shared a ${mediaType}`,
+        family_id: resolvedFamilyId,
         media_url: mediaUpload.url,
-        media_type: mediaType,
-        family_slug: familySlug,
-        created_at: new Date().toISOString(),
-        username: 'Current User' // placeholder
-      };
+        media_type: mediaType
+      });
 
-      onUploadSuccess?.(post);
+      onUploadSuccess?.(createdPost);
       setPostContent('');
-      
+
     } catch (error) {
       console.error('Upload failed:', error);
       onUploadError?.(error instanceof Error ? error.message : 'Upload failed');
@@ -95,6 +104,10 @@ export default function UploadComponent({
   };
 
   const triggerFileSelect = () => {
+    if (!isFamilyReady) {
+      return;
+    }
+
     fileInputRef.current?.click();
   };
 
@@ -123,7 +136,7 @@ export default function UploadComponent({
       <div
         className={`upload-dropzone p-6 text-center cursor-pointer transition-colors ${
           dragOver ? 'dragover' : ''
-        } ${uploading ? 'pointer-events-none opacity-50' : ''}`}
+        } ${uploading || !isFamilyReady ? 'pointer-events-none opacity-50' : ''}`}
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
         onDrop={handleDrop}
@@ -167,7 +180,7 @@ export default function UploadComponent({
       <div className="flex gap-3 mt-4 md:hidden">
         <button
           onClick={handleCameraCapture}
-          disabled={uploading}
+          disabled={uploading || !isFamilyReady}
           className="flex-1 bg-blue-600 text-white py-3 px-4 rounded-lg font-medium hover:bg-blue-700 disabled:opacity-50 flex items-center justify-center gap-2"
         >
           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -178,7 +191,7 @@ export default function UploadComponent({
         </button>
         <button
           onClick={triggerFileSelect}
-          disabled={uploading}
+          disabled={uploading || !isFamilyReady}
           className="flex-1 bg-gray-600 text-white py-3 px-4 rounded-lg font-medium hover:bg-gray-700 disabled:opacity-50 flex items-center justify-center gap-2"
         >
           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -194,18 +207,17 @@ export default function UploadComponent({
           <button
             onClick={async () => {
               if (!postContent.trim()) return;
-              
+
+              const resolvedFamilyId = ensureFamilyId();
+              if (resolvedFamilyId === null) return;
+
               setUploading(true);
               try {
-                // TODO: Update to use family slug when backend supports it
-                const post = {
-                  id: Date.now(), // temporary ID
-                  content: postContent,
-                  family_slug: familySlug,
-                  created_at: new Date().toISOString(),
-                  username: 'Current User' // placeholder
-                };
-                onUploadSuccess?.(post);
+                const createdPost = await api.createPost({
+                  content: postContent.trim(),
+                  family_id: resolvedFamilyId,
+                });
+                onUploadSuccess?.(createdPost);
                 setPostContent('');
               } catch (error) {
                 onUploadError?.(error instanceof Error ? error.message : 'Failed to create post');
@@ -219,6 +231,12 @@ export default function UploadComponent({
             Post
           </button>
         </div>
+      )}
+
+      {!isFamilyReady && (
+        <p className="mt-4 text-sm text-gray-500">
+          Preparing your family space&hellip; uploads will be available shortly.
+        </p>
       )}
     </div>
   );
