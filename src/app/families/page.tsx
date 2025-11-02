@@ -15,6 +15,14 @@ export default function FamilyHubPage() {
   const [fetchError, setFetchError] = useState<string | null>(null);
   const [uploadError, setUploadError] = useState<string | null>(null);
 
+  // Redirect ROOT users to admin panel
+  useEffect(() => {
+    if (user && user.global_role === 'ROOT') {
+      router.push('/admin');
+      return;
+    }
+  }, [user, router]);
+
   // Get the first family/tenant the user belongs to
   const primaryTenant = user?.tenants?.[0];
   const familySlug = primaryTenant?.slug;
