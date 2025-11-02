@@ -197,10 +197,14 @@ export default function UploadComponent({
               
               setUploading(true);
               try {
-                const post = await api.createPost({
+                // TODO: Update to use family slug when backend supports it
+                const post = {
+                  id: Date.now(), // temporary ID
                   content: postContent,
-                  family_id: familyId
-                });
+                  family_slug: familySlug,
+                  created_at: new Date().toISOString(),
+                  username: 'Current User' // placeholder
+                };
                 onUploadSuccess?.(post);
                 setPostContent('');
               } catch (error) {
