@@ -1,5 +1,5 @@
 // API client for Kinjar backend integration
-const API_BASE_URL = process.env.KINJAR_API_URL || 'https://kinjar-api.fly.dev';
+const API_BASE_URL = 'https://kinjar-api.fly.dev';
 
 export interface User {
   id: number;
