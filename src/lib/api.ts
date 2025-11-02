@@ -58,14 +58,28 @@ export interface MediaUpload {
 
 export interface AuthResponse {
   token: string;
-  user: User;
+  user?: User;
 }
 
 class KinjarAPI {
   private token: string | null = null;
 
   constructor() {
-    // No token initialization needed - using HTTP-only cookies
+    if (typeof window !== 'undefined') {
+      this.token = window.localStorage.getItem('kinjar_token');
+    }
+  }
+
+  private persistToken(token: string | null) {
+    this.token = token;
+
+    if (typeof window !== 'undefined') {
+      if (token) {
+        window.localStorage.setItem('kinjar_token', token);
+      } else {
+        window.localStorage.removeItem('kinjar_token');
+      }
+    }
   }
 
   private async request(endpoint: string, options: RequestInit = {}): Promise<any> {
@@ -75,7 +89,9 @@ class KinjarAPI {
       ...(options.headers as Record<string, string>),
     };
 
-    // Don't add Authorization header - using cookies instead
+    if (this.token) {
+      headers['Authorization'] = `Bearer ${this.token}`;
+    }
     
     const response = await fetch(url, {
       ...options,
@@ -93,16 +109,39 @@ class KinjarAPI {
 
   // Authentication
   async login(username: string, password: string): Promise<AuthResponse> {
+    const identifier = username.trim();
+    const credentials = identifier.includes('@')
+      ? { email: identifier, password }
+      : { username: identifier, password };
+
     const result: any = await this.request('/auth/login', {
       method: 'POST',
-      body: JSON.stringify({ email: username, password }),
+      body: JSON.stringify(credentials),
     });
 
-    // Backend uses HTTP-only cookies, so no token in response
-    // Return the response with user data
+    const token = result.token ?? result.access_token ?? '';
+    if (token) {
+      this.persistToken(token);
+    }
+
+    let user: User | null = null;
+    if (result.user) {
+      user = result.user as User;
+    } else if (result.data?.user) {
+      user = result.data.user as User;
+    }
+
+    if (!user) {
+      try {
+        user = await this.getCurrentUser();
+      } catch (error) {
+        console.error('Unable to fetch current user after login:', error);
+      }
+    }
+
     return {
-      token: '', // Empty token since we use cookies
-      user: result.user
+      token,
+      user: user ?? undefined,
     };
   }
 
@@ -117,11 +156,16 @@ class KinjarAPI {
       body: JSON.stringify(userData),
     });
 
-    // Backend uses HTTP-only cookies, so no token in response
-    // Return the response with user data
+    const token = result.token ?? result.access_token ?? '';
+    if (token) {
+      this.persistToken(token);
+    }
+
+    const user = (result.user ?? result.data?.user) as User | undefined;
+
     return {
-      token: '', // Empty token since we use cookies
-      user: result.user
+      token,
+      user: user ?? undefined,
     };
   }
 
@@ -130,10 +174,7 @@ class KinjarAPI {
   }
 
   logout(): void {
-    this.token = null;
-    if (typeof window !== 'undefined') {
-      localStorage.removeItem('kinjar_token');
-    }
+    this.persistToken(null);
   }
 
   // Family Management

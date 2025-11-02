@@ -47,8 +47,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const login = async (username: string, password: string) => {
     try {
       const result = await api.login(username, password);
-      setUser(result.user);
+
+      if (result.user) {
+        setUser(result.user);
+      } else {
+        const currentUser = await api.getCurrentUser();
+        setUser(currentUser);
+      }
     } catch (error) {
+      setUser(null);
       throw error;
     }
   };
@@ -65,8 +72,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         family_name: userData.family_name || userData.username, // Use username as default family name
       };
       const result = await api.register(registerData);
-      setUser(result.user);
+
+      if (result.user) {
+        setUser(result.user);
+      } else {
+        const currentUser = await api.getCurrentUser();
+        setUser(currentUser);
+      }
     } catch (error) {
+      setUser(null);
       throw error;
     }
   };
