@@ -22,7 +22,7 @@ const handler = NextAuth({
               'Content-Type': 'application/json',
             },
             body: JSON.stringify({
-              family_slug: credentials.familySlug,
+              email: credentials.familySlug + '@kinjar.com', // Convert family slug to email
               password: credentials.password,
             }),
           })
@@ -30,10 +30,10 @@ const handler = NextAuth({
           if (response.ok) {
             const user = await response.json()
             return {
-              id: user.family_slug,
-              name: user.family_name || credentials.familySlug,
-              email: `${credentials.familySlug}@kinjar.local`,
-              familySlug: user.family_slug,
+              id: user.user.id,
+              name: credentials.familySlug, // Use family slug as display name
+              email: user.user.email,
+              familySlug: credentials.familySlug, // Keep the family slug for routing
             }
           }
         } catch (error) {
