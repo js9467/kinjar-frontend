@@ -56,6 +56,11 @@ export interface MediaUpload {
   type: string;
 }
 
+export interface AuthResponse {
+  token: string;
+  user: User;
+}
+
 class KinjarAPI {
   private token: string | null = null;
 
@@ -68,9 +73,9 @@ class KinjarAPI {
 
   private async request(endpoint: string, options: RequestInit = {}): Promise<any> {
     const url = `${API_BASE_URL}${endpoint}`;
-    const headers: HeadersInit = {
+    const headers: Record<string, string> = {
       'Content-Type': 'application/json',
-      ...options.headers,
+      ...(options.headers as Record<string, string>),
     };
 
     if (this.token) {
@@ -79,7 +84,7 @@ class KinjarAPI {
 
     const response = await fetch(url, {
       ...options,
-      headers,
+      headers: headers as HeadersInit,
     });
 
     if (!response.ok) {
@@ -91,14 +96,14 @@ class KinjarAPI {
   }
 
   // Authentication
-  async login(username: string, password: string): Promise<{ token: string; user: User }> {
-    const result = await this.request('/login', {
+  async login(username: string, password: string): Promise<AuthResponse> {
+    const result: AuthResponse = await this.request('/login', {
       method: 'POST',
       body: JSON.stringify({ username, password }),
     });
 
     this.token = result.token;
-    if (typeof window !== 'undefined') {
+    if (typeof window !== 'undefined' && this.token) {
       localStorage.setItem('kinjar_token', this.token);
     }
 
@@ -109,15 +114,15 @@ class KinjarAPI {
     username: string;
     email: string;
     password: string;
-    family_name?: string;
-  }): Promise<{ token: string; user: User }> {
-    const result = await this.request('/register', {
+    family_name: string;
+  }): Promise<AuthResponse> {
+    const result: AuthResponse = await this.request('/register', {
       method: 'POST',
       body: JSON.stringify(userData),
     });
 
     this.token = result.token;
-    if (typeof window !== 'undefined') {
+    if (typeof window !== 'undefined' && this.token) {
       localStorage.setItem('kinjar_token', this.token);
     }
 
