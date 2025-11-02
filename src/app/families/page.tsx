@@ -125,10 +125,10 @@ export default function FamilyHubPage() {
           </div>
         )}
 
-        {typeof familyId === 'number' ? (
+        {hasFamily ? (
           <div className="space-y-8">
             <UploadComponent
-              familyId={familyId}
+              familySlug={familySlug}
               onUploadSuccess={handleUploadSuccess}
               onUploadError={handleUploadError}
             />
