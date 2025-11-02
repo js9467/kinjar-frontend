@@ -21,8 +21,13 @@ export default function LoginPage() {
     setError('');
 
     try {
-      await login(formData.email, formData.password);
-      router.replace('/families');
+      const loggedInUser = await login(formData.email, formData.password);
+
+      if (loggedInUser.global_role === 'ROOT') {
+        router.replace('/admin');
+      } else {
+        router.replace('/families');
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Login failed');
     } finally {

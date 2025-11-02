@@ -14,6 +14,9 @@ export default function FamilyHubPage() {
   const [fetchingPosts, setFetchingPosts] = useState(false);
   const [fetchError, setFetchError] = useState<string | null>(null);
   const [uploadError, setUploadError] = useState<string | null>(null);
+  const [familyId, setFamilyId] = useState<number | null>(null);
+  const [familyDetailsLoading, setFamilyDetailsLoading] = useState(false);
+  const [familyDetailsError, setFamilyDetailsError] = useState<string | null>(null);
 
   // Redirect ROOT users to admin panel
   useEffect(() => {
@@ -61,10 +64,51 @@ export default function FamilyHubPage() {
     void loadPosts();
   }, [loading, user, router, loadPosts]);
 
+  useEffect(() => {
+    if (!familySlug) {
+      setFamilyId(null);
+      setFamilyDetailsError(null);
+      return;
+    }
+
+    let isMounted = true;
+    setFamilyDetailsLoading(true);
+    setFamilyDetailsError(null);
+
+    api
+      .getFamilyBySlug(familySlug)
+      .then((family) => {
+        if (!isMounted) {
+          return;
+        }
+        setFamilyId(family.id);
+      })
+      .catch((error: unknown) => {
+        if (!isMounted) {
+          return;
+        }
+        console.error('Failed to load family details:', error);
+        setFamilyId(null);
+        setFamilyDetailsError(error instanceof Error ? error.message : 'Failed to load family details');
+      })
+      .finally(() => {
+        if (isMounted) {
+          setFamilyDetailsLoading(false);
+        }
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [familySlug]);
+
   const handleUploadSuccess = useCallback(
     (post: Post) => {
       setUploadError(null);
-      setPosts(prev => [post, ...prev]);
+      setPosts(prev => {
+        const withoutDuplicate = prev.filter(existing => existing.id !== post.id);
+        return [post, ...withoutDuplicate];
+      });
     },
     []
   );
@@ -136,10 +180,22 @@ export default function FamilyHubPage() {
         {hasFamily ? (
           <div className="space-y-8">
             <UploadComponent
-              familySlug={familySlug}
+              familyId={familyId}
               onUploadSuccess={handleUploadSuccess}
               onUploadError={handleUploadError}
             />
+
+            {familyDetailsError && (
+              <div className="rounded-md border border-red-200 bg-red-50 px-4 py-3 text-red-700">
+                {familyDetailsError}
+              </div>
+            )}
+
+            {familyDetailsLoading && (
+              <div className="rounded-md border border-blue-200 bg-blue-50 px-4 py-3 text-blue-700">
+                Loading family details&hellip;
+              </div>
+            )}
 
             <section className="space-y-4">
               <div className="flex items-center justify-between">
