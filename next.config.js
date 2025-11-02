@@ -7,9 +7,6 @@ const nextConfig = {
       'kinjar-api.fly.dev'
     ],
   },
-  experimental: {
-    serverActions: true,
-  },
   async rewrites() {
     return [
       // API proxy to Fly.dev backend

@@ -1,28 +1,5 @@
 {
   "version": 2,
-  "builds": [
-    {
-      "src": "package.json",
-      "use": "@vercel/next"
-    }
-  ],
-  "routes": [
-    {
-      "src": "/api/(.*)",
-      "dest": "/api/$1"
-    },
-    {
-      "src": "/(.*)",
-      "dest": "/$1"
-    }
-  ],
-  "env": {
-    "FLY_API_KEY": "@fly-api-key",
-    "FLY_BACKEND_URL": "@fly-backend-url", 
-    "KINJAR_API_URL": "@kinjar-api-url",
-    "BLOB_READ_WRITE_TOKEN": "@blob-read-write-token",
-    "TENANT_BASE_DOMAIN": "@tenant-base-domain"
-  },
   "functions": {
     "pages/api/**/*.js": {
       "maxDuration": 30
