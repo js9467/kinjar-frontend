@@ -105,7 +105,6 @@ class KinjarAPI {
       user: result.user
     };
   }
-  }
 
   async register(userData: {
     username: string;
