@@ -1,20 +1,35 @@
-# Kinjar - Family Photo Sharing Platform
+# Kinjar - Family Social Platform
 
-A secure, family-focused photo sharing application built with Next.js 14, designed to help families organize and share their precious memories.
+A comprehensive, modern family social platform built with Next.js 14, designed specifically for families to share memories, connect across generations, and maintain privacy.
 
 ## 🌟 Features
 
-- **Family-Based Authentication**: Secure login system with family codes
-- **Photo Upload & Storage**: Direct integration with Vercel Blob storage
-- **Responsive Design**: Beautiful UI that works on desktop and mobile
-- **Real-time Updates**: Modern React-based interface with instant feedback
-- **File Size Management**: Intelligent handling of photo uploads up to 800KB
-- **Secure Access**: Family-specific access control and data isolation
+### Core Platform
+- **Family-Based Social Networking** with subdomain support (`family.kinjar.com`)
+- **Mobile-First Photo/Video Sharing** with instant camera integration
+- **Real-Time Family Feeds** with posts, comments, and reactions
+- **Cross-Family Connections** to share content between connected families
+- **Role-Based Permissions** (Root Admin, Family Admin, Member)
+- **Progressive Web App** capabilities for native app experience
+
+### Family Features
+- Private family spaces with custom themes and branding
+- Mobile-optimized upload interface for photos and videos
+- Family member management and invitations
+- Connected family discovery and content sharing
+- Family settings and customization options
+
+### Technical Features
+- **Next.js 14** with App Router and TypeScript
+- **Tailwind CSS** with custom family theme support
+- **Vercel Blob Storage** integration for media uploads
+- **JWT Authentication** with role management
+- **API Integration** with Flask backend on Fly.io
+- **Subdomain Routing** for family-specific experiences
 
 ## 🚀 Quick Start
 
 ### Prerequisites
-
 - Node.js 18+ 
 - npm or yarn
 - Vercel account (for Blob storage)
@@ -23,8 +38,8 @@ A secure, family-focused photo sharing application built with Next.js 14, design
 
 1. **Clone the repository**
    ```bash
-   git clone <your-repo-url>
-   cd kinjar-frontend-fresh
+   git clone https://github.com/js9467/kinjar-frontend.git
+   cd kinjar-frontend
    ```
 
 2. **Install dependencies**
@@ -34,21 +49,22 @@ A secure, family-focused photo sharing application built with Next.js 14, design
 
 3. **Set up environment variables**
    
-   Copy `.env.local` and update the following variables:
+   Copy `.env.local.example` to `.env.local` and update:
    
    ```env
    # Kinjar API Configuration
-   NEXT_PUBLIC_API_BASE=https://kinjar-api.fly.dev
-   
-   # NextAuth Configuration  
-   NEXTAUTH_SECRET=your-secure-secret-here
-   NEXTAUTH_URL=http://localhost:3000
+   KINJAR_API_URL=https://kinjar-api.fly.dev
+   NEXT_PUBLIC_API_URL=https://kinjar-api.fly.dev
    
    # Vercel Blob Storage
    BLOB_READ_WRITE_TOKEN=your-vercel-blob-token-here
    
+   # Authentication
+   NEXTAUTH_SECRET=your-secure-secret-here
+   NEXTAUTH_URL=http://localhost:3000
+   
    # App Configuration
-   NEXT_PUBLIC_APP_NAME=Kinjar Family Photos
+   NEXT_PUBLIC_APP_URL=https://kinjar.com
    ```
 
 4. **Start the development server**
@@ -69,53 +85,86 @@ A secure, family-focused photo sharing application built with Next.js 14, design
 3. Copy your `BLOB_READ_WRITE_TOKEN`
 4. Add it to your `.env.local` file
 
-### Authentication Setup
+### Backend Integration
 
-The app integrates with the Kinjar API for authentication. Each family has:
-- A unique family slug (family code)
-- A shared family password
-- Isolated photo storage and access
+The app integrates with the Kinjar API backend running on Fly.io. The backend provides:
+- User authentication and authorization
+- Family management and settings
+- Media upload and storage
+- Post and comment systems
+- Family connections and invitations
+
+### Subdomain Configuration
+
+The application supports subdomain-based family routing:
+- `kinjar.com` - Main landing page
+- `family-name.kinjar.com` - Family homepage
+- `admin.kinjar.com` - Administrative interface
 
 ## 📁 Project Structure
 
 ```
 src/
-├── app/
-│   ├── api/
-│   │   ├── auth/[...nextauth]/     # NextAuth.js configuration
-│   │   └── upload/                 # File upload API route
-│   ├── auth/signin/                # Authentication page
-│   ├── family/[slug]/              # Family-specific photo pages
-│   ├── layout.tsx                  # Root layout with providers
-│   ├── page.tsx                    # Home page (redirects to auth)
-│   └── providers.tsx               # Session provider wrapper
-├── lib/
-│   └── upload.ts                   # Upload utility functions
-└── types/
-    └── next-auth.d.ts             # TypeScript declarations for NextAuth
+├── app/                          # Next.js App Router pages
+│   ├── auth/                     # Authentication pages
+│   ├── families/[slug]/          # Dynamic family pages
+│   ├── admin/                    # Admin dashboard
+│   ├── layout.tsx                # Root layout
+│   ├── page.tsx                  # Landing page
+│   └── globals.css               # Global styles
+├── components/                   # React components
+│   ├── FamilyHomePage.tsx        # Main family interface
+│   ├── UploadComponent.tsx       # Mobile upload interface
+│   ├── PostFeed.tsx              # Post feed with comments
+│   └── providers.tsx             # Context providers
+├── lib/                          # Utilities and configurations
+│   ├── api.ts                    # API client
+│   ├── auth.tsx                  # Authentication context
+│   └── utils.ts                  # Utility functions
+└── types/                        # TypeScript type definitions
 ```
 
 ## 🔒 Security Features
 
-- **Family Isolation**: Each family can only access their own photos
-- **Secure Authentication**: Integration with Kinjar API for user verification
+- **Family Isolation**: Each family can only access their own content
+- **Secure Authentication**: JWT-based auth with role management
 - **File Validation**: Client and server-side file type and size validation
 - **CORS Protection**: Properly configured cross-origin request handling
+- **Role-Based Access**: Granular permissions for different user types
 
-## 📱 Usage
+## 📱 Mobile Experience
 
-### For Families
+- **Touch-Friendly Interface**: Optimized for mobile devices
+- **Camera Integration**: Instant photo/video capture and sharing
+- **Responsive Design**: Works perfectly on all screen sizes
+- **Fast Loading**: Optimized images and lazy loading
+- **PWA Support**: Install as native app on mobile devices
 
-1. **Sign In**: Use your family code and password
-2. **Upload Photos**: Click "Upload Photos" and select your images
-3. **View Gallery**: Browse your family's photo collection
-4. **File Limits**: Keep photos under 800KB for best performance
+## 🚀 Deployment
 
-### For Administrators
+### Vercel (Recommended)
 
-- Family codes and passwords are managed through the Kinjar API
-- Storage is automatically organized by family and upload type
-- All photos are stored securely in Vercel Blob storage
+1. **Connect Repository**: Link your GitHub repository to Vercel
+2. **Configure Environment Variables** in Vercel dashboard:
+   ```
+   KINJAR_API_URL=https://kinjar-api.fly.dev
+   BLOB_READ_WRITE_TOKEN=your-vercel-blob-token
+   NEXTAUTH_SECRET=your-secure-secret
+   NEXT_PUBLIC_APP_URL=https://kinjar.com
+   ```
+3. **Deploy**: Automatic deployment on git push
+
+### Environment Variables for Production
+
+```env
+KINJAR_API_URL=https://kinjar-api.fly.dev
+NEXT_PUBLIC_API_URL=https://kinjar-api.fly.dev
+BLOB_READ_WRITE_TOKEN=your-vercel-blob-token
+NEXTAUTH_SECRET=your-production-secret
+NEXTAUTH_URL=https://kinjar.com
+NEXT_PUBLIC_APP_URL=https://kinjar.com
+NODE_ENV=production
+```
 
 ## 🛠 Development
 
@@ -125,67 +174,69 @@ src/
 - `npm run build` - Build for production
 - `npm run start` - Start production server
 - `npm run lint` - Run ESLint
+- `npm run type-check` - Run TypeScript type checking
 
 ### Technology Stack
 
 - **Framework**: Next.js 14 with App Router
 - **Language**: TypeScript
-- **Styling**: Tailwind CSS
-- **Authentication**: NextAuth.js
-- **Storage**: Vercel Blob
-- **Deployment**: Vercel (recommended)
+- **Styling**: Tailwind CSS with custom themes
+- **Authentication**: JWT with role-based permissions
+- **Storage**: Vercel Blob for media files
+- **Backend**: Flask API on Fly.io
+- **Deployment**: Vercel with automatic deployments
 
-## 🚀 Deployment
+## 🏗 Architecture
 
-### Vercel (Recommended)
+### Frontend Architecture
+- **Component-Based**: Modular React components
+- **Context API**: Global state management for auth
+- **API Client**: Centralized backend communication
+- **Route Protection**: Authentication-based routing
+- **Theme System**: Dynamic family branding
 
-1. **Connect your repository** to Vercel
-2. **Set environment variables** in Vercel dashboard
-3. **Deploy automatically** on git push
+### Backend Integration
+- **RESTful API**: Clean API endpoints for all operations
+- **File Upload**: Direct integration with Vercel Blob
+- **Real-Time**: Optimistic updates and refresh patterns
+- **Error Handling**: Comprehensive error management
+- **Loading States**: Smooth user experience
 
-### Environment Variables for Production
+## 📞 Support
 
-Make sure to set these in your deployment platform:
-
-```env
-NEXT_PUBLIC_API_BASE=https://kinjar-api.fly.dev
-NEXTAUTH_SECRET=your-production-secret
-NEXTAUTH_URL=https://your-domain.com
-BLOB_READ_WRITE_TOKEN=your-vercel-blob-token
-NEXT_PUBLIC_APP_NAME=Kinjar Family Photos
-```
-
-## 🤝 Contributing
-
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Test thoroughly
-5. Submit a pull request
-
-## 📝 License
-
-This project is proprietary software for the Kinjar family photo platform.
+For technical support or questions about family access:
+- Backend API: `kinjar-api.fly.dev`
+- Frontend Issues: Create GitHub issue
+- Family Access: Contact your family administrator
 
 ## 🔧 Troubleshooting
 
 ### Common Issues
 
-**Upload fails with "net::ERR_FAILED"**
-- Check that BLOB_READ_WRITE_TOKEN is set correctly
-- Verify file is under 800KB
+**Upload fails or slow**
+- Check BLOB_READ_WRITE_TOKEN is correct
+- Verify file size under 150MB
 - Ensure stable internet connection
 
 **Authentication not working**
-- Verify NEXT_PUBLIC_API_BASE points to correct Kinjar API
-- Check family code and password are correct
-- Confirm NEXTAUTH_SECRET is set
+- Verify KINJAR_API_URL points to correct backend
+- Check that backend is running on Fly.io
+- Confirm JWT secret matches backend
 
 **Development server won't start**
 - Check Node.js version (18+ required)
-- Clear node_modules and reinstall dependencies
+- Clear node_modules and reinstall: `rm -rf node_modules && npm install`
 - Verify all environment variables are set
 
-## 📞 Support
+**Family pages not loading**
+- Ensure family exists in backend database
+- Check API endpoints are accessible
+- Verify subdomain routing configuration
 
-For technical support or questions about family access, contact your family administrator or the Kinjar support team.
+## 📝 License
+
+Private family platform - not for public distribution.
+
+---
+
+Built with ❤️ for families who want to stay connected privately and securely.

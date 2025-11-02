@@ -1,49 +1,55 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  reactStrictMode: true,
+  experimental: {
+    appDir: true,
+  },
   images: {
     domains: [
-      'blob.vercel-storage.com',
-      'kinjar-api.fly.dev'
+      'kinjar-api.fly.dev',
+      'localhost',
+      'vercel-blob.com',
+    ],
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: '**.public.blob.vercel-storage.com',
+      },
+      {
+        protocol: 'https',
+        hostname: 'kinjar-api.fly.dev',
+      }
     ],
   },
   async rewrites() {
     return [
-      // API proxy to Fly.dev backend
+      // API proxy to backend
       {
-        source: '/api/proxy/:path*',
-        destination: 'https://kinjar-api.fly.dev/api/:path*',
-      },
-      // Subdomain routing for families
-      {
-        source: '/',
-        has: [
-          {
-            type: 'host',
-            value: '(?<family>[^.]+)\\.kinjar\\.com',
-          },
-        ],
-        destination: '/families/:family',
-      },
-      {
-        source: '/:path*',
-        has: [
-          {
-            type: 'host',
-            value: '(?<family>[^.]+)\\.kinjar\\.com',
-          },
-        ],
-        destination: '/families/:family/:path*',
-      },
-    ];
+        source: '/api/backend/:path*',
+        destination: 'https://kinjar-api.fly.dev/:path*',
+      }
+    ]
   },
-  env: {
-    FLY_API_KEY: process.env.FLY_API_KEY,
-    FLY_BACKEND_URL: process.env.FLY_BACKEND_URL,
-    KINJAR_API_URL: process.env.KINJAR_API_URL,
-    BLOB_READ_WRITE_TOKEN: process.env.BLOB_READ_WRITE_TOKEN,
-    TENANT_BASE_DOMAIN: process.env.TENANT_BASE_DOMAIN,
-  },
-};
+  async headers() {
+    return [
+      {
+        source: '/(.*)',
+        headers: [
+          {
+            key: 'X-Content-Type-Options',
+            value: 'nosniff'
+          },
+          {
+            key: 'X-Frame-Options',
+            value: 'DENY'
+          },
+          {
+            key: 'X-XSS-Protection',
+            value: '1; mode=block'
+          },
+        ]
+      }
+    ]
+  }
+}
 
-module.exports = nextConfig;
+module.exports = nextConfig
