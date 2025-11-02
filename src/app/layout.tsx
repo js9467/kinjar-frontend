@@ -1,9 +1,10 @@
-import type { Metadata } from 'next'
-import { Inter } from 'next/font/google'
-import './globals.css'
-import { AuthProvider } from '../lib/auth'
+import type { Metadata } from 'next';
+import { Inter } from 'next/font/google';
+import './globals.css';
+import { AppStateProvider } from '../lib/app-state';
+import { AuthProvider } from '../lib/auth';
 
-const inter = Inter({ subsets: ['latin'] })
+const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
   title: 'Kinjar - Family Social Platform',
@@ -13,12 +14,12 @@ export const metadata: Metadata = {
   viewport: 'width=device-width, initial-scale=1, maximum-scale=1',
   themeColor: '#0ea5e9',
   manifest: '/manifest.json',
-}
+};
 
 export default function RootLayout({
   children,
 }: {
-  children: React.ReactNode
+  children: React.ReactNode;
 }) {
   return (
     <html lang="en">
@@ -31,10 +32,10 @@ export default function RootLayout({
         <link rel="icon" href="/favicon.ico" />
       </head>
       <body className={inter.className}>
-        <AuthProvider>
-          {children}
-        </AuthProvider>
+        <AppStateProvider>
+          <AuthProvider>{children}</AuthProvider>
+        </AppStateProvider>
       </body>
     </html>
-  )
+  );
 }

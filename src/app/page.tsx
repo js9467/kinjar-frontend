@@ -1,192 +1,354 @@
 'use client';
 
-import Link from 'next/link';
-import { useAuth } from '../lib/auth';
+import { useEffect, useState } from 'react';
+
+import { AppHeader } from '@/components/layout/AppHeader';
+import { FamilyAdminDashboard } from '@/components/admin/FamilyAdminDashboard';
+import { GlobalAdminDashboard } from '@/components/admin/GlobalAdminDashboard';
+import { MemberDashboard } from '@/components/family/MemberDashboard';
+import { useAppState } from '@/lib/app-state';
+import { useAuth } from '@/lib/auth';
+import { AuthUser } from '@/lib/types';
 
 export default function HomePage() {
-  const { user, loading, logout } = useAuth();
+  const {
+    user,
+    users,
+    loading,
+    logout,
+    loginById,
+    isRootAdmin,
+    familyAdminIds,
+  } = useAuth();
+  const { families } = useAppState();
 
-  const handleLogout = () => {
-    logout();
-    if (typeof window !== 'undefined') {
-      window.location.href = '/';
+  const [viewMode, setViewMode] = useState<'GLOBAL' | 'FAMILY_ADMIN' | 'MEMBER'>('MEMBER');
+  const [activeFamilyId, setActiveFamilyId] = useState<string>('');
+  const [flashMessage, setFlashMessage] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!flashMessage) {
+      return;
+    }
+    const timeout = window.setTimeout(() => setFlashMessage(null), 4000);
+    return () => window.clearTimeout(timeout);
+  }, [flashMessage]);
+
+  useEffect(() => {
+    if (!user || families.length === 0) {
+      return;
+    }
+
+    const defaultFamily =
+      familyAdminIds[0] ?? user.memberships[0]?.familyId ?? families[0]?.id ?? '';
+
+    setActiveFamilyId((current) => current || defaultFamily);
+
+    if (user.globalRole === 'ROOT_ADMIN') {
+      setViewMode('GLOBAL');
+    } else if (familyAdminIds.length > 0) {
+      setViewMode('FAMILY_ADMIN');
+    } else {
+      setViewMode('MEMBER');
+    }
+  }, [user, familyAdminIds, families]);
+
+  if (loading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-slate-50">
+        <div className="h-16 w-16 animate-spin rounded-full border-4 border-indigo-200 border-t-indigo-600" />
+      </div>
+    );
+  }
+
+  if (!user) {
+    return (
+      <UnauthenticatedLanding users={users} onLogin={loginById} />
+    );
+  }
+
+  const adminFamilies = isRootAdmin ? families : families.filter((family) => familyAdminIds.includes(family.id));
+  const memberFamilies = isRootAdmin ? families : families.filter((family) =>
+    user.memberships.some((membership) => membership.familyId === family.id)
+  );
+
+  const handleImpersonateFamily = (familyId: string) => {
+    setActiveFamilyId(familyId);
+    setViewMode('FAMILY_ADMIN');
+    setFlashMessage('You are viewing the family admin workspace.');
+  };
+
+  const headerActions = (
+    <div className="flex flex-col items-stretch gap-2 sm:flex-row sm:items-center">
+      {isRootAdmin ? (
+        <button
+          type="button"
+          onClick={() => setViewMode('GLOBAL')}
+          className={`rounded-full px-4 py-2 text-sm font-semibold transition ${
+            viewMode === 'GLOBAL'
+              ? 'bg-indigo-600 text-white shadow-sm'
+              : 'border border-indigo-200 text-indigo-600 hover:border-indigo-300 hover:bg-indigo-50'
+          }`}
+        >
+          Global admin
+        </button>
+      ) : null}
+      {adminFamilies.length > 0 ? (
+        <select
+          value={activeFamilyId}
+          onChange={(event) => {
+            setActiveFamilyId(event.target.value);
+            setViewMode('FAMILY_ADMIN');
+          }}
+          className="rounded-full border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-600 shadow-sm focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-100"
+        >
+          <option value="">Select family admin view</option>
+          {adminFamilies.map((family) => (
+            <option key={family.id} value={family.id}>
+              Admin · {family.name}
+            </option>
+          ))}
+        </select>
+      ) : null}
+      {memberFamilies.length > 0 ? (
+        <select
+          value={activeFamilyId}
+          onChange={(event) => {
+            setActiveFamilyId(event.target.value);
+            setViewMode('MEMBER');
+          }}
+          className="rounded-full border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-600 shadow-sm focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-100"
+        >
+          <option value="">Switch to member view</option>
+          {memberFamilies.map((family) => (
+            <option key={family.id} value={family.id}>
+              Member · {family.name}
+            </option>
+          ))}
+        </select>
+      ) : null}
+    </div>
+  );
+
+  return (
+    <div className="min-h-screen bg-slate-50">
+      <AppHeader
+        title={
+          viewMode === 'GLOBAL'
+            ? 'Root admin dashboard'
+            : viewMode === 'FAMILY_ADMIN'
+            ? 'Family admin workspace'
+            : 'Family feed'
+        }
+        description={
+          viewMode === 'GLOBAL'
+            ? 'Govern the entire Kinjar platform, approve new families, and monitor content.'
+            : viewMode === 'FAMILY_ADMIN'
+            ? 'Manage members, curate stories, and control what appears on your public landing page.'
+            : 'Catch up on the latest memories shared within your trusted family network.'
+        }
+        user={user}
+        onLogout={logout}
+        actions={headerActions}
+      />
+      {flashMessage ? (
+        <div className="mx-auto mt-4 max-w-4xl px-4">
+          <div className="rounded-2xl border border-indigo-200 bg-indigo-50 px-4 py-3 text-sm text-indigo-700 shadow-sm">
+            {flashMessage}
+          </div>
+        </div>
+      ) : null}
+      <main className="mx-auto max-w-7xl space-y-10 px-4 py-10 lg:px-8">
+        {viewMode === 'GLOBAL' ? (
+          <GlobalAdminDashboard onImpersonateFamily={handleImpersonateFamily} />
+        ) : null}
+        {viewMode === 'FAMILY_ADMIN' && activeFamilyId ? (
+          <FamilyAdminDashboard
+            familyId={activeFamilyId}
+            onBack={isRootAdmin ? () => setViewMode('GLOBAL') : undefined}
+          />
+        ) : null}
+        {viewMode === 'MEMBER' && activeFamilyId ? (
+          <MemberDashboard familyId={activeFamilyId} />
+        ) : null}
+      </main>
+    </div>
+  );
+}
+
+function UnauthenticatedLanding({
+  users,
+  onLogin,
+}: {
+  users: AuthUser[];
+  onLogin: (userId: string) => void;
+}) {
+  const rootAdmin = users.find((candidate) => candidate.globalRole === 'ROOT_ADMIN');
+  const familyAdmins = users.filter((candidate) => candidate.globalRole === 'FAMILY_ADMIN');
+  const members = users.filter((candidate) => candidate.globalRole === 'MEMBER');
+
+  const [familyName, setFamilyName] = useState('');
+  const [adminName, setAdminName] = useState('');
+  const [adminEmail, setAdminEmail] = useState('');
+  const [message, setMessage] = useState('');
+  const { registerFamilySpace } = useAuth();
+  const [submitted, setSubmitted] = useState(false);
+
+  const handleSubmit = async (event: React.FormEvent) => {
+    event.preventDefault();
+    try {
+      await registerFamilySpace({
+        familyName,
+        adminName,
+        adminEmail,
+        message,
+      });
+      setSubmitted(true);
+      setFamilyName('');
+      setAdminName('');
+      setAdminEmail('');
+      setMessage('');
+    } catch (error) {
+      console.error(error);
     }
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
-      {/* Navigation */}
-      <nav className="bg-white shadow-sm border-b">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            <div className="flex items-center">
-              <h1 className="text-2xl font-bold text-indigo-600">Kinjar</h1>
-            </div>
-            <div className="flex items-center space-x-4">
-              {loading ? (
-                <div className="text-gray-500 text-sm">Checking session...</div>
-              ) : user ? (
-                <>
-                  <span className="text-sm text-gray-700">Welcome back, {user.email}!</span>
-                  {user.global_role === 'ROOT' && (
-                    <Link
-                      href="/admin"
-                      className="bg-purple-600 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-purple-700"
-                    >
-                      Admin Panel
-                    </Link>
-                  )}
-                  <Link
-                    href="/families"
-                    className="bg-indigo-600 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-indigo-700"
-                  >
-                    Go to your family hub
-                  </Link>
-                  <button
-                    type="button"
-                    onClick={handleLogout}
-                    className="text-gray-700 hover:text-indigo-600 px-3 py-2 rounded-md text-sm font-medium"
-                  >
-                    Sign Out
-                  </button>
-                </>
-              ) : (
-                <>
-                  <Link
-                    href="/auth/login"
-                    className="text-gray-700 hover:text-indigo-600 px-3 py-2 rounded-md text-sm font-medium"
-                  >
-                    Sign In
-                  </Link>
-                  <Link
-                    href="/auth/register"
-                    className="bg-indigo-600 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-indigo-700"
-                  >
-                    Get Started
-                  </Link>
-                </>
-              )}
-            </div>
-          </div>
-        </div>
-      </nav>
-
-      {/* Hero Section */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
-        <div className="text-center">
-          <h1 className="text-4xl md:text-6xl font-bold text-gray-900 mb-6">
-            Your Family&apos;s
-            <span className="text-indigo-600"> Private </span>
-            Social Space
-          </h1>
-          <p className="text-xl text-gray-600 mb-8 max-w-3xl mx-auto">
-            Share photos, videos, and memories with your family in a secure, 
-            private environment. No ads, no data mining, just pure family connection.
-          </p>
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            {user ? (
-              <Link
-                href="/families"
-                className="bg-indigo-600 text-white px-8 py-3 rounded-lg text-lg font-medium hover:bg-indigo-700 transition-colors"
-              >
-                Enter Your Family Space
-              </Link>
-            ) : (
-              <>
-                <Link
-                  href="/auth/register"
-                  className="bg-indigo-600 text-white px-8 py-3 rounded-lg text-lg font-medium hover:bg-indigo-700 transition-colors"
-                >
-                  Create Your Family Space
-                </Link>
-                <Link
-                  href="/auth/login"
-                  className="border border-indigo-600 text-indigo-600 px-8 py-3 rounded-lg text-lg font-medium hover:bg-indigo-50 transition-colors"
-                >
-                  Join Existing Family
-                </Link>
-              </>
-            )}
-          </div>
-        </div>
-      </div>
-
-      {/* Features Section */}
-      <div className="bg-white py-20">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-16">
-            <h2 className="text-3xl font-bold text-gray-900 mb-4">
-              Built for Families
-            </h2>
-            <p className="text-lg text-gray-600">
-              Everything your family needs to stay connected and share memories
+    <div className="min-h-screen bg-gradient-to-br from-indigo-100 via-white to-slate-100">
+      <header className="px-6 py-8 text-center">
+        <h1 className="text-4xl font-bold text-slate-900 sm:text-5xl">Kinjar</h1>
+        <p className="mt-3 text-base text-slate-600">
+          Private family networks with granular admin tools and beautiful storytelling.
+        </p>
+      </header>
+      <main className="mx-auto grid max-w-6xl gap-12 px-4 pb-20 lg:grid-cols-2 lg:px-8">
+        <section className="space-y-6">
+          <div className="rounded-3xl border border-white/70 bg-white/80 p-8 shadow-xl backdrop-blur">
+            <h2 className="text-xl font-semibold text-slate-900">Jump into the live demo</h2>
+            <p className="mt-2 text-sm text-slate-500">
+              Use any of the preconfigured accounts below to experience the platform immediately.
             </p>
-          </div>
-          
-          <div className="grid md:grid-cols-3 gap-8">
-            <div className="text-center">
-              <div className="bg-indigo-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
-                <svg className="w-8 h-8 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-                </svg>
-              </div>
-              <h3 className="text-xl font-semibold text-gray-900 mb-2">Private & Secure</h3>
-              <p className="text-gray-600">
-                Your family&apos;s content stays within your family. No public posts, no strangers.
-              </p>
-            </div>
-            
-            <div className="text-center">
-              <div className="bg-indigo-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
-                <svg className="w-8 h-8 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                </svg>
-              </div>
-              <h3 className="text-xl font-semibold text-gray-900 mb-2">Easy Sharing</h3>
-              <p className="text-gray-600">
-                Upload photos and videos instantly from your phone or computer with one tap.
-              </p>
-            </div>
-            
-            <div className="text-center">
-              <div className="bg-indigo-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
-                <svg className="w-8 h-8 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
-                </svg>
-              </div>
-              <h3 className="text-xl font-semibold text-gray-900 mb-2">Family Connections</h3>
-              <p className="text-gray-600">
-                Connect with other families and choose what to share across your network.
-              </p>
+            <div className="mt-4 space-y-3">
+              {rootAdmin ? (
+                <DemoAccountCard
+                  account={rootAdmin}
+                  description="Full access across the entire platform, including approvals and moderation."
+                  onSelect={onLogin}
+                />
+              ) : null}
+              {familyAdmins.map((account) => (
+                <DemoAccountCard
+                  key={account.id}
+                  account={account}
+                  description="Manage a family hub, invite members, and curate public highlights."
+                  onSelect={onLogin}
+                />
+              ))}
+              {members.map((account) => (
+                <DemoAccountCard
+                  key={account.id}
+                  account={account}
+                  description="Browse the private family feed just like your relatives will."
+                  onSelect={onLogin}
+                />
+              ))}
             </div>
           </div>
-        </div>
-      </div>
+        </section>
 
-      {/* CTA Section */}
-      <div className="bg-indigo-600 py-16">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <h2 className="text-3xl font-bold text-white mb-4">
-            Ready to bring your family together?
-          </h2>
-          <p className="text-xl text-indigo-100 mb-8">
-            Start sharing memories in your own private family space today.
-          </p>
-          <Link 
-            href="/auth/register"
-            className="bg-white text-indigo-600 px-8 py-3 rounded-lg text-lg font-medium hover:bg-gray-50 transition-colors"
-          >
-            Create Your Family Space
-          </Link>
-        </div>
-      </div>
-
-      {/* Footer */}
-      <footer className="bg-gray-800 text-white py-8">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <p>&copy; 2024 Kinjar. Built with ❤️ for families.</p>
-        </div>
-      </footer>
+        <section className="space-y-6">
+          <div className="rounded-3xl border border-white/70 bg-white/90 p-8 shadow-xl backdrop-blur">
+            <h2 className="text-xl font-semibold text-slate-900">Request your family space</h2>
+            <p className="mt-2 text-sm text-slate-500">
+              Tell us a bit about your family and we’ll get you set up with admin access.
+            </p>
+            {submitted ? (
+              <div className="mt-4 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
+                Thanks! A Kinjar admin will approve your request shortly.
+              </div>
+            ) : null}
+            <form onSubmit={handleSubmit} className="mt-6 space-y-4">
+              <label className="flex flex-col gap-2 text-sm text-slate-600">
+                Family name
+                <input
+                  value={familyName}
+                  onChange={(event) => setFamilyName(event.target.value)}
+                  className="rounded-xl border border-slate-200 px-4 py-2 text-sm shadow-sm focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-100"
+                  placeholder="The Carter Family"
+                />
+              </label>
+              <label className="flex flex-col gap-2 text-sm text-slate-600">
+                Admin name
+                <input
+                  value={adminName}
+                  onChange={(event) => setAdminName(event.target.value)}
+                  className="rounded-xl border border-slate-200 px-4 py-2 text-sm shadow-sm focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-100"
+                  placeholder="Your name"
+                />
+              </label>
+              <label className="flex flex-col gap-2 text-sm text-slate-600">
+                Admin email
+                <input
+                  type="email"
+                  value={adminEmail}
+                  onChange={(event) => setAdminEmail(event.target.value)}
+                  className="rounded-xl border border-slate-200 px-4 py-2 text-sm shadow-sm focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-100"
+                  placeholder="you@family.com"
+                />
+              </label>
+              <label className="flex flex-col gap-2 text-sm text-slate-600">
+                What makes your family unique?
+                <textarea
+                  value={message}
+                  onChange={(event) => setMessage(event.target.value)}
+                  className="min-h-[120px] rounded-xl border border-slate-200 px-4 py-2 text-sm shadow-sm focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-100"
+                  placeholder="Share why you want a private space, traditions you love, or upcoming events."
+                />
+              </label>
+              <button
+                type="submit"
+                className="w-full rounded-full bg-indigo-600 px-6 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-700"
+                disabled={!familyName || !adminName || !adminEmail}
+              >
+                Submit request
+              </button>
+            </form>
+          </div>
+        </section>
+      </main>
     </div>
+  );
+}
+
+function DemoAccountCard({
+  account,
+  description,
+  onSelect,
+}: {
+  account: AuthUser;
+  description: string;
+  onSelect: (userId: string) => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={() => onSelect(account.id)}
+      className="flex w-full items-center gap-4 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-left shadow-sm transition hover:-translate-y-0.5 hover:border-indigo-200 hover:shadow-md"
+    >
+      <span
+        className="flex h-12 w-12 items-center justify-center rounded-full text-base font-semibold text-white"
+        style={{ backgroundColor: account.avatarColor }}
+      >
+        {account.name
+          .split(' ')
+          .map((part) => part[0])
+          .join('')}
+      </span>
+      <div>
+        <p className="text-sm font-semibold text-slate-900">{account.name}</p>
+        <p className="text-xs text-slate-500">{account.email}</p>
+        <p className="mt-1 text-xs text-slate-500">{description}</p>
+      </div>
+    </button>
   );
 }
