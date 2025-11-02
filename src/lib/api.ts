@@ -97,9 +97,9 @@ class KinjarAPI {
 
   // Authentication
   async login(username: string, password: string): Promise<AuthResponse> {
-    const result: AuthResponse = await this.request('/login', {
+    const result: AuthResponse = await this.request('/auth/login', {
       method: 'POST',
-      body: JSON.stringify({ username, password }),
+      body: JSON.stringify({ email: username, password }),
     });
 
     this.token = result.token;
@@ -116,7 +116,7 @@ class KinjarAPI {
     password: string;
     family_name: string;
   }): Promise<AuthResponse> {
-    const result: AuthResponse = await this.request('/register', {
+    const result: AuthResponse = await this.request('/auth/register', {
       method: 'POST',
       body: JSON.stringify(userData),
     });
@@ -130,7 +130,7 @@ class KinjarAPI {
   }
 
   async getCurrentUser(): Promise<User> {
-    return this.request('/user/me');
+    return this.request('/auth/me');
   }
 
   logout(): void {
