@@ -37,7 +37,14 @@ export async function uploadFile(file: File, options: UploadOptions): Promise<an
     const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
     
     try {
-      const uploadResponse = await fetch('/api/upload', {
+      // Use absolute URL to ensure correct domain
+      const uploadUrl = typeof window !== 'undefined' 
+        ? `${window.location.origin}/api/upload`
+        : '/api/upload';
+        
+      console.log('🎯 Upload URL:', uploadUrl);
+        
+      const uploadResponse = await fetch(uploadUrl, {
         method: 'POST',
         body: formData,
         signal: controller.signal,
