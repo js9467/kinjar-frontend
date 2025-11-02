@@ -2,10 +2,12 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { useAuth } from '../../../lib/auth';
 
 export default function LoginPage() {
   const { login } = useAuth();
+  const router = useRouter();
   const [formData, setFormData] = useState({
     username: '',
     password: ''
@@ -20,8 +22,7 @@ export default function LoginPage() {
 
     try {
       await login(formData.username, formData.password);
-      // Redirect will be handled by auth context
-      window.location.href = '/';
+      router.replace('/families');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Login failed');
     } finally {

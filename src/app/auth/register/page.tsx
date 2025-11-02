@@ -2,10 +2,12 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { useAuth } from '../../../lib/auth';
 
 export default function RegisterPage() {
   const { register } = useAuth();
+  const router = useRouter();
   const [formData, setFormData] = useState({
     username: '',
     email: '',
@@ -27,8 +29,7 @@ export default function RegisterPage() {
         password: formData.password,
         family_name: formData.familyName
       });
-      // Redirect will be handled by auth context
-      window.location.href = '/';
+      router.replace('/families');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Registration failed');
     } finally {
