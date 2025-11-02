@@ -2,14 +2,16 @@
 const API_BASE_URL = 'https://kinjar-api.fly.dev';
 
 export interface User {
-  id: number;
-  username: string;
+  id: string;
   email: string;
-  role: 'root_admin' | 'family_admin' | 'member';
-  family_id?: number;
-  family_name?: string;
+  global_role: 'ROOT' | 'USER';
   created_at: string;
-  is_active: boolean;
+  tenants?: {
+    id: string;
+    slug: string;
+    name: string;
+    role: 'OWNER' | 'ADMIN' | 'MEMBER';
+  }[];
 }
 
 export interface Family {
@@ -344,6 +346,69 @@ class KinjarAPI {
     return this.request(`/admin/users/${userId}/deactivate`, {
       method: 'POST',
     });
+  }
+
+  // Admin - Global Settings
+  async getGlobalSettings(): Promise<Record<string, any>> {
+    return this.request('/admin/settings');
+  }
+
+  async updateGlobalSetting(key: string, value: any): Promise<void> {
+    return this.request(`/admin/settings/${key}`, {
+      method: 'PUT',
+      body: JSON.stringify({ value }),
+    });
+  }
+
+  // Admin - Family Management
+  async suspendFamily(familySlug: string, reason: string, durationDays?: number): Promise<void> {
+    return this.request(`/admin/families/${familySlug}/suspend`, {
+      method: 'POST',
+      body: JSON.stringify({ reason, duration_days: durationDays }),
+    });
+  }
+
+  async unsuspendFamily(familySlug: string): Promise<void> {
+    return this.request(`/admin/families/${familySlug}/suspend`, {
+      method: 'DELETE',
+    });
+  }
+
+  async getFamilyDetails(familySlug: string): Promise<any> {
+    return this.request(`/admin/families/${familySlug}`);
+  }
+
+  // Admin - Signup Requests
+  async getSignupRequests(status: 'pending' | 'approved' | 'denied' = 'pending'): Promise<any[]> {
+    return this.request(`/admin/signup/requests?status=${status}`);
+  }
+
+  async approveSignupRequest(requestId: string): Promise<void> {
+    return this.request('/admin/signup/approve', {
+      method: 'POST',
+      body: JSON.stringify({ requestId }),
+    });
+  }
+
+  async denySignupRequest(requestId: string, reason: string): Promise<void> {
+    return this.request('/admin/signup/deny', {
+      method: 'POST',
+      body: JSON.stringify({ requestId, reason }),
+    });
+  }
+
+  // Admin - Audit Log
+  async getAuditLog(limit: number = 100, eventFilter?: string): Promise<any[]> {
+    const params = new URLSearchParams({ limit: limit.toString() });
+    if (eventFilter) {
+      params.append('event', eventFilter);
+    }
+    return this.request(`/admin/audit?${params}`);
+  }
+
+  // Admin - System Stats
+  async getSystemStats(): Promise<any> {
+    return this.request('/admin/stats');
   }
 
   // Search

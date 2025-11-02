@@ -97,8 +97,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     register,
     logout,
     isAuthenticated: !!user,
-    isRootAdmin: user?.role === 'root_admin',
-    isFamilyAdmin: user?.role === 'family_admin' || user?.role === 'root_admin',
+    isRootAdmin: user?.global_role === 'ROOT',
+    isFamilyAdmin: user?.global_role === 'ROOT' || (user?.tenants && user.tenants.some((t: any) => t.role === 'OWNER' || t.role === 'ADMIN')),
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
@@ -142,7 +142,7 @@ export function RequireRole({
   children, 
   fallback = null 
 }: { 
-  role: 'root_admin' | 'family_admin' | 'member';
+  role: 'ROOT' | 'ADMIN' | 'MEMBER';
   children: ReactNode;
   fallback?: ReactNode;
 }) {
@@ -154,11 +154,11 @@ export function RequireRole({
 
   const hasPermission = () => {
     switch (role) {
-      case 'root_admin':
-        return user.role === 'root_admin';
-      case 'family_admin':
-        return user.role === 'family_admin' || user.role === 'root_admin';
-      case 'member':
+      case 'ROOT':
+        return user.global_role === 'ROOT';
+      case 'ADMIN':
+        return user.global_role === 'ROOT' || (user.tenants && user.tenants.some((t: any) => t.role === 'OWNER' || t.role === 'ADMIN'));
+      case 'MEMBER':
         return true; // All authenticated users are at least members
       default:
         return false;
