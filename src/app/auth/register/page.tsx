@@ -4,11 +4,13 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { useAuth } from '../../../lib/auth';
 
-export default function LoginPage() {
-  const { login } = useAuth();
+export default function RegisterPage() {
+  const { register } = useAuth();
   const [formData, setFormData] = useState({
     username: '',
-    password: ''
+    email: '',
+    password: '',
+    familyName: ''
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -19,11 +21,16 @@ export default function LoginPage() {
     setError('');
 
     try {
-      await login(formData.username, formData.password);
+      await register({
+        username: formData.username,
+        email: formData.email,
+        password: formData.password,
+        family_name: formData.familyName
+      });
       // Redirect will be handled by auth context
       window.location.href = '/';
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Login failed');
+      setError(err instanceof Error ? err.message : 'Registration failed');
     } finally {
       setLoading(false);
     }
@@ -40,8 +47,8 @@ export default function LoginPage() {
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
       <div className="max-w-md w-full bg-white rounded-lg shadow-lg p-8">
         <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">Welcome Back</h1>
-          <p className="text-gray-600">Sign in to your family space</p>
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">Create Your Family Space</h1>
+          <p className="text-gray-600">Start sharing memories with your family</p>
         </div>
 
         {error && (
@@ -63,7 +70,23 @@ export default function LoginPage() {
               onChange={handleChange}
               required
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              placeholder="Enter your username"
+              placeholder="Choose a username"
+            />
+          </div>
+
+          <div>
+            <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
+              Email
+            </label>
+            <input
+              type="email"
+              id="email"
+              name="email"
+              value={formData.email}
+              onChange={handleChange}
+              required
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              placeholder="your@email.com"
             />
           </div>
 
@@ -79,7 +102,23 @@ export default function LoginPage() {
               onChange={handleChange}
               required
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              placeholder="Enter your password"
+              placeholder="Create a secure password"
+            />
+          </div>
+
+          <div>
+            <label htmlFor="familyName" className="block text-sm font-medium text-gray-700 mb-2">
+              Family Name
+            </label>
+            <input
+              type="text"
+              id="familyName"
+              name="familyName"
+              value={formData.familyName}
+              onChange={handleChange}
+              required
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              placeholder="Your family name (e.g., Smith Family)"
             />
           </div>
 
@@ -91,19 +130,19 @@ export default function LoginPage() {
             {loading ? (
               <>
                 <div className="loading-spinner mr-2"></div>
-                Signing In...
+                Creating Your Family Space...
               </>
             ) : (
-              'Sign In'
+              'Create Family Space'
             )}
           </button>
         </form>
 
         <div className="mt-8 text-center">
           <p className="text-gray-600">
-            Don't have an account?{' '}
-            <Link href="/auth/register" className="text-blue-600 hover:text-blue-700 font-medium">
-              Create your family space
+            Already have an account?{' '}
+            <Link href="/auth/login" className="text-blue-600 hover:text-blue-700 font-medium">
+              Sign in here
             </Link>
           </p>
         </div>
