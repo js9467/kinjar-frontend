@@ -15,10 +15,12 @@ export default function FamilyHubPage() {
   const [fetchError, setFetchError] = useState<string | null>(null);
   const [uploadError, setUploadError] = useState<string | null>(null);
 
-  const familyId = user?.family_id;
+  // Get the first family/tenant the user belongs to
+  const primaryTenant = user?.tenants?.[0];
+  const familySlug = primaryTenant?.slug;
 
   const loadPosts = useCallback(async () => {
-    if (!familyId) {
+    if (!familySlug) {
       setPosts([]);
       return;
     }
@@ -26,7 +28,9 @@ export default function FamilyHubPage() {
     try {
       setFetchingPosts(true);
       setFetchError(null);
-      const familyPosts = await api.getPosts(familyId);
+      // Note: This might need to be updated to use family slug instead of ID
+      // For now, we'll use a mock implementation or update the API call
+      const familyPosts = await api.getFamilyPosts(familySlug);
       setPosts(familyPosts);
     } catch (error) {
       console.error('Failed to load posts:', error);
@@ -34,7 +38,7 @@ export default function FamilyHubPage() {
     } finally {
       setFetchingPosts(false);
     }
-  }, [familyId]);
+  }, [familySlug]);
 
   useEffect(() => {
     if (loading) {
@@ -61,17 +65,17 @@ export default function FamilyHubPage() {
     setUploadError(message);
   }, []);
 
-  const hasFamily = typeof familyId === 'number';
+  const hasFamily = !!familySlug;
 
   const title = useMemo(() => {
     if (!user) {
       return '';
     }
-    if (user.family_name) {
-      return `${user.family_name} Hub`;
+    if (primaryTenant?.name) {
+      return `${primaryTenant.name} Hub`;
     }
     return 'Family Hub';
-  }, [user]);
+  }, [user, primaryTenant]);
 
   if (loading) {
     return (

@@ -9,7 +9,6 @@ export default function RegisterPage() {
   const { register } = useAuth();
   const router = useRouter();
   const [formData, setFormData] = useState({
-    username: '',
     email: '',
     password: '',
     familyName: ''
@@ -24,7 +23,6 @@ export default function RegisterPage() {
 
     try {
       await register({
-        username: formData.username,
         email: formData.email,
         password: formData.password,
         family_name: formData.familyName
@@ -60,24 +58,8 @@ export default function RegisterPage() {
 
         <form onSubmit={handleSubmit} className="space-y-6">
           <div>
-            <label htmlFor="username" className="block text-sm font-medium text-gray-700 mb-2">
-              Username
-            </label>
-            <input
-              type="text"
-              id="username"
-              name="username"
-              value={formData.username}
-              onChange={handleChange}
-              required
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              placeholder="Choose a username"
-            />
-          </div>
-
-          <div>
             <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
-              Email
+              Email Address
             </label>
             <input
               type="email"

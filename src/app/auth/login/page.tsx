@@ -9,7 +9,7 @@ export default function LoginPage() {
   const { login } = useAuth();
   const router = useRouter();
   const [formData, setFormData] = useState({
-    username: '',
+    email: '',
     password: ''
   });
   const [loading, setLoading] = useState(false);
@@ -21,7 +21,7 @@ export default function LoginPage() {
     setError('');
 
     try {
-      await login(formData.username, formData.password);
+      await login(formData.email, formData.password);
       router.replace('/families');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Login failed');
@@ -53,18 +53,18 @@ export default function LoginPage() {
 
         <form onSubmit={handleSubmit} className="space-y-6">
           <div>
-            <label htmlFor="username" className="block text-sm font-medium text-gray-700 mb-2">
-              Username
+            <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
+              Email Address
             </label>
             <input
-              type="text"
-              id="username"
-              name="username"
-              value={formData.username}
+              type="email"
+              id="email"
+              name="email"
+              value={formData.email}
               onChange={handleChange}
               required
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              placeholder="Enter your username"
+              placeholder="Enter your email address"
             />
           </div>
 

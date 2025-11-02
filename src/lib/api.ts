@@ -110,15 +110,10 @@ class KinjarAPI {
   }
 
   // Authentication
-  async login(username: string, password: string): Promise<AuthResponse> {
-    const identifier = username.trim();
-    const credentials = identifier.includes('@')
-      ? { email: identifier, password }
-      : { username: identifier, password };
-
+  async login(email: string, password: string): Promise<AuthResponse> {
     const result: any = await this.request('/auth/login', {
       method: 'POST',
-      body: JSON.stringify(credentials),
+      body: JSON.stringify({ email, password }),
     });
 
     const token = result.token ?? result.access_token ?? '';
@@ -148,10 +143,9 @@ class KinjarAPI {
   }
 
   async register(userData: {
-    username: string;
     email: string;
     password: string;
-    family_name: string;
+    family_name?: string;
   }): Promise<AuthResponse> {
     const result: any = await this.request('/auth/register', {
       method: 'POST',
@@ -186,6 +180,10 @@ class KinjarAPI {
 
   async getFamilyBySlug(slug: string): Promise<Family> {
     return this.request(`/families/${slug}`);
+  }
+
+  async getFamilyPosts(familySlug: string): Promise<Post[]> {
+    return this.request(`/api/families/${familySlug}/posts`);
   }
 
   async createFamily(familyData: {

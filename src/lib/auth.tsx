@@ -6,9 +6,8 @@ import { api, User } from './api';
 interface AuthContextType {
   user: User | null;
   loading: boolean;
-  login: (username: string, password: string) => Promise<void>;
+  login: (email: string, password: string) => Promise<void>;
   register: (userData: {
-    username: string;
     email: string;
     password: string;
     family_name?: string;
@@ -44,9 +43,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     checkAuth();
   }, []);
 
-  const login = async (username: string, password: string) => {
+  const login = async (email: string, password: string) => {
     try {
-      const result = await api.login(username, password);
+      const result = await api.login(email, password);
 
       if (result.user) {
         setUser(result.user);
@@ -61,17 +60,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const register = async (userData: {
-    username: string;
     email: string;
     password: string;
     family_name?: string;
   }) => {
     try {
-      const registerData = {
-        ...userData,
-        family_name: userData.family_name || userData.username, // Use username as default family name
-      };
-      const result = await api.register(registerData);
+      const result = await api.register(userData);
 
       if (result.user) {
         setUser(result.user);
