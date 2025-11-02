@@ -62,7 +62,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     family_name?: string;
   }) => {
     try {
-      const result = await api.register(userData);
+      const registerData = {
+        ...userData,
+        family_name: userData.family_name || userData.username, // Use username as default family name
+      };
+      const result = await api.register(registerData);
       setUser(result.user);
     } catch (error) {
       throw error;
