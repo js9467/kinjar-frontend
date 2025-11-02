@@ -92,7 +92,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     logout,
     isAuthenticated: !!user,
     isRootAdmin: user?.global_role === 'ROOT',
-    isFamilyAdmin: user?.global_role === 'ROOT' || (user?.tenants && user.tenants.some((t: any) => t.role === 'OWNER' || t.role === 'ADMIN')),
+    isFamilyAdmin: !!(user?.global_role === 'ROOT' || (user?.tenants && user.tenants.some((t: any) => t.role === 'OWNER' || t.role === 'ADMIN'))),
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
