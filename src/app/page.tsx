@@ -1,7 +1,18 @@
-import Link from 'next/link'
-import { useAuth } from '../lib/auth'
+'use client';
+
+import Link from 'next/link';
+import { useAuth } from '../lib/auth';
 
 export default function HomePage() {
+  const { user, loading, logout } = useAuth();
+
+  const handleLogout = () => {
+    logout();
+    if (typeof window !== 'undefined') {
+      window.location.href = '/';
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
       {/* Navigation */}
@@ -12,18 +23,41 @@ export default function HomePage() {
               <h1 className="text-2xl font-bold text-indigo-600">Kinjar</h1>
             </div>
             <div className="flex items-center space-x-4">
-              <Link 
-                href="/auth/login"
-                className="text-gray-700 hover:text-indigo-600 px-3 py-2 rounded-md text-sm font-medium"
-              >
-                Sign In
-              </Link>
-              <Link 
-                href="/auth/register"
-                className="bg-indigo-600 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-indigo-700"
-              >
-                Get Started
-              </Link>
+              {loading ? (
+                <div className="text-gray-500 text-sm">Checking session...</div>
+              ) : user ? (
+                <>
+                  <span className="text-sm text-gray-700">Welcome back, {user.username}!</span>
+                  <Link
+                    href="/families"
+                    className="bg-indigo-600 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-indigo-700"
+                  >
+                    Go to your family hub
+                  </Link>
+                  <button
+                    type="button"
+                    onClick={handleLogout}
+                    className="text-gray-700 hover:text-indigo-600 px-3 py-2 rounded-md text-sm font-medium"
+                  >
+                    Sign Out
+                  </button>
+                </>
+              ) : (
+                <>
+                  <Link
+                    href="/auth/login"
+                    className="text-gray-700 hover:text-indigo-600 px-3 py-2 rounded-md text-sm font-medium"
+                  >
+                    Sign In
+                  </Link>
+                  <Link
+                    href="/auth/register"
+                    className="bg-indigo-600 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-indigo-700"
+                  >
+                    Get Started
+                  </Link>
+                </>
+              )}
             </div>
           </div>
         </div>
@@ -42,18 +76,29 @@ export default function HomePage() {
             private environment. No ads, no data mining, just pure family connection.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Link 
-              href="/auth/register"
-              className="bg-indigo-600 text-white px-8 py-3 rounded-lg text-lg font-medium hover:bg-indigo-700 transition-colors"
-            >
-              Create Your Family Space
-            </Link>
-            <Link 
-              href="/auth/login"
-              className="border border-indigo-600 text-indigo-600 px-8 py-3 rounded-lg text-lg font-medium hover:bg-indigo-50 transition-colors"
-            >
-              Join Existing Family
-            </Link>
+            {user ? (
+              <Link
+                href="/families"
+                className="bg-indigo-600 text-white px-8 py-3 rounded-lg text-lg font-medium hover:bg-indigo-700 transition-colors"
+              >
+                Enter Your Family Space
+              </Link>
+            ) : (
+              <>
+                <Link
+                  href="/auth/register"
+                  className="bg-indigo-600 text-white px-8 py-3 rounded-lg text-lg font-medium hover:bg-indigo-700 transition-colors"
+                >
+                  Create Your Family Space
+                </Link>
+                <Link
+                  href="/auth/login"
+                  className="border border-indigo-600 text-indigo-600 px-8 py-3 rounded-lg text-lg font-medium hover:bg-indigo-50 transition-colors"
+                >
+                  Join Existing Family
+                </Link>
+              </>
+            )}
           </div>
         </div>
       </div>
@@ -135,5 +180,5 @@ export default function HomePage() {
         </div>
       </footer>
     </div>
-  )
+  );
 }
