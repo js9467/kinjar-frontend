@@ -61,7 +61,7 @@ export default function FamilyHubPage() {
     setUploadError(message);
   }, []);
 
-  const hasFamily = Boolean(familyId);
+  const hasFamily = typeof familyId === 'number';
 
   const title = useMemo(() => {
     if (!user) {
@@ -121,7 +121,7 @@ export default function FamilyHubPage() {
           </div>
         )}
 
-        {hasFamily ? (
+        {typeof familyId === 'number' ? (
           <div className="space-y-8">
             <UploadComponent
               familyId={familyId}
