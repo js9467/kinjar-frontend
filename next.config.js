@@ -9,6 +9,7 @@ const nextConfig = {
       'kinjar-api.fly.dev',
       'localhost',
       'vercel-blob.com',
+      'images.unsplash.com',
     ],
     remotePatterns: [
       {
@@ -18,7 +19,11 @@ const nextConfig = {
       {
         protocol: 'https',
         hostname: 'kinjar-api.fly.dev',
-      }
+      },
+      {
+        protocol: 'https',
+        hostname: 'images.unsplash.com',
+      },
     ],
   },
   async rewrites() {
@@ -27,8 +32,8 @@ const nextConfig = {
       {
         source: '/api/backend/:path*',
         destination: 'https://kinjar-api.fly.dev/:path*',
-      }
-    ]
+      },
+    ];
   },
   async headers() {
     return [
@@ -37,20 +42,20 @@ const nextConfig = {
         headers: [
           {
             key: 'X-Content-Type-Options',
-            value: 'nosniff'
+            value: 'nosniff',
           },
           {
             key: 'X-Frame-Options',
-            value: 'DENY'
+            value: 'DENY',
           },
           {
             key: 'X-XSS-Protection',
-            value: '1; mode=block'
+            value: '1; mode=block',
           },
-        ]
-      }
-    ]
-  }
-}
+        ],
+      },
+    ];
+  },
+};
 
-module.exports = nextConfig
+module.exports = nextConfig;
