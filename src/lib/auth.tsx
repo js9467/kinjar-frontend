@@ -143,3 +143,59 @@ export const useAuth = () => {
   }
   return context;
 };
+
+type RequiredRole = 'ROOT' | 'AUTHENTICATED' | 'FAMILY_ADMIN';
+
+interface RequireRoleProps {
+  role: RequiredRole;
+  familyId?: string;
+  fallback?: ReactNode;
+  children: ReactNode;
+}
+
+export const RequireRole = ({
+  role,
+  familyId,
+  fallback = null,
+  children,
+}: RequireRoleProps) => {
+  const { loading, familyAdminIds, isAuthenticated, isRootAdmin } = useAuth();
+
+  const hasRequiredRole = useMemo(() => {
+    if (loading) {
+      return false;
+    }
+
+    if (role === 'AUTHENTICATED') {
+      return isAuthenticated;
+    }
+
+    if (role === 'ROOT') {
+      return isRootAdmin;
+    }
+
+    if (role === 'FAMILY_ADMIN') {
+      if (!familyId) {
+        return familyAdminIds.length > 0;
+      }
+
+      return familyAdminIds.includes(familyId);
+    }
+
+    return false;
+  }, [role, loading, isAuthenticated, isRootAdmin, familyAdminIds, familyId]);
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-10 text-sm text-gray-500">
+        Checking permissions...
+      </div>
+    );
+  }
+
+  if (!hasRequiredRole) {
+    return <>{fallback}</>;
+  }
+
+  return <>{children}</>;
+};
