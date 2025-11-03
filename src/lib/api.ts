@@ -14,7 +14,14 @@ export interface UploadResponse {
   url: string;
 }
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://kinjar-api.fly.dev';
+// Hardcode the API base URL to prevent any environment variable issues
+const API_BASE_URL = 'https://kinjar-api.fly.dev';
+
+// Debug: log the API base URL for troubleshooting
+if (typeof window !== 'undefined') {
+  console.log(`[API] Environment API_URL: ${process.env.NEXT_PUBLIC_API_URL}`);
+  console.log(`[API] Final API_BASE_URL: ${API_BASE_URL}`);
+}
 
 // Demo mode configuration for development/testing
 const DEMO_MODE = {
@@ -117,6 +124,12 @@ class KinjarAPI {
   }
 
   private async request(endpoint: string, options: RequestInit = {}) {
+    // Ensure baseURL is absolute
+    if (!this.baseURL.startsWith('http')) {
+      console.error(`[API] Invalid baseURL: ${this.baseURL}. Using fallback.`);
+      this.baseURL = 'https://kinjar-api.fly.dev';
+    }
+    
     const url = `${this.baseURL}${endpoint}`;
     
     // Debug logging for development and production to troubleshoot

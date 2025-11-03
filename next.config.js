@@ -28,12 +28,7 @@ const nextConfig = {
   },
   async rewrites() {
     return [
-      // API proxy to backend - only needed if using /api/backend paths
-      // Since we now use direct API URLs, this may not be needed
-      {
-        source: '/api/backend/:path*',
-        destination: 'https://kinjar-api.fly.dev/:path*',
-      },
+      // No API proxying needed - using direct API calls
     ];
   },
   async headers() {
