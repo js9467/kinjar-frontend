@@ -64,7 +64,8 @@ export function FamilyDashboard({ familySlug }: FamilyDashboardProps) {
       } catch (apiError) {
         console.error('Failed to load family data:', apiError);
         setError(`Failed to load family data: ${apiError instanceof Error ? apiError.message : 'Unknown error'}`);
-      } finally {
+        
+        // Only create mock family as fallback when API fails
         const mockFamily = {
           id: 'mock-family-1',
           slug: effectiveFamilySlug,
@@ -145,7 +146,6 @@ export function FamilyDashboard({ familySlug }: FamilyDashboardProps) {
         
         setFamily(mockFamily);
         setPosts(mockFamily.posts);
-        setError(null);
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load family data');
