@@ -341,12 +341,38 @@ class KinjarAPI {
 
   async getFamilyPosts(familySlugOrId: string, limit: number = 20, offset: number = 0): Promise<FamilyPost[]> {
     // Try the API endpoint first (uses slug)
+    let response;
     try {
-      return await this.request(`/api/families/${familySlugOrId}/posts?limit=${limit}&offset=${offset}`);
+      response = await this.request(`/api/families/${familySlugOrId}/posts?limit=${limit}&offset=${offset}`);
     } catch (error) {
       // Fallback to families endpoint (uses ID) 
-      return this.request(`/families/${familySlugOrId}/posts?limit=${limit}&offset=${offset}`);
+      response = await this.request(`/families/${familySlugOrId}/posts?limit=${limit}&offset=${offset}`);
     }
+
+    // Transform backend posts to frontend format
+    const backendPosts = response.posts || response || [];
+    const frontendPosts: FamilyPost[] = backendPosts.map((backendPost: any) => ({
+      id: backendPost.id,
+      familyId: backendPost.tenant_id || familySlugOrId,
+      authorId: backendPost.author_id,
+      authorName: backendPost.author_name || 'User', // Use author name if available
+      authorAvatarColor: backendPost.author_avatar || '#3B82F6', // Default color
+      createdAt: backendPost.published_at || backendPost.created_at,
+      content: backendPost.content,
+      media: backendPost.media_filename ? {
+        type: backendPost.media_content_type?.startsWith('image/') ? 'image' : 'video',
+        url: `/api/media/${backendPost.media_id}`, // Construct media URL
+        alt: backendPost.title
+      } : undefined,
+      visibility: backendPost.is_public ? 'public' : 'family',
+      status: 'approved', // Backend posts are auto-approved
+      reactions: 0, // TODO: Get from backend
+      comments: [], // TODO: Get from backend
+      tags: [] // TODO: Get from backend
+    }));
+
+    console.log(`[API] Transformed ${frontendPosts.length} posts from backend`);
+    return frontendPosts;
   }
 
   async addComment(postId: string, content: string): Promise<{ id: string; authorName: string; authorAvatarColor: string; content: string; createdAt: string }> {
