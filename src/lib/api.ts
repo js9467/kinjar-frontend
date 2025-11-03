@@ -20,7 +20,7 @@ const API_BASE_URL = typeof window !== 'undefined'
 
 // Demo mode configuration for development/testing
 const DEMO_MODE = {
-  enabled: true,
+  enabled: false,  // Disabled to use real API
   credentials: {
     email: 'testuser@kinjar.com',
     password: 'TestPass123!',

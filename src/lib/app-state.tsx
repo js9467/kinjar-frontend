@@ -71,9 +71,9 @@ const AppStateContext = createContext<AppStateContextType | undefined>(
 );
 
 const initialState: AppState = {
-  families: initialFamilies,
-  pendingFamilySignups: initialPendingSignups,
-  connectionRequests: initialConnectionRequests,
+  families: [], // Start with empty data instead of sample data
+  pendingFamilySignups: [],
+  connectionRequests: [],
 };
 
 interface AppStateContextType {
