@@ -127,6 +127,7 @@ interface AppStateContextType {
     status: PostStatus
   ) => void;
   toggleHighlight: (familyId: string, postId: string) => void;
+  deleteFamilyPost: (familyId: string, postId: string) => boolean;
   requestConnection: (
     fromFamilyId: string,
     toFamilyId: string,
@@ -381,6 +382,24 @@ export const AppStateProvider = ({ children }: { children: ReactNode }) => {
     [updateFamily]
   );
 
+  const deleteFamilyPost: AppStateContextType['deleteFamilyPost'] = useCallback(
+    (familyId, postId) => {
+      const family = getFamilyById(familyId);
+      if (!family || !(family.posts || []).some((post) => post.id === postId)) {
+        return false;
+      }
+
+      updateFamily(familyId, (current) => ({
+        ...current,
+        posts: (current.posts || []).filter((post) => post.id !== postId),
+        highlights: current.highlights.filter((id) => id !== postId),
+      }));
+
+      return true;
+    },
+    [getFamilyById, updateFamily]
+  );
+
   const requestConnection: AppStateContextType['requestConnection'] =
     useCallback(
       (fromFamilyId, toFamilyId, requestedBy, notes) => {
@@ -481,6 +500,7 @@ export const AppStateProvider = ({ children }: { children: ReactNode }) => {
     updatePostVisibility,
     updatePostStatus,
     toggleHighlight,
+    deleteFamilyPost,
     requestConnection,
     respondToConnectionRequest,
   };
