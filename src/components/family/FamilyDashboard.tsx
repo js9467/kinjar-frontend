@@ -14,12 +14,13 @@ interface FamilyDashboardProps {
 }
 
 export function FamilyDashboard({ familySlug }: FamilyDashboardProps) {
-  const { user, loading: authLoading, isAuthenticated } = useAuth();
+  const { user, loading: authLoading, isAuthenticated, canManageFamily } = useAuth();
   const [family, setFamily] = useState<FamilyProfile | null>(null);
   const [posts, setPosts] = useState<FamilyPost[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [filter, setFilter] = useState<'all' | 'public' | 'family' | 'connections'>('all');
+  const [deletingPostId, setDeletingPostId] = useState<string | null>(null);
 
   // Determine family context
   const subdomainInfo = getSubdomainInfo();
@@ -190,11 +191,29 @@ export function FamilyDashboard({ familySlug }: FamilyDashboardProps) {
   };
 
   const handleReaction = (postId: string, reaction: string) => {
-    setPosts(prev => prev.map(post => 
-      post.id === postId 
+    setPosts(prev => prev.map(post =>
+      post.id === postId
         ? { ...post, reactions: post.reactions + 1 }
         : post
     ));
+  };
+
+  const handleDeletePost = async (postId: string) => {
+    const confirmed = typeof window !== 'undefined' ? window.confirm('Delete this post?') : true;
+    if (!confirmed) {
+      return;
+    }
+
+    try {
+      setDeletingPostId(postId);
+      await api.deletePost(postId);
+      setPosts(prev => prev.filter(post => post.id !== postId));
+    } catch (err) {
+      console.error('Failed to delete post:', err);
+      setError(err instanceof Error ? err.message : 'Failed to delete post');
+    } finally {
+      setDeletingPostId(null);
+    }
   };
 
   const filteredPosts = posts.filter(post => {
@@ -396,19 +415,28 @@ export function FamilyDashboard({ familySlug }: FamilyDashboardProps) {
                               <span>{new Date(post.createdAt).toLocaleDateString()}</span>
                               <span>•</span>
                               <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                                post.visibility === 'public' 
+                                post.visibility === 'public'
                                   ? 'bg-green-100 text-green-800'
                                   : post.visibility === 'connections'
                                   ? 'bg-blue-100 text-blue-800'
                                   : 'bg-gray-100 text-gray-800'
                               }`}>
-                                {post.visibility === 'public' ? 'Public' 
+                                {post.visibility === 'public' ? 'Public'
                                  : post.visibility === 'connections' ? 'Connections'
                                  : 'Family Only'}
                               </span>
                             </div>
                           </div>
                         </div>
+                        {(canManageFamily(family.id) || post.authorId === user?.id) && (
+                          <button
+                            onClick={() => handleDeletePost(post.id)}
+                            disabled={deletingPostId === post.id}
+                            className="text-sm text-red-600 hover:text-red-700 disabled:cursor-not-allowed disabled:opacity-50"
+                          >
+                            {deletingPostId === post.id ? 'Deleting…' : 'Delete'}
+                          </button>
+                        )}
                       </div>
                     </div>
 
