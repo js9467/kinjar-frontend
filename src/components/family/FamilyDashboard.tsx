@@ -25,14 +25,6 @@ export function FamilyDashboard({ familySlug }: FamilyDashboardProps) {
   const subdomainInfo = getSubdomainInfo();
   const effectiveFamilySlug = familySlug || subdomainInfo.familySlug;
 
-  // Debug logging
-  console.log('[FamilyDashboard] Debug Info:', {
-    familySlug: familySlug,
-    subdomainInfo: subdomainInfo,
-    effectiveFamilySlug: effectiveFamilySlug,
-    windowLocation: typeof window !== 'undefined' ? window.location.href : 'SSR'
-  });
-
   useEffect(() => {
     loadFamilyData();
   }, [effectiveFamilySlug]);
@@ -47,9 +39,6 @@ export function FamilyDashboard({ familySlug }: FamilyDashboardProps) {
     try {
       setLoading(true);
       setError(null);
-      
-      // Debug logging
-      console.log(`[FamilyDashboard] Loading family data for slug: "${effectiveFamilySlug}"`);
       
       // Try to load from API first
       try {
