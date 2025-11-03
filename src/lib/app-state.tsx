@@ -206,10 +206,10 @@ export const AppStateProvider = ({ children }: { children: ReactNode }) => {
           signup.message ?? 'Newly approved family space ready to customize.',
         missionStatement: 'Define your family mission to inspire relatives.',
         bannerImage:
-          'https://picsum.photos/1600/600?random=8',
+          'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTYwMCIgaGVpZ2h0PSI2MDAiIHZpZXdCb3g9IjAgMCAxNjAwIDYwMCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjE2MDAiIGhlaWdodD0iNjAwIiBmaWxsPSIjMjU2M2ViIi8+Cjx0ZXh0IHg9IjgwMCIgeT0iMzAwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSJ3aGl0ZSIgZm9udC1mYW1pbHk9IkFyaWFsIiBmb250LXNpemU9IjQ4Ij5OZXcgRmFtaWx5PC90ZXh0Pgo8L3N2Zz4=',
         themeColor: '#2563eb',
         heroImage:
-          'https://picsum.photos/1400/800?random=9',
+          'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTQwMCIgaGVpZ2h0PSI4MDAiIHZpZXdCb3g9IjAgMCAxNDAwIDgwMCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjE0MDAiIGhlaWdodD0iODAwIiBmaWxsPSIjMzMzIi8+Cjx0ZXh0IHg9IjcwMCIgeT0iNDAwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSJ3aGl0ZSIgZm9udC1mYW1pbHk9IkFyaWFsIiBmb250LXNpemU9IjM2Ij5GYW1pbHkgUGhvdG88L3RleHQ+Cjwvc3ZnPg==',
         admins: [adminMember.id],
         members: [adminMember],
         posts: [],

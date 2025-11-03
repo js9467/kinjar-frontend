@@ -111,7 +111,7 @@ const williamsPosts: FamilyPost[] = [
       'Recap from our family reunion last weekend! The kids loved the scavenger hunt and Grandpa told the best stories.',
     media: {
       type: 'image',
-      url: 'https://picsum.photos/1200/800?random=3',
+      url: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTIwMCIgaGVpZ2h0PSI4MDAiIHZpZXdCb3g9IjAgMCAxMjAwIDgwMCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjEyMDAiIGhlaWdodD0iODAwIiBmaWxsPSIjMzMzIi8+Cjx0ZXh0IHg9IjYwMCIgeT0iNDAwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSJ3aGl0ZSIgZm9udC1mYW1pbHk9IkFyaWFsIiBmb250LXNpemU9IjM2Ij5TYW1wbGUgUGhvdG88L3RleHQ+Cjwvc3ZnPg==',
       alt: 'Family reunion picnic in the park',
     },
     visibility: 'public',
@@ -227,10 +227,10 @@ export const initialFamilies: FamilyProfile[] = [
     description: 'Pacific Northwest crew keeping grandparents looped in on every soccer goal and science fair.',
     missionStatement: 'Document the everyday joy and celebrate big and small wins together.',
     bannerImage:
-      'https://picsum.photos/1600/600?random=1',
+      'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTYwMCIgaGVpZ2h0PSI2MDAiIHZpZXdCb3g9IjAgMCAxNjAwIDYwMCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjE2MDAiIGhlaWdodD0iNjAwIiBmaWxsPSIjNjM2NmYxIi8+Cjx0ZXh0IHg9IjgwMCIgeT0iMzAwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSJ3aGl0ZSIgZm9udC1mYW1pbHk9IkFyaWFsIiBmb250LXNpemU9IjQ4Ij5XaWxsaWFtcyBDbGFuPC90ZXh0Pgo8L3N2Zz4=',
     themeColor: '#6366f1',
     heroImage:
-      'https://picsum.photos/1400/800?random=2',
+      'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTQwMCIgaGVpZ2h0PSI4MDAiIHZpZXdCb3g9IjAgMCAxNDAwIDgwMCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjE0MDAiIGhlaWdodD0iODAwIiBmaWxsPSIjOGI1Y2Y2Ii8+Cjx0ZXh0IHg9IjcwMCIgeT0iNDAwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSJ3aGl0ZSIgZm9udC1mYW1pbHk9IkFyaWFsIiBmb250LXNpemU9IjM2Ij5GYW1pbHkgUGhvdG88L3RleHQ+Cjwvc3ZnPg==',
     admins: ['member-williams-admin'],
     members: williamsMembers,
     posts: williamsPosts,
@@ -270,10 +270,10 @@ export const initialFamilies: FamilyProfile[] = [
     description: 'East coast foodies sharing recipes, celebrations, and music across generations.',
     missionStatement: 'Keep our heritage alive by sharing traditions and stories weekly.',
     bannerImage:
-      'https://picsum.photos/1600/600?random=4',
+      'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTYwMCIgaGVpZ2h0PSI2MDAiIHZpZXdCb3g9IjAgMCAxNjAwIDYwMCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjE2MDAiIGhlaWdodD0iNjAwIiBmaWxsPSIjMjJjNTVlIi8+Cjx0ZXh0IHg9IjgwMCIgeT0iMzAwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSJ3aGl0ZSIgZm9udC1mYW1pbHk9IkFyaWFsIiBmb250LXNpemU9IjQ4Ij5GZXJuYW5kZXogRmFtaWx5PC90ZXh0Pgo8L3N2Zz4=',
     themeColor: '#22c55e',
     heroImage:
-      'https://picsum.photos/1400/800?random=5',
+      'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTQwMCIgaGVpZ2h0PSI4MDAiIHZpZXdCb3g9IjAgMCAxNDAwIDgwMCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjE0MDAiIGhlaWdodD0iODAwIiBmaWxsPSIjMTZhMzRhIi8+Cjx0ZXh0IHg9IjcwMCIgeT0iNDAwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSJ3aGl0ZSIgZm9udC1mYW1pbHk9IkFyaWFsIiBmb250LXNpemU9IjM2Ij5GYW1pbHkgUGhvdG88L3RleHQ+Cjwvc3ZnPg==',
     admins: ['member-fernandez-admin'],
     members: fernandezMembers,
     posts: fernandezPosts,
@@ -304,10 +304,10 @@ export const initialFamilies: FamilyProfile[] = [
     description: 'Testing ground for every Kinjar feature. Early adopters and product champions.',
     missionStatement: 'Build and test the tools families need to feel connected.',
     bannerImage:
-      'https://picsum.photos/1600/600?random=6',
+      'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTYwMCIgaGVpZ2h0PSI2MDAiIHZpZXdCb3g9IjAgMCAxNjAwIDYwMCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjE2MDAiIGhlaWdodD0iNjAwIiBmaWxsPSIjYTg1NWY3Ii8+Cjx0ZXh0IHg9IjgwMCIgeT0iMzAwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSJ3aGl0ZSIgZm9udC1mYW1pbHk9IkFyaWFsIiBmb250LXNpemU9IjQ4Ij5TbGF1Z2h0ZXJiZWNrIEZhbWlseTwvdGV4dD4KPHN2Zz4=',
     themeColor: '#a855f7',
     heroImage:
-      'https://picsum.photos/1400/800?random=7',
+      'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTQwMCIgaGVpZ2h0PSI4MDAiIHZpZXdCb3g9IjAgMCAxNDAwIDgwMCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjE0MDAiIGhlaWdodD0iODAwIiBmaWxsPSIjOWMzNGY0Ii8+Cjx0ZXh0IHg9IjcwMCIgeT0iNDAwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSJ3aGl0ZSIgZm9udC1mYW1pbHk9IkFyaWFsIiBmb250LXNpemU9IjM2Ij5GYW1pbHkgUGhvdG88L3RleHQ+Cjwvc3ZnPg==',
     admins: ['member-slaughterbeck-admin'],
     members: slaughterbeckMembers,
     posts: slaughterbeckPosts,
