@@ -3,10 +3,8 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useAuth } from '../../../lib/auth';
 
 export default function LoginPage() {
-  const { login, subdomainInfo } = useAuth();
   const router = useRouter();
   const [formData, setFormData] = useState({
     email: '',
@@ -21,21 +19,14 @@ export default function LoginPage() {
     setError('');
 
     try {
-      const loggedInUser = await login(formData.email, formData.password);
-
-      // Determine where to redirect based on user role and current context
-      if (loggedInUser.globalRole === 'ROOT_ADMIN') {
-        router.replace('/admin');
-      } else if (subdomainInfo.isSubdomain) {
-        // On a family subdomain, redirect to family page
+      // Mock login for demo
+      setTimeout(() => {
+        alert(`Demo: Would log in user ${formData.email}`);
         router.replace('/');
-      } else {
-        // On root domain, redirect to family selection
-        router.replace('/families');
-      }
+        setLoading(false);
+      }, 1000);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Login failed');
-    } finally {
       setLoading(false);
     }
   };
@@ -47,13 +38,8 @@ export default function LoginPage() {
     }));
   };
 
-  const pageTitle = subdomainInfo.isSubdomain 
-    ? `Welcome to ${subdomainInfo.familySlug} Family`
-    : 'Welcome Back';
-
-  const pageSubtitle = subdomainInfo.isSubdomain
-    ? 'Sign in to your family space'
-    : 'Sign in to Kinjar';
+  const pageTitle = 'Welcome Back';
+  const pageSubtitle = 'Sign in to Kinjar (Demo Mode)';
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
@@ -61,6 +47,9 @@ export default function LoginPage() {
         <div className="text-center mb-8">
           <h1 className="text-3xl font-bold text-gray-900 mb-2">{pageTitle}</h1>
           <p className="text-gray-600">{pageSubtitle}</p>
+          <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+            <p className="text-sm text-yellow-800">Demo Mode - Login not connected to backend</p>
+          </div>
         </div>
 
         {error && (
@@ -109,25 +98,23 @@ export default function LoginPage() {
           >
             {loading ? (
               <>
-                <div className="loading-spinner mr-2"></div>
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
                 Signing In...
               </>
             ) : (
-              'Sign In'
+              'Sign In (Demo)'
             )}
           </button>
         </form>
 
-        {!subdomainInfo.isSubdomain && (
-          <div className="mt-8 text-center">
-            <p className="text-gray-600">
-              Don&apos;t have an account?{' '}
-              <Link href="/auth/register" className="text-blue-600 hover:text-blue-700 font-medium">
-                Create your family space
-              </Link>
-            </p>
-          </div>
-        )}
+        <div className="mt-8 text-center">
+          <p className="text-gray-600">
+            Don&apos;t have an account?{' '}
+            <Link href="/auth/register" className="text-blue-600 hover:text-blue-700 font-medium">
+              Create your family space
+            </Link>
+          </p>
+        </div>
 
         <div className="mt-6 text-center">
           <Link href="/" className="text-gray-500 hover:text-gray-700 text-sm">

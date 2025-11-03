@@ -1,4 +1,4 @@
-import type { Metadata } from 'next';
+import type { Metadata, Viewport } from 'next';
 import './globals.css';
 
 export const metadata: Metadata = {
@@ -6,9 +6,14 @@ export const metadata: Metadata = {
   description: 'Private family social platform for sharing memories and staying connected',
   keywords: 'family, social, photos, videos, private, secure',
   authors: [{ name: 'Kinjar Team' }],
-  viewport: 'width=device-width, initial-scale=1, maximum-scale=1',
-  themeColor: '#0ea5e9',
   manifest: '/manifest.json',
+};
+
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 1,
+  themeColor: '#0ea5e9',
 };
 
 export default function RootLayout({

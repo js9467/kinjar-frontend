@@ -4,11 +4,12 @@ import Link from 'next/link';
 import { useMemo } from 'react';
 
 import { useAppState } from '@/lib/app-state';
-import { useAuth } from '@/lib/auth';
 
 export default function AdminDashboard() {
   const { families, pendingFamilySignups, connectionRequests, globalStats } = useAppState();
-  const { user } = useAuth();
+  
+  // Mock admin user for demo
+  const user = { name: 'Admin', email: 'admin@kinjar.com' };
 
   const { pendingPosts, flaggedPosts, publicFamilies } = useMemo(() => {
     let pending = 0;
