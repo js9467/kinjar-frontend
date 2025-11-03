@@ -296,12 +296,13 @@ class KinjarAPI {
 
     // Handle media transformation
     if (postData.media) {
-      if (postData.media.url.startsWith('http')) {
-        // If it's a URL, use it as media_id
+      if (postData.media.url.startsWith('http') && !postData.media.url.includes('blob.vercel-storage.com')) {
+        // Only use media_id for actual backend media IDs, not blob URLs
         backendData.media_id = postData.media.url;
       } else {
-        // For blob URLs (demo), include the media object
-        backendData.media = postData.media;
+        // For Vercel Blob URLs or local blob URLs, don't send media_id
+        // The backend should handle media separately or this is demo content
+        console.log('[API] Skipping media_id for blob URL:', postData.media.url);
       }
     }
 
