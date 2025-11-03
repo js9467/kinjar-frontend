@@ -54,23 +54,46 @@ export function FamilyDashboard({ familySlug }: FamilyDashboardProps) {
       // Try to load from API first
       try {
         const familyData = await api.getFamilyBySlug(effectiveFamilySlug);
-        setFamily(familyData);
+        
+        // Ensure all arrays are initialized to prevent undefined errors
+        const normalizedFamily = {
+          ...familyData,
+          posts: familyData.posts || [],
+          members: familyData.members || [],
+          connections: familyData.connections || [],
+          connectedFamilies: familyData.connectedFamilies || [],
+          admins: familyData.admins || [],
+          highlights: familyData.highlights || [],
+          pendingMembers: familyData.pendingMembers || []
+        };
+        
+        setFamily(normalizedFamily);
         setError(null);
         
         // Handle cases where posts might be undefined or null
-        const familyPosts = familyData.posts || [];
+        const familyPosts = normalizedFamily.posts || [];
         
         // If no posts included in family data, try to load them separately
         if (familyPosts.length === 0) {
           try {
             const postsData = await api.getFamilyPosts(effectiveFamilySlug);
-            setPosts(postsData.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()));
+            const normalizedPosts = postsData.map(post => ({
+              ...post,
+              comments: post.comments || [],
+              tags: post.tags || []
+            }));
+            setPosts(normalizedPosts.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()));
           } catch (postsError) {
             console.log('No posts found for family, using empty array');
             setPosts([]);
           }
         } else {
-          setPosts(familyPosts.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()));
+          const normalizedPosts = familyPosts.map(post => ({
+            ...post,
+            comments: post.comments || [],
+            tags: post.tags || []
+          }));
+          setPosts(normalizedPosts.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()));
         }
       } catch (apiError) {
         console.error('Failed to load family data:', apiError);
@@ -172,7 +195,7 @@ export function FamilyDashboard({ familySlug }: FamilyDashboardProps) {
   const handleCommentAdded = (postId: string, comment: any) => {
     setPosts(prev => prev.map(post => 
       post.id === postId 
-        ? { ...post, comments: [...post.comments, comment] }
+        ? { ...post, comments: [...(post.comments || []), comment] }
         : post
     ));
   };
@@ -407,7 +430,7 @@ export function FamilyDashboard({ familySlug }: FamilyDashboardProps) {
                       )}
                       
                       {/* Tags */}
-                      {post.tags.length > 0 && (
+                      {post.tags && post.tags.length > 0 && (
                         <div className="flex flex-wrap gap-2 mb-4">
                           {post.tags.map((tag) => (
                             <span 
@@ -516,7 +539,7 @@ export function FamilyDashboard({ familySlug }: FamilyDashboardProps) {
             </div>
 
             {/* Connected Families */}
-            {family.connectedFamilies.length > 0 && (
+            {family.connectedFamilies && family.connectedFamilies.length > 0 && (
               <div className="bg-white rounded-lg border border-gray-200 p-6">
                 <h2 className="text-lg font-semibold text-gray-900 mb-4">Connected Families</h2>
                 <div className="space-y-3">
