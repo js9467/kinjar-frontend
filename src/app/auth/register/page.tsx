@@ -2,10 +2,11 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { useAuth } from '../../../lib/auth';
+import { useRouter } from 'next/navigation';
+import { api } from '../../../lib/api';
 
 export default function RegisterPage() {
-  const { createFamily } = useAuth();
+  const router = useRouter();
   const [formData, setFormData] = useState({
     familyName: '',
     subdomain: '',
@@ -38,12 +39,12 @@ export default function RegisterPage() {
     }
 
     try {
-      await createFamily({
-        familyName: formData.familyName,
-        subdomain: formData.subdomain,
-        description: formData.description,
-        adminName: formData.adminName,
-        adminEmail: formData.adminEmail,
+      const response = await api.createFamily({
+        familyName: formData.familyName.trim(),
+        subdomain: formData.subdomain.trim().toLowerCase(),
+        description: formData.description.trim(),
+        adminName: formData.adminName.trim(),
+        adminEmail: formData.adminEmail.trim().toLowerCase(),
         password: formData.password,
         isPublic: formData.isPublic
       });
