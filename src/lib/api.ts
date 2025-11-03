@@ -313,10 +313,30 @@ class KinjarAPI {
 
     console.log('[API] Sending post data to backend (v2):', backendData);
 
-    return this.request('/api/posts', {
+    const response = await this.request('/api/posts', {
       method: 'POST',
       body: JSON.stringify(backendData),
     });
+
+    // Transform backend response to frontend format
+    const backendPost = response.post;
+    const frontendPost: FamilyPost = {
+      id: backendPost.id,
+      familyId: backendPost.tenant_id,
+      authorId: backendPost.author_id,
+      authorName: 'User', // TODO: Get from user profile
+      authorAvatarColor: '#3B82F6', // Default color
+      createdAt: backendPost.published_at || backendPost.created_at,
+      content: backendPost.content,
+      media: postData.media, // Use original media from frontend
+      visibility: postData.visibility || 'family',
+      status: 'approved', // Backend posts are auto-approved
+      reactions: 0, // Default
+      comments: [], // Default
+      tags: postData.tags || [] // Use original tags from frontend
+    };
+
+    return frontendPost;
   }
 
   async getFamilyPosts(familySlugOrId: string, limit: number = 20, offset: number = 0): Promise<FamilyPost[]> {
