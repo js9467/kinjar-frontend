@@ -100,6 +100,7 @@ class KinjarAPI {
   private loadToken() {
     if (typeof window !== 'undefined') {
       this.token = localStorage.getItem('kinjar-auth-token');
+      console.log(`[API] Token loaded: ${this.token ? this.token.substring(0, 20) + '...' : 'none'}`);
       
       // In demo mode, auto-load the demo token if no token exists
       if (DEMO_MODE.enabled && !this.token) {
@@ -113,6 +114,7 @@ class KinjarAPI {
     this.token = token;
     if (typeof window !== 'undefined') {
       localStorage.setItem('kinjar-auth-token', token);
+      console.log(`[API] Token saved: ${token.substring(0, 20)}...`);
     }
   }
 
@@ -143,6 +145,9 @@ class KinjarAPI {
 
     if (this.token) {
       headers['Authorization'] = `Bearer ${this.token}`;
+      console.log(`[API Request] Auth token present: ${this.token.substring(0, 20)}...`);
+    } else {
+      console.log(`[API Request] No auth token available`);
     }
 
     // Add subdomain context for API calls
