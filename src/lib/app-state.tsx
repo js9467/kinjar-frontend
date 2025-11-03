@@ -206,10 +206,10 @@ export const AppStateProvider = ({ children }: { children: ReactNode }) => {
           signup.message ?? 'Newly approved family space ready to customize.',
         missionStatement: 'Define your family mission to inspire relatives.',
         bannerImage:
-          'https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?auto=format&fit=crop&w=1600&q=80',
+          'https://picsum.photos/1600/600?random=8',
         themeColor: '#2563eb',
         heroImage:
-          'https://images.unsplash.com/photo-1519681393784-d120267933ba?auto=format&fit=crop&w=1400&q=80',
+          'https://picsum.photos/1400/800?random=9',
         admins: [adminMember.id],
         members: [adminMember],
         posts: [],

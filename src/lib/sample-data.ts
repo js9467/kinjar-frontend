@@ -111,7 +111,7 @@ const williamsPosts: FamilyPost[] = [
       'Recap from our family reunion last weekend! The kids loved the scavenger hunt and Grandpa told the best stories.',
     media: {
       type: 'image',
-      url: 'https://images.unsplash.com/photo-1511895426328-dc8714191300?auto=format&fit=crop&w=1200&q=80',
+      url: 'https://picsum.photos/1200/800?random=3',
       alt: 'Family reunion picnic in the park',
     },
     visibility: 'public',
@@ -227,10 +227,10 @@ export const initialFamilies: FamilyProfile[] = [
     description: 'Pacific Northwest crew keeping grandparents looped in on every soccer goal and science fair.',
     missionStatement: 'Document the everyday joy and celebrate big and small wins together.',
     bannerImage:
-      'https://images.unsplash.com/photo-1530023367847-a683933f4177?auto=format&fit=crop&w=1600&q=80',
+      'https://picsum.photos/1600/600?random=1',
     themeColor: '#6366f1',
     heroImage:
-      'https://images.unsplash.com/photo-1524504388940-b1c1722653e1?auto=format&fit=crop&w=1400&q=80',
+      'https://picsum.photos/1400/800?random=2',
     admins: ['member-williams-admin'],
     members: williamsMembers,
     posts: williamsPosts,
@@ -270,10 +270,10 @@ export const initialFamilies: FamilyProfile[] = [
     description: 'East coast foodies sharing recipes, celebrations, and music across generations.',
     missionStatement: 'Keep our heritage alive by sharing traditions and stories weekly.',
     bannerImage:
-      'https://images.unsplash.com/photo-1524504388940-b1c1722653e1?auto=format&fit=crop&w=1600&q=80',
+      'https://picsum.photos/1600/600?random=4',
     themeColor: '#22c55e',
     heroImage:
-      'https://images.unsplash.com/photo-1524504388940-b1c1722653e1?auto=format&fit=crop&w=1400&q=80',
+      'https://picsum.photos/1400/800?random=5',
     admins: ['member-fernandez-admin'],
     members: fernandezMembers,
     posts: fernandezPosts,
@@ -304,10 +304,10 @@ export const initialFamilies: FamilyProfile[] = [
     description: 'Testing ground for every Kinjar feature. Early adopters and product champions.',
     missionStatement: 'Build and test the tools families need to feel connected.',
     bannerImage:
-      'https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?auto=format&fit=crop&w=1600&q=80',
+      'https://picsum.photos/1600/600?random=6',
     themeColor: '#a855f7',
     heroImage:
-      'https://images.unsplash.com/photo-1487412720507-e7ab37603c6f?auto=format&fit=crop&w=1400&q=80',
+      'https://picsum.photos/1400/800?random=7',
     admins: ['member-slaughterbeck-admin'],
     members: slaughterbeckMembers,
     posts: slaughterbeckPosts,
