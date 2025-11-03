@@ -89,6 +89,10 @@ interface AppStateContextType {
   };
   getFamilyById: (familyId: string) => FamilyProfile | undefined;
   getFamilyBySlug: (slug: string) => FamilyProfile | undefined;
+  updateFamilyProfile: (
+    familyId: string,
+    updates: Partial<FamilyProfile>
+  ) => FamilyProfile | null;
   submitFamilySignup: (payload: {
     familyName: string;
     adminName: string;
@@ -182,6 +186,15 @@ export const AppStateProvider = ({ children }: { children: ReactNode }) => {
       return signup;
     },
     [state.pendingFamilySignups]
+  );
+
+  const updateFamilyProfile: AppStateContextType['updateFamilyProfile'] = useCallback(
+    (familyId, updates) =>
+      updateFamily(familyId, (family) => ({
+        ...family,
+        ...updates,
+      })),
+    [updateFamily]
   );
 
   const approveFamilySignup: AppStateContextType['approveFamilySignup'] = useCallback(
@@ -459,6 +472,7 @@ export const AppStateProvider = ({ children }: { children: ReactNode }) => {
     getFamilyById,
     getFamilyBySlug,
     submitFamilySignup,
+    updateFamilyProfile,
     approveFamilySignup,
     rejectFamilySignup,
     addFamilyMember,

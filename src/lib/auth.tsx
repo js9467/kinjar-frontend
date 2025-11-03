@@ -3,6 +3,7 @@
 import React, {
   ReactNode,
   createContext,
+  useCallback,
   useContext,
   useEffect,
   useMemo,
@@ -35,9 +36,40 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const subdomainInfo = useMemo(() => getSubdomainInfo(), []);
 
+  const rootAdminEmails = useMemo(() => {
+    const configured = (process.env.NEXT_PUBLIC_ROOT_ADMINS ?? '')
+      .split(',')
+      .map((email) => email.trim().toLowerCase())
+      .filter(Boolean);
+
+    const defaults = ['admin.slaughterbeck@gmail.com'];
+
+    return new Set([...defaults, ...configured]);
+  }, []);
+
+  const isRootAdminUser = useCallback(
+    (maybeUser: AuthUser | null) => {
+      if (!maybeUser) {
+        return false;
+      }
+
+      if (maybeUser.globalRole === 'ROOT_ADMIN') {
+        return true;
+      }
+
+      const email = maybeUser.email?.toLowerCase();
+      if (!email) {
+        return false;
+      }
+
+      return rootAdminEmails.has(email);
+    },
+    [rootAdminEmails]
+  );
+
   useEffect(() => {
     if (initialized) return; // Prevent multiple initialization attempts
-    
+
     const initializeAuth = async () => {
       try {
         const currentUser = await api.getCurrentUser();
@@ -77,8 +109,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const canManageFamily = (familyId?: string) => {
     if (!user) return false;
-    if (user.globalRole === 'ROOT_ADMIN') return true;
-    
+    if (isRootAdminUser(user)) return true;
+
     if (familyId) {
       return user.memberships.some(
         (m: FamilyMembership) => m.familyId === familyId && m.role === 'ADMIN'
@@ -91,7 +123,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const hasRole = (role: FamilyRole, familyId?: string) => {
     if (!user) return false;
-    
+
+    if (isRootAdminUser(user)) {
+      return true;
+    }
+
     // Determine which family to check
     let targetFamilyId = familyId;
     if (!targetFamilyId && subdomainInfo.isSubdomain) {
@@ -115,7 +151,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     logout,
     createFamily,
     isAuthenticated: !!user,
-    isRootAdmin: user?.globalRole === 'ROOT_ADMIN',
+    isRootAdmin: isRootAdminUser(user),
     isFamilyAdmin: canManageFamily(),
     canManageFamily,
     hasRole,
