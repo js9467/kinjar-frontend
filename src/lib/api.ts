@@ -14,9 +14,7 @@ export interface UploadResponse {
   url: string;
 }
 
-const API_BASE_URL = typeof window !== 'undefined' 
-  ? (window as any).ENV?.NEXT_PUBLIC_API_URL || '/api/backend'
-  : '/api/backend';
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://kinjar-api.fly.dev';
 
 // Demo mode configuration for development/testing
 const DEMO_MODE = {
