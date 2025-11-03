@@ -2,13 +2,8 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
-import { useAuth } from '../../../lib/auth';
-import { api } from '../../../lib/api';
 
 export default function RegisterPage() {
-  const { createFamily } = useAuth();
-  const router = useRouter();
   const [formData, setFormData] = useState({
     familyName: '',
     subdomain: '',
@@ -21,8 +16,6 @@ export default function RegisterPage() {
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [subdomainAvailable, setSubdomainAvailable] = useState<boolean | null>(null);
-  const [subdomainChecking, setSubdomainChecking] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -42,30 +35,14 @@ export default function RegisterPage() {
       return;
     }
 
-    if (subdomainAvailable !== true) {
-      setError('Please choose an available subdomain');
-      setLoading(false);
-      return;
-    }
-
     try {
-      await createFamily({
-        familyName: formData.familyName,
-        subdomain: formData.subdomain,
-        description: formData.description,
-        adminName: formData.adminName,
-        adminEmail: formData.adminEmail,
-        password: formData.password,
-        isPublic: formData.isPublic
-      });
-
-      // Redirect to the new family subdomain
-      if (typeof window !== 'undefined') {
-        window.location.href = `https://${formData.subdomain}.kinjar.com`;
-      }
+      // Mock success for demo
+      setTimeout(() => {
+        alert(`Family "${formData.familyName}" would be created at ${formData.subdomain}.kinjar.com`);
+        setLoading(false);
+      }, 1000);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Registration failed');
-    } finally {
       setLoading(false);
     }
   };
@@ -78,39 +55,6 @@ export default function RegisterPage() {
       ...prev,
       [name]: newValue
     }));
-
-    // Check subdomain availability when subdomain changes
-    if (name === 'subdomain' && value.length >= 3) {
-      checkSubdomainAvailability(value);
-    } else if (name === 'subdomain') {
-      setSubdomainAvailable(null);
-    }
-  };
-
-  const checkSubdomainAvailability = async (subdomain: string) => {
-    // Basic validation
-    if (!/^[a-z0-9-]+$/.test(subdomain) || subdomain.length < 3 || subdomain.length > 20) {
-      setSubdomainAvailable(false);
-      return;
-    }
-
-    setSubdomainChecking(true);
-    try {
-      const available = await api.checkSubdomainAvailable(subdomain);
-      setSubdomainAvailable(available);
-    } catch {
-      setSubdomainAvailable(false);
-    } finally {
-      setSubdomainChecking(false);
-    }
-  };
-
-  const getSubdomainStatus = () => {
-    if (!formData.subdomain) return null;
-    if (subdomainChecking) return <span className="text-gray-500">Checking...</span>;
-    if (subdomainAvailable === true) return <span className="text-green-600">✓ Available</span>;
-    if (subdomainAvailable === false) return <span className="text-red-600">✗ Not available</span>;
-    return null;
   };
 
   return (
@@ -119,6 +63,9 @@ export default function RegisterPage() {
         <div className="text-center mb-8">
           <h1 className="text-3xl font-bold text-gray-900 mb-2">Create Your Family Space</h1>
           <p className="text-gray-600">Start your family&apos;s journey on Kinjar</p>
+          <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+            <p className="text-sm text-yellow-800">Demo Mode - Registration not connected to backend</p>
+          </div>
         </div>
 
         {error && (
@@ -166,7 +113,6 @@ export default function RegisterPage() {
                 .kinjar.com
               </span>
             </div>
-            <div className="mt-1 text-sm">{getSubdomainStatus()}</div>
             <p className="mt-1 text-xs text-gray-500">
               3-20 characters, lowercase letters, numbers, and hyphens only
             </p>
@@ -272,16 +218,16 @@ export default function RegisterPage() {
 
           <button
             type="submit"
-            disabled={loading || subdomainAvailable !== true}
+            disabled={loading}
             className="w-full bg-purple-600 text-white py-3 px-4 rounded-lg font-medium hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
           >
             {loading ? (
               <>
-                <div className="loading-spinner mr-2"></div>
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
                 Creating Family...
               </>
             ) : (
-              'Create Family Space'
+              'Create Family Space (Demo)'
             )}
           </button>
         </form>
