@@ -300,9 +300,12 @@ class KinjarAPI {
         // Only use media_id for actual backend media IDs, not blob URLs
         backendData.media_id = postData.media.url;
       } else {
-        // For Vercel Blob URLs or local blob URLs, don't send media_id
-        // The backend should handle media separately or this is demo content
-        console.log('[API] Skipping media_id for blob URL:', postData.media.url);
+        // For Vercel Blob URLs, send the URL as media data
+        console.log('[API] Sending blob URL as media:', postData.media.url);
+        backendData.media = {
+          url: postData.media.url,
+          type: postData.media.type
+        };
       }
     }
 
