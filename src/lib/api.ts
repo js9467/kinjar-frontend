@@ -174,6 +174,15 @@ class KinjarAPI {
     return response;
   }
 
+  async register(userData: { name: string; email: string; password: string }): Promise<{ ok: boolean; user?: any; error?: string }> {
+    const response = await this.request('/auth/register', {
+      method: 'POST',
+      body: JSON.stringify(userData),
+    });
+
+    return response;
+  }
+
   async logout(): Promise<void> {
     try {
       await this.request('/auth/logout', { method: 'POST' });
