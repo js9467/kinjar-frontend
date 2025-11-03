@@ -1,11 +1,15 @@
 export type GlobalRole = 'ROOT_ADMIN' | 'FAMILY_ADMIN' | 'MEMBER';
 
+export type FamilyRole = 'ADMIN' | 'ADULT' | 'CHILD_0_5' | 'CHILD_5_10' | 'CHILD_10_14' | 'CHILD_14_16' | 'CHILD_16_ADULT';
+
 export interface FamilyMembership {
   familyId: string;
   familySlug: string;
   familyName: string;
   memberId: string;
-  role: 'ADMIN' | 'MEMBER';
+  role: FamilyRole;
+  joinedAt: string;
+  invitedBy?: string;
 }
 
 export interface AuthUser {
@@ -15,6 +19,8 @@ export interface AuthUser {
   avatarColor: string;
   globalRole: GlobalRole;
   memberships: FamilyMembership[];
+  createdAt: string;
+  lastLoginAt?: string;
 }
 
 export interface FamilyMemberProfile {
@@ -22,8 +28,11 @@ export interface FamilyMemberProfile {
   userId?: string;
   name: string;
   email: string;
-  role: 'ADMIN' | 'MEMBER';
+  role: FamilyRole;
   avatarColor: string;
+  joinedAt: string;
+  age?: number;
+  birthYear?: number;
 }
 
 export interface MediaAttachment {
@@ -92,10 +101,24 @@ export interface FamilyProfile {
   members: FamilyMemberProfile[];
   posts: FamilyPost[];
   connections: string[];
+  connectedFamilies: FamilyConnection[];
   storageUsedMb: number;
   invitesSentThisMonth: number;
   pendingMembers: FamilyMemberProfile[];
   highlights: string[]; // store post ids
+  isPublic: boolean;
+  subdomain: string;
+  createdAt: string;
+  ownerId: string;
+}
+
+export interface FamilyConnection {
+  id: string;
+  familyId: string;
+  familyName: string;
+  familySlug: string;
+  connectedAt: string;
+  canShareContent: boolean;
 }
 
 export interface FamilyDirectoryCard {
@@ -107,4 +130,28 @@ export interface FamilyDirectoryCard {
   themeColor: string;
   connectionCount: number;
   publicHighlights: number;
+}
+
+export interface CreateFamilyRequest {
+  familyName: string;
+  subdomain: string;
+  description?: string;
+  adminName: string;
+  adminEmail: string;
+  password: string;
+  isPublic?: boolean;
+}
+
+export interface SubdomainInfo {
+  isSubdomain: boolean;
+  subdomain?: string;
+  familySlug?: string;
+  isRootDomain: boolean;
+}
+
+export interface InviteMemberRequest {
+  email: string;
+  name: string;
+  role: FamilyRole;
+  familyId: string;
 }

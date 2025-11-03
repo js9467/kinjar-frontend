@@ -9,128 +9,113 @@ import React, {
   useState,
 } from 'react';
 
-import { useAppState } from './app-state';
-import { initialUsers } from './sample-data';
-import { AuthUser } from './types';
-
-interface RegisterPayload {
-  familyName: string;
-  adminName: string;
-  adminEmail: string;
-  message?: string;
-}
+import { api, getSubdomainInfo } from './api';
+import { AuthUser, FamilyRole, CreateFamilyRequest } from './types';
 
 interface AuthContextType {
   user: AuthUser | null;
-  users: AuthUser[];
   loading: boolean;
   login: (email: string, password: string) => Promise<AuthUser>;
-  loginById: (userId: string) => void;
   logout: () => void;
-  registerFamilySpace: (payload: RegisterPayload) => Promise<void>;
+  createFamily: (familyData: CreateFamilyRequest) => Promise<void>;
   isAuthenticated: boolean;
   isRootAdmin: boolean;
-  familyAdminIds: string[];
+  isFamilyAdmin: boolean;
+  canManageFamily: (familyId?: string) => boolean;
+  hasRole: (role: FamilyRole, familyId?: string) => boolean;
+  subdomainInfo: ReturnType<typeof getSubdomainInfo>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-const USER_STORAGE_KEY = 'kinjar-demo-user';
-
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
-  const [users] = useState<AuthUser[]>(initialUsers);
   const [user, setUser] = useState<AuthUser | null>(null);
   const [loading, setLoading] = useState(true);
 
-  const { submitFamilySignup } = useAppState();
+  const subdomainInfo = useMemo(() => getSubdomainInfo(), []);
 
   useEffect(() => {
-    if (typeof window === 'undefined') {
-      setLoading(false);
-      return;
-    }
-
-    const storedId = window.localStorage.getItem(USER_STORAGE_KEY);
-    if (storedId) {
-      const existing = initialUsers.find((candidate) => candidate.id === storedId);
-      if (existing) {
-        setUser(existing);
+    const initializeAuth = async () => {
+      try {
+        const currentUser = await api.getCurrentUser();
+        setUser(currentUser);
+      } catch (error) {
+        // User not authenticated or token expired
+        setUser(null);
+      } finally {
+        setLoading(false);
       }
-    }
-    setLoading(false);
+    };
+
+    initializeAuth();
   }, []);
 
-  useEffect(() => {
-    if (typeof window === 'undefined') {
-      return;
+  const login = async (email: string, password: string) => {
+    setLoading(true);
+    try {
+      const { user: loggedInUser } = await api.login(email, password);
+      setUser(loggedInUser);
+      return loggedInUser;
+    } finally {
+      setLoading(false);
     }
-
-    if (user) {
-      window.localStorage.setItem(USER_STORAGE_KEY, user.id);
-    } else {
-      window.localStorage.removeItem(USER_STORAGE_KEY);
-    }
-  }, [user]);
-
-  const login = async (email: string, _password: string) => {
-    const account = users.find(
-      (candidate) => candidate.email.toLowerCase() === email.toLowerCase()
-    );
-
-    if (!account) {
-      throw new Error('No account found for that email.');
-    }
-
-    setUser(account);
-    return account;
   };
 
-  const loginById = (userId: string) => {
-    const account = users.find((candidate) => candidate.id === userId);
-    if (!account) {
-      throw new Error('User not found');
-    }
-    setUser(account);
-  };
-
-  const logout = () => {
+  const logout = async () => {
+    await api.logout();
     setUser(null);
   };
 
-  const registerFamilySpace = async (payload: RegisterPayload) => {
-    if (!payload.familyName || !payload.adminEmail || !payload.adminName) {
-      throw new Error('Please provide your family name and admin contact details.');
-    }
-
-    submitFamilySignup({
-      familyName: payload.familyName,
-      adminName: payload.adminName,
-      adminEmail: payload.adminEmail,
-      message: payload.message,
-    });
+  const createFamily = async (familyData: CreateFamilyRequest) => {
+    const { user: updatedUser } = await api.createFamily(familyData);
+    setUser(updatedUser);
   };
 
-  const familyAdminIds = useMemo(
-    () =>
-      user
-        ? user.memberships
-            .filter((membership) => membership.role === 'ADMIN')
-            .map((membership) => membership.familyId)
-        : [],
-    [user]
-  );
+  const canManageFamily = (familyId?: string) => {
+    if (!user) return false;
+    if (user.globalRole === 'ROOT_ADMIN') return true;
+    
+    if (familyId) {
+      return user.memberships.some(
+        m => m.familyId === familyId && m.role === 'ADMIN'
+      );
+    }
+    
+    // If no familyId provided, check if user can manage any family
+    return user.memberships.some(m => m.role === 'ADMIN');
+  };
+
+  const hasRole = (role: FamilyRole, familyId?: string) => {
+    if (!user) return false;
+    
+    // Determine which family to check
+    let targetFamilyId = familyId;
+    if (!targetFamilyId && subdomainInfo.isSubdomain) {
+      // Find family by subdomain slug
+      const membership = user.memberships.find(
+        m => m.familySlug === subdomainInfo.familySlug
+      );
+      targetFamilyId = membership?.familyId;
+    }
+    
+    if (!targetFamilyId) return false;
+    
+    const membership = user.memberships.find(m => m.familyId === targetFamilyId);
+    return membership?.role === role;
+  };
 
   const value: AuthContextType = {
     user,
-    users,
     loading,
     login,
-    loginById,
     logout,
-    registerFamilySpace,
+    createFamily,
     isAuthenticated: !!user,
     isRootAdmin: user?.globalRole === 'ROOT_ADMIN',
-    familyAdminIds,
+    isFamilyAdmin: canManageFamily(),
+    canManageFamily,
+    hasRole,
+    subdomainInfo,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
@@ -159,7 +144,7 @@ export const RequireRole = ({
   fallback = null,
   children,
 }: RequireRoleProps) => {
-  const { loading, familyAdminIds, isAuthenticated, isRootAdmin } = useAuth();
+  const { loading, canManageFamily, isAuthenticated, isRootAdmin } = useAuth();
 
   const hasRequiredRole = useMemo(() => {
     if (loading) {
@@ -175,15 +160,11 @@ export const RequireRole = ({
     }
 
     if (role === 'FAMILY_ADMIN') {
-      if (!familyId) {
-        return familyAdminIds.length > 0;
-      }
-
-      return familyAdminIds.includes(familyId);
+      return canManageFamily(familyId);
     }
 
     return false;
-  }, [role, loading, isAuthenticated, isRootAdmin, familyAdminIds, familyId]);
+  }, [role, loading, isAuthenticated, isRootAdmin, canManageFamily, familyId]);
 
   if (loading) {
     return (

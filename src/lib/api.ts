@@ -1,91 +1,83 @@
-// API client for Kinjar backend integration
-const API_BASE_URL = 'https://kinjar-api.fly.dev';
+'use client';
 
-export interface User {
-  id: string;
-  email: string;
-  global_role: 'ROOT' | 'USER';
-  created_at: string;
-  tenants?: {
-    id: string;
-    slug: string;
-    name: string;
-    role: 'OWNER' | 'ADMIN' | 'MEMBER';
-  }[];
+import { AuthUser, CreateFamilyRequest, FamilyProfile, InviteMemberRequest, SubdomainInfo } from './types';
+
+const API_BASE_URL = typeof window !== 'undefined' 
+  ? (window as any).ENV?.NEXT_PUBLIC_API_URL || 'https://kinjar-api.fly.dev'
+  : 'https://kinjar-api.fly.dev';
+
+// Utility to get subdomain information
+export function getSubdomainInfo(): SubdomainInfo {
+  if (typeof window === 'undefined') {
+    return { isSubdomain: false, isRootDomain: true };
+  }
+
+  const hostname = window.location.hostname;
+  const parts = hostname.split('.');
+
+  // Handle localhost development
+  if (hostname === 'localhost' || hostname.startsWith('192.168.') || hostname.startsWith('127.0.0.1')) {
+    const urlParams = new URLSearchParams(window.location.search);
+    const devFamily = urlParams.get('family');
+    if (devFamily) {
+      return {
+        isSubdomain: true,
+        subdomain: devFamily,
+        familySlug: devFamily,
+        isRootDomain: false
+      };
+    }
+    return { isSubdomain: false, isRootDomain: true };
+  }
+
+  // Production subdomain detection
+  if (parts.length >= 3 && parts[parts.length - 2] === 'kinjar' && parts[parts.length - 1] === 'com') {
+    const subdomain = parts.slice(0, -2).join('.');
+    if (subdomain && subdomain !== 'www') {
+      return {
+        isSubdomain: true,
+        subdomain,
+        familySlug: subdomain,
+        isRootDomain: false
+      };
+    }
+  }
+
+  return { isSubdomain: false, isRootDomain: true };
 }
 
-export interface Family {
-  id: number;
-  name: string;
-  slug: string;
-  description?: string;
-  theme_primary?: string;
-  theme_secondary?: string;
-  is_public: boolean;
-  created_at: string;
-  admin_id: number;
-  member_count: number;
-}
-
-export interface Post {
-  id: number;
-  user_id: number;
-  family_id: number;
-  content: string;
-  media_url?: string;
-  media_type?: 'image' | 'video';
-  created_at: string;
-  username: string;
-  family_name: string;
-  comment_count: number;
-  reaction_count: number;
-  user_reaction?: string;
-}
-
-export interface Comment {
-  id: number;
-  post_id: number;
-  user_id: number;
-  content: string;
-  created_at: string;
-  username: string;
-}
-
-export interface MediaUpload {
-  url: string;
-  filename: string;
-  size: number;
-  type: string;
-}
-
-export interface AuthResponse {
-  token: string;
-  user?: User;
-}
-
+// API client class
 class KinjarAPI {
+  private baseURL: string;
   private token: string | null = null;
 
   constructor() {
+    this.baseURL = API_BASE_URL;
+    this.loadToken();
+  }
+
+  private loadToken() {
     if (typeof window !== 'undefined') {
-      this.token = window.localStorage.getItem('kinjar_token');
+      this.token = localStorage.getItem('kinjar-auth-token');
     }
   }
 
-  private persistToken(token: string | null) {
+  private saveToken(token: string) {
     this.token = token;
-
     if (typeof window !== 'undefined') {
-      if (token) {
-        window.localStorage.setItem('kinjar_token', token);
-      } else {
-        window.localStorage.removeItem('kinjar_token');
-      }
+      localStorage.setItem('kinjar-auth-token', token);
     }
   }
 
-  private async request(endpoint: string, options: RequestInit = {}): Promise<any> {
-    const url = `${API_BASE_URL}${endpoint}`;
+  private removeToken() {
+    this.token = null;
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('kinjar-auth-token');
+    }
+  }
+
+  private async request(endpoint: string, options: RequestInit = {}) {
+    const url = `${this.baseURL}${endpoint}`;
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
       ...(options.headers as Record<string, string>),
@@ -94,335 +86,126 @@ class KinjarAPI {
     if (this.token) {
       headers['Authorization'] = `Bearer ${this.token}`;
     }
-    
+
+    // Add subdomain context for API calls
+    const subdomainInfo = getSubdomainInfo();
+    if (subdomainInfo.isSubdomain && subdomainInfo.familySlug) {
+      headers['X-Family-Context'] = subdomainInfo.familySlug;
+    }
+
     const response = await fetch(url, {
       ...options,
-      headers: headers as HeadersInit,
-      credentials: 'include', // Important: include cookies in requests
+      headers,
     });
 
     if (!response.ok) {
-      const error = await response.text();
-      throw new Error(error || `HTTP ${response.status}`);
+      if (response.status === 401) {
+        this.removeToken();
+        // Redirect to login if unauthorized
+        if (typeof window !== 'undefined') {
+          window.location.href = '/auth/login';
+        }
+      }
+      const errorData = await response.json().catch(() => ({ message: 'Request failed' }));
+      throw new Error(errorData.message || `HTTP ${response.status}`);
     }
 
     return response.json();
   }
 
   // Authentication
-  async login(email: string, password: string): Promise<AuthResponse> {
-    const result: any = await this.request('/auth/login', {
+  async login(email: string, password: string): Promise<{ user: AuthUser; token: string }> {
+    const response = await this.request('/auth/login', {
       method: 'POST',
       body: JSON.stringify({ email, password }),
     });
 
-    const token = result.token ?? result.access_token ?? '';
-    if (token) {
-      this.persistToken(token);
-    }
-
-    let user: User | null = null;
-    if (result.user) {
-      user = result.user as User;
-    } else if (result.data?.user) {
-      user = result.data.user as User;
-    }
-
-    if (!user) {
-      try {
-        user = await this.getCurrentUser();
-      } catch (error) {
-        console.error('Unable to fetch current user after login:', error);
-      }
-    }
-
-    return {
-      token,
-      user: user ?? undefined,
-    };
+    this.saveToken(response.token);
+    return response;
   }
 
-  async register(userData: {
-    email: string;
-    password: string;
-    family_name?: string;
-  }): Promise<AuthResponse> {
-    const result: any = await this.request('/auth/register', {
-      method: 'POST',
-      body: JSON.stringify(userData),
-    });
-
-    const token = result.token ?? result.access_token ?? '';
-    if (token) {
-      this.persistToken(token);
+  async logout(): Promise<void> {
+    try {
+      await this.request('/auth/logout', { method: 'POST' });
+    } finally {
+      this.removeToken();
     }
-
-    const user = (result.user ?? result.data?.user) as User | undefined;
-
-    return {
-      token,
-      user: user ?? undefined,
-    };
   }
 
-  async getCurrentUser(): Promise<User> {
+  async getCurrentUser(): Promise<AuthUser> {
     return this.request('/auth/me');
   }
 
-  logout(): void {
-    this.persistToken(null);
-  }
-
   // Family Management
-  async getFamilies(): Promise<Family[]> {
-    return this.request('/families');
-  }
-
-  async getFamilyBySlug(slug: string): Promise<Family> {
-    return this.request(`/families/${slug}`);
-  }
-
-  async getFamilyPosts(familySlug: string): Promise<Post[]> {
-    return this.request(`/api/families/${familySlug}/posts`);
-  }
-
-  async createFamily(familyData: {
-    name: string;
-    description?: string;
-    theme_primary?: string;
-    theme_secondary?: string;
-  }): Promise<Family> {
-    return this.request('/families', {
+  async createFamily(familyData: CreateFamilyRequest): Promise<{ family: FamilyProfile; user: AuthUser; token: string }> {
+    const response = await this.request('/families/create', {
       method: 'POST',
       body: JSON.stringify(familyData),
     });
+
+    this.saveToken(response.token);
+    return response;
   }
 
-  async updateFamily(familyId: number, updates: Partial<Family>): Promise<Family> {
+  async getFamilyBySlug(slug: string): Promise<FamilyProfile> {
+    return this.request(`/families/${slug}`);
+  }
+
+  async getCurrentFamily(): Promise<FamilyProfile> {
+    const subdomainInfo = getSubdomainInfo();
+    if (!subdomainInfo.isSubdomain || !subdomainInfo.familySlug) {
+      throw new Error('Not in a family context');
+    }
+    return this.getFamilyBySlug(subdomainInfo.familySlug);
+  }
+
+  async updateFamily(familyId: string, updates: Partial<FamilyProfile>): Promise<FamilyProfile> {
     return this.request(`/families/${familyId}`, {
-      method: 'PUT',
+      method: 'PATCH',
       body: JSON.stringify(updates),
     });
   }
 
-  async getFamilyMembers(familyId: number): Promise<User[]> {
-    return this.request(`/families/${familyId}/members`);
-  }
-
-  async inviteToFamily(familyId: number, email: string, role: string = 'member'): Promise<void> {
-    return this.request(`/families/${familyId}/invite`, {
+  // Member Management
+  async inviteMember(invite: InviteMemberRequest): Promise<void> {
+    return this.request('/families/invite', {
       method: 'POST',
-      body: JSON.stringify({ email, role }),
+      body: JSON.stringify(invite),
     });
   }
 
-  // Posts and Content
-  async getPosts(familyId?: number, limit: number = 20, offset: number = 0): Promise<Post[]> {
-    const params = new URLSearchParams({
-      limit: limit.toString(),
-      offset: offset.toString(),
-    });
-    
-    if (familyId) {
-      params.append('family_id', familyId.toString());
-    }
-
-    return this.request(`/posts?${params}`);
-  }
-
-  async createPost(postData: {
-    content: string;
-    family_id: number;
-    media_url?: string;
-    media_type?: 'image' | 'video';
-  }): Promise<Post> {
-    return this.request('/posts', {
-      method: 'POST',
-      body: JSON.stringify(postData),
-    });
-  }
-
-  async deletePost(postId: number): Promise<void> {
-    return this.request(`/posts/${postId}`, {
-      method: 'DELETE',
-    });
-  }
-
-  // Comments
-  async getComments(postId: number): Promise<Comment[]> {
-    return this.request(`/posts/${postId}/comments`);
-  }
-
-  async createComment(postId: number, content: string): Promise<Comment> {
-    return this.request(`/posts/${postId}/comments`, {
-      method: 'POST',
-      body: JSON.stringify({ content }),
-    });
-  }
-
-  async deleteComment(commentId: number): Promise<void> {
-    return this.request(`/comments/${commentId}`, {
-      method: 'DELETE',
-    });
-  }
-
-  // Reactions
-  async addReaction(postId: number, reaction: string): Promise<void> {
-    return this.request(`/posts/${postId}/reactions`, {
-      method: 'POST',
-      body: JSON.stringify({ reaction }),
-    });
-  }
-
-  async removeReaction(postId: number): Promise<void> {
-    return this.request(`/posts/${postId}/reactions`, {
-      method: 'DELETE',
-    });
-  }
-
-  // Media Upload
-  async uploadMedia(file: File): Promise<MediaUpload> {
-    const formData = new FormData();
-    formData.append('file', file);
-
-    // Don't set Content-Type header for FormData
-    const headers: HeadersInit = {};
-    if (this.token) {
-      headers['Authorization'] = `Bearer ${this.token}`;
-    }
-
-    const response = await fetch(`${API_BASE_URL}/upload`, {
-      method: 'POST',
-      headers,
-      body: formData,
-    });
-
-    if (!response.ok) {
-      const error = await response.text();
-      throw new Error(error || `Upload failed: ${response.status}`);
-    }
-
-    return response.json();
-  }
-
-  // Family Connections
-  async getConnectedFamilies(familyId: number): Promise<Family[]> {
-    return this.request(`/families/${familyId}/connections`);
-  }
-
-  async connectFamilies(familyId: number, targetFamilyId: number): Promise<void> {
-    return this.request(`/families/${familyId}/connect`, {
-      method: 'POST',
-      body: JSON.stringify({ target_family_id: targetFamilyId }),
-    });
-  }
-
-  async disconnectFamilies(familyId: number, targetFamilyId: number): Promise<void> {
-    return this.request(`/families/${familyId}/disconnect`, {
-      method: 'POST',
-      body: JSON.stringify({ target_family_id: targetFamilyId }),
-    });
-  }
-
-  // Admin Functions (Root Admin only)
-  async getAllFamilies(): Promise<Family[]> {
-    return this.request('/admin/families');
-  }
-
-  async getAllUsers(): Promise<User[]> {
-    return this.request('/admin/users');
-  }
-
-  async updateUserRole(userId: number, role: string): Promise<void> {
-    return this.request(`/admin/users/${userId}/role`, {
-      method: 'PUT',
+  async updateMemberRole(familyId: string, memberId: string, role: string): Promise<void> {
+    return this.request(`/families/${familyId}/members/${memberId}/role`, {
+      method: 'PATCH',
       body: JSON.stringify({ role }),
     });
   }
 
-  async deactivateUser(userId: number): Promise<void> {
-    return this.request(`/admin/users/${userId}/deactivate`, {
+  // Root Admin Functions
+  async getAllFamilies(): Promise<FamilyProfile[]> {
+    return this.request('/admin/families');
+  }
+
+  async getAllUsers(): Promise<AuthUser[]> {
+    return this.request('/admin/users');
+  }
+
+  async createRootAdmin(email: string, password: string, name: string): Promise<AuthUser> {
+    return this.request('/admin/create-root', {
       method: 'POST',
+      body: JSON.stringify({ email, password, name }),
     });
   }
 
-  // Admin - Global Settings
-  async getGlobalSettings(): Promise<Record<string, any>> {
-    return this.request('/admin/settings');
-  }
-
-  async updateGlobalSetting(key: string, value: any): Promise<void> {
-    return this.request(`/admin/settings/${key}`, {
-      method: 'PUT',
-      body: JSON.stringify({ value }),
-    });
-  }
-
-  // Admin - Family Management
-  async suspendFamily(familySlug: string, reason: string, durationDays?: number): Promise<void> {
-    return this.request(`/admin/families/${familySlug}/suspend`, {
-      method: 'POST',
-      body: JSON.stringify({ reason, duration_days: durationDays }),
-    });
-  }
-
-  async unsuspendFamily(familySlug: string): Promise<void> {
-    return this.request(`/admin/families/${familySlug}/suspend`, {
-      method: 'DELETE',
-    });
-  }
-
-  async getFamilyDetails(familySlug: string): Promise<any> {
-    return this.request(`/admin/families/${familySlug}`);
-  }
-
-  // Admin - Signup Requests
-  async getSignupRequests(status: 'pending' | 'approved' | 'denied' = 'pending'): Promise<any[]> {
-    return this.request(`/admin/signup/requests?status=${status}`);
-  }
-
-  async approveSignupRequest(requestId: string): Promise<void> {
-    return this.request('/admin/signup/approve', {
-      method: 'POST',
-      body: JSON.stringify({ requestId }),
-    });
-  }
-
-  async denySignupRequest(requestId: string, reason: string): Promise<void> {
-    return this.request('/admin/signup/deny', {
-      method: 'POST',
-      body: JSON.stringify({ requestId, reason }),
-    });
-  }
-
-  // Admin - Audit Log
-  async getAuditLog(limit: number = 100, eventFilter?: string): Promise<any[]> {
-    const params = new URLSearchParams({ limit: limit.toString() });
-    if (eventFilter) {
-      params.append('event', eventFilter);
+  // Utility method to check if subdomain is available
+  async checkSubdomainAvailable(subdomain: string): Promise<boolean> {
+    try {
+      await this.request(`/families/check-subdomain/${subdomain}`);
+      return true;
+    } catch {
+      return false;
     }
-    return this.request(`/admin/audit?${params}`);
-  }
-
-  // Admin - System Stats
-  async getSystemStats(): Promise<any> {
-    return this.request('/admin/stats');
-  }
-
-  // Search
-  async searchFamilies(query: string): Promise<Family[]> {
-    return this.request(`/search/families?q=${encodeURIComponent(query)}`);
-  }
-
-  async searchUsers(query: string, familyId?: number): Promise<User[]> {
-    const params = new URLSearchParams({ q: query });
-    if (familyId) {
-      params.append('family_id', familyId.toString());
-    }
-    return this.request(`/search/users?${params}`);
   }
 }
 
-// Export singleton instance
 export const api = new KinjarAPI();
-export default api;

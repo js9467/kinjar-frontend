@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '../../../lib/auth';
 
 export default function LoginPage() {
-  const { login } = useAuth();
+  const { login, subdomainInfo } = useAuth();
   const router = useRouter();
   const [formData, setFormData] = useState({
     email: '',
@@ -23,9 +23,14 @@ export default function LoginPage() {
     try {
       const loggedInUser = await login(formData.email, formData.password);
 
+      // Determine where to redirect based on user role and current context
       if (loggedInUser.globalRole === 'ROOT_ADMIN') {
         router.replace('/admin');
+      } else if (subdomainInfo.isSubdomain) {
+        // On a family subdomain, redirect to family page
+        router.replace('/');
       } else {
+        // On root domain, redirect to family selection
         router.replace('/families');
       }
     } catch (err) {
@@ -42,12 +47,20 @@ export default function LoginPage() {
     }));
   };
 
+  const pageTitle = subdomainInfo.isSubdomain 
+    ? `Welcome to ${subdomainInfo.familySlug} Family`
+    : 'Welcome Back';
+
+  const pageSubtitle = subdomainInfo.isSubdomain
+    ? 'Sign in to your family space'
+    : 'Sign in to Kinjar';
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
       <div className="max-w-md w-full bg-white rounded-lg shadow-lg p-8">
         <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">Welcome Back</h1>
-          <p className="text-gray-600">Sign in to your family space</p>
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">{pageTitle}</h1>
+          <p className="text-gray-600">{pageSubtitle}</p>
         </div>
 
         {error && (
@@ -105,14 +118,16 @@ export default function LoginPage() {
           </button>
         </form>
 
-        <div className="mt-8 text-center">
-          <p className="text-gray-600">
-            Don&apos;t have an account?{' '}
-            <Link href="/auth/register" className="text-blue-600 hover:text-blue-700 font-medium">
-              Create your family space
-            </Link>
-          </p>
-        </div>
+        {!subdomainInfo.isSubdomain && (
+          <div className="mt-8 text-center">
+            <p className="text-gray-600">
+              Don&apos;t have an account?{' '}
+              <Link href="/auth/register" className="text-blue-600 hover:text-blue-700 font-medium">
+                Create your family space
+              </Link>
+            </p>
+          </div>
+        )}
 
         <div className="mt-6 text-center">
           <Link href="/" className="text-gray-500 hover:text-gray-700 text-sm">

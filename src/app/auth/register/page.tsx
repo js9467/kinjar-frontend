@@ -4,30 +4,65 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '../../../lib/auth';
+import { api } from '../../../lib/api';
 
 export default function RegisterPage() {
-  const { register } = useAuth();
+  const { createFamily } = useAuth();
   const router = useRouter();
   const [formData, setFormData] = useState({
-    email: '',
+    familyName: '',
+    subdomain: '',
+    adminName: '',
+    adminEmail: '',
     password: '',
-    familyName: ''
+    confirmPassword: '',
+    description: '',
+    isPublic: false
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [subdomainAvailable, setSubdomainAvailable] = useState<boolean | null>(null);
+  const [subdomainChecking, setSubdomainChecking] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setError('');
 
+    // Validation
+    if (formData.password !== formData.confirmPassword) {
+      setError('Passwords do not match');
+      setLoading(false);
+      return;
+    }
+
+    if (formData.password.length < 8) {
+      setError('Password must be at least 8 characters long');
+      setLoading(false);
+      return;
+    }
+
+    if (subdomainAvailable !== true) {
+      setError('Please choose an available subdomain');
+      setLoading(false);
+      return;
+    }
+
     try {
-      await register({
-        email: formData.email,
+      await createFamily({
+        familyName: formData.familyName,
+        subdomain: formData.subdomain,
+        description: formData.description,
+        adminName: formData.adminName,
+        adminEmail: formData.adminEmail,
         password: formData.password,
-        family_name: formData.familyName
+        isPublic: formData.isPublic
       });
-      router.replace('/families');
+
+      // Redirect to the new family subdomain
+      if (typeof window !== 'undefined') {
+        window.location.href = `https://${formData.subdomain}.kinjar.com`;
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Registration failed');
     } finally {
@@ -35,19 +70,55 @@ export default function RegisterPage() {
     }
   };
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const { name, value, type } = e.target;
+    const newValue = type === 'checkbox' ? (e.target as HTMLInputElement).checked : value;
+    
     setFormData(prev => ({
       ...prev,
-      [e.target.name]: e.target.value
+      [name]: newValue
     }));
+
+    // Check subdomain availability when subdomain changes
+    if (name === 'subdomain' && value.length >= 3) {
+      checkSubdomainAvailability(value);
+    } else if (name === 'subdomain') {
+      setSubdomainAvailable(null);
+    }
+  };
+
+  const checkSubdomainAvailability = async (subdomain: string) => {
+    // Basic validation
+    if (!/^[a-z0-9-]+$/.test(subdomain) || subdomain.length < 3 || subdomain.length > 20) {
+      setSubdomainAvailable(false);
+      return;
+    }
+
+    setSubdomainChecking(true);
+    try {
+      const available = await api.checkSubdomainAvailable(subdomain);
+      setSubdomainAvailable(available);
+    } catch {
+      setSubdomainAvailable(false);
+    } finally {
+      setSubdomainChecking(false);
+    }
+  };
+
+  const getSubdomainStatus = () => {
+    if (!formData.subdomain) return null;
+    if (subdomainChecking) return <span className="text-gray-500">Checking...</span>;
+    if (subdomainAvailable === true) return <span className="text-green-600">✓ Available</span>;
+    if (subdomainAvailable === false) return <span className="text-red-600">✗ Not available</span>;
+    return null;
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-gradient-to-br from-purple-50 to-pink-100 flex items-center justify-center p-4">
       <div className="max-w-md w-full bg-white rounded-lg shadow-lg p-8">
         <div className="text-center mb-8">
           <h1 className="text-3xl font-bold text-gray-900 mb-2">Create Your Family Space</h1>
-          <p className="text-gray-600">Start sharing memories with your family</p>
+          <p className="text-gray-600">Start your family&apos;s journey on Kinjar</p>
         </div>
 
         {error && (
@@ -57,38 +128,6 @@ export default function RegisterPage() {
         )}
 
         <form onSubmit={handleSubmit} className="space-y-6">
-          <div>
-            <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
-              Email Address
-            </label>
-            <input
-              type="email"
-              id="email"
-              name="email"
-              value={formData.email}
-              onChange={handleChange}
-              required
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              placeholder="your@email.com"
-            />
-          </div>
-
-          <div>
-            <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-2">
-              Password
-            </label>
-            <input
-              type="password"
-              id="password"
-              name="password"
-              value={formData.password}
-              onChange={handleChange}
-              required
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              placeholder="Create a secure password"
-            />
-          </div>
-
           <div>
             <label htmlFor="familyName" className="block text-sm font-medium text-gray-700 mb-2">
               Family Name
@@ -100,20 +139,146 @@ export default function RegisterPage() {
               value={formData.familyName}
               onChange={handleChange}
               required
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              placeholder="Your family name (e.g., Smith Family)"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+              placeholder="The Smith Family"
             />
+          </div>
+
+          <div>
+            <label htmlFor="subdomain" className="block text-sm font-medium text-gray-700 mb-2">
+              Your Family URL
+            </label>
+            <div className="flex">
+              <input
+                type="text"
+                id="subdomain"
+                name="subdomain"
+                value={formData.subdomain}
+                onChange={handleChange}
+                required
+                pattern="[a-z0-9-]+"
+                minLength={3}
+                maxLength={20}
+                className="flex-1 px-3 py-2 border border-gray-300 rounded-l-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                placeholder="smithfamily"
+              />
+              <span className="px-3 py-2 bg-gray-100 border border-l-0 border-gray-300 rounded-r-lg text-gray-600 text-sm">
+                .kinjar.com
+              </span>
+            </div>
+            <div className="mt-1 text-sm">{getSubdomainStatus()}</div>
+            <p className="mt-1 text-xs text-gray-500">
+              3-20 characters, lowercase letters, numbers, and hyphens only
+            </p>
+          </div>
+
+          <div>
+            <label htmlFor="description" className="block text-sm font-medium text-gray-700 mb-2">
+              Family Description (Optional)
+            </label>
+            <textarea
+              id="description"
+              name="description"
+              value={formData.description}
+              onChange={handleChange}
+              rows={3}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+              placeholder="Tell others about your family..."
+            />
+          </div>
+
+          <div className="border-t pt-6">
+            <h3 className="text-lg font-medium text-gray-900 mb-4">Family Admin Account</h3>
+            
+            <div>
+              <label htmlFor="adminName" className="block text-sm font-medium text-gray-700 mb-2">
+                Your Name
+              </label>
+              <input
+                type="text"
+                id="adminName"
+                name="adminName"
+                value={formData.adminName}
+                onChange={handleChange}
+                required
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                placeholder="John Smith"
+              />
+            </div>
+
+            <div className="mt-4">
+              <label htmlFor="adminEmail" className="block text-sm font-medium text-gray-700 mb-2">
+                Email Address
+              </label>
+              <input
+                type="email"
+                id="adminEmail"
+                name="adminEmail"
+                value={formData.adminEmail}
+                onChange={handleChange}
+                required
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                placeholder="john@example.com"
+              />
+            </div>
+
+            <div className="mt-4">
+              <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-2">
+                Password
+              </label>
+              <input
+                type="password"
+                id="password"
+                name="password"
+                value={formData.password}
+                onChange={handleChange}
+                required
+                minLength={8}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                placeholder="At least 8 characters"
+              />
+            </div>
+
+            <div className="mt-4">
+              <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700 mb-2">
+                Confirm Password
+              </label>
+              <input
+                type="password"
+                id="confirmPassword"
+                name="confirmPassword"
+                value={formData.confirmPassword}
+                onChange={handleChange}
+                required
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                placeholder="Confirm your password"
+              />
+            </div>
+          </div>
+
+          <div className="flex items-center">
+            <input
+              type="checkbox"
+              id="isPublic"
+              name="isPublic"
+              checked={formData.isPublic}
+              onChange={handleChange}
+              className="h-4 w-4 text-purple-600 focus:ring-purple-500 border-gray-300 rounded"
+            />
+            <label htmlFor="isPublic" className="ml-2 block text-sm text-gray-700">
+              Make this family discoverable publicly
+            </label>
           </div>
 
           <button
             type="submit"
-            disabled={loading}
-            className="w-full bg-blue-600 text-white py-3 px-4 rounded-lg font-medium hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
+            disabled={loading || subdomainAvailable !== true}
+            className="w-full bg-purple-600 text-white py-3 px-4 rounded-lg font-medium hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
           >
             {loading ? (
               <>
                 <div className="loading-spinner mr-2"></div>
-                Creating Your Family Space...
+                Creating Family...
               </>
             ) : (
               'Create Family Space'
@@ -124,8 +289,8 @@ export default function RegisterPage() {
         <div className="mt-8 text-center">
           <p className="text-gray-600">
             Already have an account?{' '}
-            <Link href="/auth/login" className="text-blue-600 hover:text-blue-700 font-medium">
-              Sign in here
+            <Link href="/auth/login" className="text-purple-600 hover:text-purple-700 font-medium">
+              Sign in
             </Link>
           </p>
         </div>
