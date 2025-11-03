@@ -214,10 +214,15 @@ export const AppStateProvider = ({ children }: { children: ReactNode }) => {
         members: [adminMember],
         posts: [],
         connections: [],
+        connectedFamilies: [],
         storageUsedMb: 0,
         invitesSentThisMonth: 0,
         pendingMembers: [],
         highlights: [],
+        isPublic: true,
+        subdomain: slugify(signup.familyName),
+        createdAt: new Date().toISOString(),
+        ownerId: adminMember.userId || adminMember.id,
       };
 
       const updatedSignups = state.pendingFamilySignups.map((pending) =>
@@ -277,7 +282,7 @@ export const AppStateProvider = ({ children }: { children: ReactNode }) => {
           createEmptyMember({
             name: member.name,
             email: member.email,
-            role: 'MEMBER',
+            role: 'ADULT',
             avatarColor: '#f97316',
           }),
         ],

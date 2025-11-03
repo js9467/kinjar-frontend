@@ -84,7 +84,7 @@ export function FamilyAdminDashboard({ familyId, onBack }: FamilyAdminDashboardP
     if (isInvite) {
       inviteFamilyMember(family.id, { name: memberName, email: memberEmail });
     } else {
-      addFamilyMember(family.id, { name: memberName, email: memberEmail, role: 'MEMBER' });
+      addFamilyMember(family.id, { name: memberName, email: memberEmail, role: 'ADULT' });
     }
 
     setMemberName('');

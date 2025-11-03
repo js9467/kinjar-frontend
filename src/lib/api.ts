@@ -1,6 +1,14 @@
 'use client';
 
-import { AuthUser, CreateFamilyRequest, FamilyProfile, InviteMemberRequest, SubdomainInfo } from './types';
+import { AuthUser, CreateFamilyRequest, FamilyProfile, InviteMemberRequest, SubdomainInfo, FamilyPost, MediaAttachment } from './types';
+
+// Export types that components might need
+export type Post = FamilyPost;
+export interface MediaUpload {
+  file: File;
+  type: 'image' | 'video';
+  alt?: string;
+}
 
 const API_BASE_URL = typeof window !== 'undefined' 
   ? (window as any).ENV?.NEXT_PUBLIC_API_URL || 'https://kinjar-api.fly.dev'
@@ -178,6 +186,39 @@ class KinjarAPI {
     return this.request(`/families/${familyId}/members/${memberId}/role`, {
       method: 'PATCH',
       body: JSON.stringify({ role }),
+    });
+  }
+
+  // Media and Posts
+  async uploadMedia(file: File): Promise<{ url: string }> {
+    const formData = new FormData();
+    formData.append('file', file);
+
+    const response = await fetch(`${this.baseURL}/media/upload`, {
+      method: 'POST',
+      headers: {
+        'Authorization': this.token ? `Bearer ${this.token}` : '',
+      },
+      body: formData,
+    });
+
+    if (!response.ok) {
+      throw new Error('Upload failed');
+    }
+
+    return response.json();
+  }
+
+  async createPost(postData: {
+    content: string;
+    familyId: string;
+    media?: MediaAttachment;
+    visibility?: 'family' | 'connections' | 'public';
+    tags?: string[];
+  }): Promise<FamilyPost> {
+    return this.request('/posts', {
+      method: 'POST',
+      body: JSON.stringify(postData),
     });
   }
 
