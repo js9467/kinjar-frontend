@@ -115,7 +115,7 @@ class KinjarAPI {
     // Add subdomain context for API calls
     const subdomainInfo = getSubdomainInfo();
     if (subdomainInfo.isSubdomain && subdomainInfo.familySlug) {
-      headers['X-Family-Context'] = subdomainInfo.familySlug;
+      headers['x-tenant-slug'] = subdomainInfo.familySlug;
     }
 
     const response = await fetch(url, {
