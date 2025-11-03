@@ -38,11 +38,13 @@ export function FamilyDashboard({ familySlug }: FamilyDashboardProps) {
 
     try {
       setLoading(true);
+      setError(null);
       
       // Try to load from API first
       try {
         const familyData = await api.getFamilyBySlug(effectiveFamilySlug);
         setFamily(familyData);
+        setError(null);
         
         // Handle cases where posts might be undefined or null
         const familyPosts = familyData.posts || [];
@@ -143,6 +145,7 @@ export function FamilyDashboard({ familySlug }: FamilyDashboardProps) {
         
         setFamily(mockFamily);
         setPosts(mockFamily.posts);
+        setError(null);
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load family data');
