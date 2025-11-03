@@ -1,7 +1,5 @@
 import type { Metadata } from 'next';
 import './globals.css';
-import { AppStateProvider } from '../lib/app-state';
-import { AuthProvider } from '../lib/auth';
 
 export const metadata: Metadata = {
   title: 'Kinjar - Family Social Platform',
@@ -29,9 +27,7 @@ export default function RootLayout({
         <link rel="icon" href="/favicon.ico" />
       </head>
       <body className="min-h-screen bg-white font-sans text-gray-900 antialiased">
-        <AppStateProvider>
-          <AuthProvider>{children}</AuthProvider>
-        </AppStateProvider>
+        {children}
       </body>
     </html>
   );

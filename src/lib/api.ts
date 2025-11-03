@@ -42,10 +42,23 @@ export function getSubdomainInfo(): SubdomainInfo {
     return { isSubdomain: false, isRootDomain: true };
   }
 
-  // Production subdomain detection
+  // Production subdomain detection for kinjar.com
   if (parts.length >= 3 && parts[parts.length - 2] === 'kinjar' && parts[parts.length - 1] === 'com') {
     const subdomain = parts.slice(0, -2).join('.');
-    if (subdomain && subdomain !== 'www') {
+    if (subdomain && subdomain !== 'www' && subdomain !== 'admin') {
+      return {
+        isSubdomain: true,
+        subdomain,
+        familySlug: subdomain,
+        isRootDomain: false
+      };
+    }
+  }
+
+  // Handle direct .kinjar.com subdomains (like slaughterbeck.kinjar.com)
+  if (parts.length === 3 && parts[1] === 'kinjar' && parts[2] === 'com') {
+    const subdomain = parts[0];
+    if (subdomain && subdomain !== 'www' && subdomain !== 'admin') {
       return {
         isSubdomain: true,
         subdomain,
