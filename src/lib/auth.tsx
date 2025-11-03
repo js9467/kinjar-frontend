@@ -24,7 +24,7 @@ interface AuthContextType {
   user: AuthUser | null;
   users: AuthUser[];
   loading: boolean;
-  login: (email: string) => Promise<AuthUser>;
+  login: (email: string, password: string) => Promise<AuthUser>;
   loginById: (userId: string) => void;
   logout: () => void;
   registerFamilySpace: (payload: RegisterPayload) => Promise<void>;
@@ -72,7 +72,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   }, [user]);
 
-  const login = async (email: string) => {
+  const login = async (email: string, _password: string) => {
     const account = users.find(
       (candidate) => candidate.email.toLowerCase() === email.toLowerCase()
     );
