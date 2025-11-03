@@ -46,27 +46,51 @@ export default function UploadComponent({
 
     // Validate file type - be more inclusive for mobile devices
     const validImageTypes = [
-      'image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp', 
+      'image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp',
       'image/heic', 'image/heif', 'image/bmp', 'image/tiff'
     ];
     const validVideoTypes = [
-      'video/mp4', 'video/webm', 'video/mov', 'video/quicktime', 
-      'video/avi', 'video/m4v', 'video/3gp'
+      'video/mp4', 'video/webm', 'video/mov', 'video/quicktime',
+      'video/avi', 'video/m4v', 'video/3gpp', 'video/3gpp2', 'video/mpeg'
     ];
-    
-    const isValidImage = validImageTypes.includes(file.type.toLowerCase());
-    const isValidVideo = validVideoTypes.includes(file.type.toLowerCase());
-    
-    if (!isValidImage && !isValidVideo) {
+
+    const normalizedType = (file.type || '').toLowerCase();
+    let mediaKind: 'image' | 'video' | null = null;
+
+    if (normalizedType) {
+      if (normalizedType.startsWith('image/')) {
+        mediaKind = 'image';
+      } else if (normalizedType.startsWith('video/')) {
+        mediaKind = 'video';
+      } else if (validImageTypes.includes(normalizedType)) {
+        mediaKind = 'image';
+      } else if (validVideoTypes.includes(normalizedType)) {
+        mediaKind = 'video';
+      }
+    }
+
+    if (!mediaKind) {
       // Try to detect by file extension as fallback for iOS devices
-      const fileName = file.name.toLowerCase();
+      const fileName = (file.name || '').toLowerCase();
       const imageExtensions = ['.jpg', '.jpeg', '.png', '.gif', '.webp', '.heic', '.heif', '.bmp', '.tiff'];
-      const videoExtensions = ['.mp4', '.mov', '.webm', '.avi', '.m4v', '.3gp'];
-      
+      const videoExtensions = ['.mp4', '.mov', '.webm', '.avi', '.m4v', '.3gp', '.3g2', '.mpg', '.mpeg'];
+
       const hasImageExt = imageExtensions.some(ext => fileName.endsWith(ext));
       const hasVideoExt = videoExtensions.some(ext => fileName.endsWith(ext));
-      
-      if (!hasImageExt && !hasVideoExt) {
+
+      if (hasImageExt) {
+        mediaKind = 'image';
+      } else if (hasVideoExt) {
+        mediaKind = 'video';
+      }
+    }
+
+    if (!mediaKind) {
+      // Some mobile browsers provide empty MIME types and filenames without extensions.
+      // Assume the file is valid since the input accept attribute already filters options.
+      if (!normalizedType && !file.name) {
+        mediaKind = 'image';
+      } else {
         onUploadError?.('Please select a valid image or video file. Supported formats: JPEG, PNG, GIF, WebP, HEIC, MP4, MOV, and more.');
         return;
       }
@@ -88,14 +112,14 @@ export default function UploadComponent({
       setUploadProgress(100);
 
       // Create post with media
-      const mediaType = file.type.startsWith('image/') ? 'image' : 'video';
+      const defaultPostContent = mediaKind === 'image' ? 'Shared a photo' : 'Shared a video';
       const createdPost = await api.createPost({
-        content: postContent.trim() || `Shared a ${mediaType}`,
+        content: postContent.trim() || defaultPostContent,
         familyId: resolvedFamilyId.toString(),
         media: {
-          type: mediaType,
+          type: mediaKind,
           url: uploadResponse.url,
-          alt: `${mediaType} upload`
+          alt: mediaKind === 'image' ? 'Image upload' : 'Video upload'
         }
       });
 
