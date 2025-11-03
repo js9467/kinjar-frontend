@@ -170,7 +170,11 @@ class KinjarAPI {
         // Don't automatically redirect - let the auth context handle it
         // This prevents redirect loops
       }
+      
+      // Enhanced error logging for debugging
       const errorData = await response.json().catch(() => ({ message: 'Request failed' }));
+      console.error(`[API Error] ${response.status} ${response.statusText}:`, errorData);
+      
       throw new Error(errorData.message || `HTTP ${response.status}`);
     }
 
@@ -283,9 +287,34 @@ class KinjarAPI {
     visibility?: 'family' | 'connections' | 'public';
     tags?: string[];
   }): Promise<FamilyPost> {
+    // Transform frontend data to backend format
+    const backendData: any = {
+      content: postData.content,
+      title: postData.content.length > 50 ? postData.content.substring(0, 47) + '...' : postData.content,
+      visibility: postData.visibility || 'family'
+    };
+
+    // Handle media transformation
+    if (postData.media) {
+      if (postData.media.url.startsWith('http')) {
+        // If it's a URL, use it as media_id
+        backendData.media_id = postData.media.url;
+      } else {
+        // For blob URLs (demo), include the media object
+        backendData.media = postData.media;
+      }
+    }
+
+    // Note: tags are not yet supported by backend, but include for future compatibility
+    if (postData.tags && postData.tags.length > 0) {
+      backendData.tags = postData.tags;
+    }
+
+    console.log('[API] Sending post data to backend:', backendData);
+
     return this.request('/api/posts', {
       method: 'POST',
-      body: JSON.stringify(postData),
+      body: JSON.stringify(backendData),
     });
   }
 
