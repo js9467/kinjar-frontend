@@ -23,7 +23,7 @@ export default function LoginPage() {
     try {
       const loggedInUser = await login(formData.email, formData.password);
 
-      if (loggedInUser.global_role === 'ROOT') {
+      if (loggedInUser.globalRole === 'ROOT_ADMIN') {
         router.replace('/admin');
       } else {
         router.replace('/families');
