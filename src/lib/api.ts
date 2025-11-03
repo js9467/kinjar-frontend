@@ -310,7 +310,7 @@ class KinjarAPI {
       backendData.tags = postData.tags;
     }
 
-    console.log('[API] Sending post data to backend:', backendData);
+    console.log('[API] Sending post data to backend (v2):', backendData);
 
     return this.request('/api/posts', {
       method: 'POST',
