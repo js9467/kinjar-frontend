@@ -113,10 +113,8 @@ class KinjarAPI {
     if (!response.ok) {
       if (response.status === 401) {
         this.removeToken();
-        // Redirect to login if unauthorized
-        if (typeof window !== 'undefined') {
-          window.location.href = '/auth/login';
-        }
+        // Don't automatically redirect - let the auth context handle it
+        // This prevents redirect loops
       }
       const errorData = await response.json().catch(() => ({ message: 'Request failed' }));
       throw new Error(errorData.message || `HTTP ${response.status}`);

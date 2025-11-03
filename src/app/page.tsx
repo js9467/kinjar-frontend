@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 
@@ -14,25 +14,9 @@ export default function HomePage() {
   const [familyData, setFamilyData] = useState<FamilyProfile | null>(null);
   const [familyLoading, setFamilyLoading] = useState(false);
   const [error, setError] = useState('');
+  const [redirected, setRedirected] = useState(false);
 
-  useEffect(() => {
-    if (loading) return;
-
-    // Handle different routing scenarios
-    if (subdomainInfo.isSubdomain) {
-      // On a family subdomain - load family data
-      loadFamilyData();
-    } else if (user && isRootAdmin) {
-      // Root admin on main domain - redirect to admin
-      router.replace('/admin');
-    } else if (user) {
-      // Regular user on main domain - redirect to family selection
-      router.replace('/families');
-    }
-    // If not authenticated, stay on home page (landing page)
-  }, [user, loading, isRootAdmin, subdomainInfo, router]);
-
-  const loadFamilyData = async () => {
+  const loadFamilyData = useCallback(async () => {
     if (!subdomainInfo.familySlug) return;
 
     setFamilyLoading(true);
@@ -44,7 +28,26 @@ export default function HomePage() {
     } finally {
       setFamilyLoading(false);
     }
-  };
+  }, [subdomainInfo.familySlug]);
+
+  useEffect(() => {
+    if (loading || redirected) return; // Don't redirect if already redirected
+
+    // Handle different routing scenarios
+    if (subdomainInfo.isSubdomain) {
+      // On a family subdomain - load family data
+      loadFamilyData();
+    } else if (user && isRootAdmin && !redirected) {
+      // Root admin on main domain - redirect to admin
+      setRedirected(true);
+      router.replace('/admin');
+    } else if (user && !redirected) {
+      // Regular user on main domain - redirect to family selection
+      setRedirected(true);
+      router.replace('/families');
+    }
+    // If not authenticated, stay on home page (landing page)
+  }, [user, loading, isRootAdmin, subdomainInfo.isSubdomain, loadFamilyData, redirected]); // Added redirected
 
   // Loading state
   if (loading || familyLoading) {

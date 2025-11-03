@@ -31,24 +31,28 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [loading, setLoading] = useState(true);
+  const [initialized, setInitialized] = useState(false);
 
   const subdomainInfo = useMemo(() => getSubdomainInfo(), []);
 
   useEffect(() => {
+    if (initialized) return; // Prevent multiple initialization attempts
+    
     const initializeAuth = async () => {
       try {
         const currentUser = await api.getCurrentUser();
         setUser(currentUser);
       } catch (error) {
-        // User not authenticated or token expired
+        // User not authenticated or token expired - this is normal
         setUser(null);
       } finally {
         setLoading(false);
+        setInitialized(true);
       }
     };
 
     initializeAuth();
-  }, []);
+  }, [initialized]); // Only depend on initialized flag
 
   const login = async (email: string, password: string) => {
     setLoading(true);
