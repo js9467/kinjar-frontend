@@ -25,6 +25,14 @@ export function FamilyDashboard({ familySlug }: FamilyDashboardProps) {
   const subdomainInfo = getSubdomainInfo();
   const effectiveFamilySlug = familySlug || subdomainInfo.familySlug;
 
+  // Debug logging
+  console.log('[FamilyDashboard] Debug Info:', {
+    familySlug: familySlug,
+    subdomainInfo: subdomainInfo,
+    effectiveFamilySlug: effectiveFamilySlug,
+    windowLocation: typeof window !== 'undefined' ? window.location.href : 'SSR'
+  });
+
   useEffect(() => {
     loadFamilyData();
   }, [effectiveFamilySlug]);
