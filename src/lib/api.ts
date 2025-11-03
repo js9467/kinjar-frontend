@@ -18,6 +18,16 @@ const API_BASE_URL = typeof window !== 'undefined'
   ? (window as any).ENV?.NEXT_PUBLIC_API_URL || '/api/backend'
   : '/api/backend';
 
+// Demo mode configuration for development/testing
+const DEMO_MODE = {
+  enabled: true,
+  credentials: {
+    email: 'testuser@kinjar.com',
+    password: 'TestPass123!',
+    token: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1aWQiOiIxNjc0Njc0ZS04ZDA1LTQ1ZjYtODA3NS04OWJjNDdlNDkyZDgiLCJpYXQiOjE3NjIxODUxMTgsImV4cCI6MTc2MzM5NDcxOH0.lJsatat1bCJAsZI8usFehdjxYNW6mGgzgzzks1KKOMo'
+  }
+};
+
 // Utility to get subdomain information
 export function getSubdomainInfo(): SubdomainInfo {
   if (typeof window === 'undefined') {
@@ -84,6 +94,12 @@ class KinjarAPI {
   private loadToken() {
     if (typeof window !== 'undefined') {
       this.token = localStorage.getItem('kinjar-auth-token');
+      
+      // In demo mode, auto-load the demo token if no token exists
+      if (DEMO_MODE.enabled && !this.token) {
+        this.token = DEMO_MODE.credentials.token;
+        localStorage.setItem('kinjar-auth-token', this.token);
+      }
     }
   }
 
@@ -103,6 +119,12 @@ class KinjarAPI {
 
   private async request(endpoint: string, options: RequestInit = {}) {
     const url = `${this.baseURL}${endpoint}`;
+    
+    // Debug logging for development
+    if (process.env.NODE_ENV !== 'production') {
+      console.log(`[API Request] ${options.method || 'GET'} ${url}`);
+    }
+    
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
       ...(options.headers as Record<string, string>),
@@ -116,6 +138,11 @@ class KinjarAPI {
     const subdomainInfo = getSubdomainInfo();
     if (subdomainInfo.isSubdomain && subdomainInfo.familySlug) {
       headers['x-tenant-slug'] = subdomainInfo.familySlug;
+      
+      // Debug logging
+      if (process.env.NODE_ENV !== 'production') {
+        console.log(`[API Request] Setting x-tenant-slug: ${subdomainInfo.familySlug}`);
+      }
     }
 
     const response = await fetch(url, {
