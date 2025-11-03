@@ -10,7 +10,7 @@ import React, {
 } from 'react';
 
 import { api, getSubdomainInfo } from './api';
-import { AuthUser, FamilyRole, CreateFamilyRequest } from './types';
+import { AuthUser, FamilyRole, FamilyMembership, CreateFamilyRequest } from './types';
 
 interface AuthContextType {
   user: AuthUser | null;
@@ -77,12 +77,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     
     if (familyId) {
       return user.memberships.some(
-        m => m.familyId === familyId && m.role === 'ADMIN'
+        (m: FamilyMembership) => m.familyId === familyId && m.role === 'ADMIN'
       );
     }
     
     // If no familyId provided, check if user can manage any family
-    return user.memberships.some(m => m.role === 'ADMIN');
+    return user.memberships.some((m: FamilyMembership) => m.role === 'ADMIN');
   };
 
   const hasRole = (role: FamilyRole, familyId?: string) => {
@@ -93,14 +93,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     if (!targetFamilyId && subdomainInfo.isSubdomain) {
       // Find family by subdomain slug
       const membership = user.memberships.find(
-        m => m.familySlug === subdomainInfo.familySlug
+        (m: FamilyMembership) => m.familySlug === subdomainInfo.familySlug
       );
       targetFamilyId = membership?.familyId;
     }
     
     if (!targetFamilyId) return false;
     
-    const membership = user.memberships.find(m => m.familyId === targetFamilyId);
+    const membership = user.memberships.find((m: FamilyMembership) => m.familyId === targetFamilyId);
     return membership?.role === role;
   };
 

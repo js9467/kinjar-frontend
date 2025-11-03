@@ -26,20 +26,25 @@ const williamsMembers: FamilyMemberProfile[] = [
     email: 'diana@williams.family',
     role: 'ADMIN',
     avatarColor: '#f97316',
+    joinedAt: '2024-01-01T00:00:00Z',
   },
   {
     id: 'member-williams-lucas',
+    userId: 'user-williams-lucas',
     name: 'Lucas Williams',
     email: 'lucas@williams.family',
-    role: 'MEMBER',
+    role: 'ADULT',
     avatarColor: '#38bdf8',
+    joinedAt: '2024-01-02T00:00:00Z',
   },
   {
     id: 'member-williams-nora',
+    userId: 'user-williams-nora',
     name: 'Nora Williams',
     email: 'nora@williams.family',
-    role: 'MEMBER',
+    role: 'CHILD_14_16',
     avatarColor: '#facc15',
+    joinedAt: '2024-01-03T00:00:00Z',
   },
 ];
 
@@ -51,20 +56,25 @@ const fernandezMembers: FamilyMemberProfile[] = [
     email: 'miguel@fernandez.family',
     role: 'ADMIN',
     avatarColor: '#34d399',
+    joinedAt: '2024-01-01T00:00:00Z',
   },
   {
     id: 'member-fernandez-elena',
+    userId: 'user-fernandez-elena',
     name: 'Elena Fernandez',
     email: 'elena@fernandez.family',
-    role: 'MEMBER',
+    role: 'ADULT',
     avatarColor: '#60a5fa',
+    joinedAt: '2024-01-02T00:00:00Z',
   },
   {
     id: 'member-fernandez-alejandro',
+    userId: 'user-fernandez-alejandro',
     name: 'Alejandro Fernandez',
     email: 'alejandro@fernandez.family',
-    role: 'MEMBER',
+    role: 'CHILD_10_14',
     avatarColor: '#f472b6',
+    joinedAt: '2024-01-03T00:00:00Z',
   },
 ];
 
@@ -76,13 +86,16 @@ const slaughterbeckMembers: FamilyMemberProfile[] = [
     email: 'admin.slaughterbeck@gmail.com',
     role: 'ADMIN',
     avatarColor: '#a855f7',
+    joinedAt: '2024-01-01T00:00:00Z',
   },
   {
     id: 'member-slaughterbeck-zoe',
+    userId: 'user-slaughterbeck-zoe',
     name: 'Zoe Slaughterbeck',
     email: 'zoe@slaughterbeck.family',
-    role: 'MEMBER',
+    role: 'CHILD_16_ADULT',
     avatarColor: '#fbbf24',
+    joinedAt: '2024-01-02T00:00:00Z',
   },
 ];
 
@@ -222,6 +235,16 @@ export const initialFamilies: FamilyProfile[] = [
     members: williamsMembers,
     posts: williamsPosts,
     connections: ['family-fernandez'],
+    connectedFamilies: [
+      {
+        id: 'conn-williams-fernandez',
+        familyId: 'family-fernandez',
+        familyName: 'Fernandez Familia',
+        familySlug: 'fernandez-familia',
+        connectedAt: '2024-01-15T00:00:00Z',
+        canShareContent: true,
+      }
+    ],
     storageUsedMb: 1832,
     invitesSentThisMonth: 12,
     pendingMembers: [
@@ -229,11 +252,16 @@ export const initialFamilies: FamilyProfile[] = [
         id: 'pending-williams-sasha',
         name: 'Sasha Martin',
         email: 'sasha@martin.family',
-        role: 'MEMBER',
+        role: 'ADULT',
         avatarColor: '#f97316',
+        joinedAt: '2024-01-10T00:00:00Z',
       },
     ],
     highlights: ['post-williams-1'],
+    isPublic: true,
+    subdomain: 'williams-clan',
+    createdAt: '2024-01-01T00:00:00Z',
+    ownerId: 'user-williams-admin',
   },
   {
     id: 'family-fernandez',
@@ -250,10 +278,24 @@ export const initialFamilies: FamilyProfile[] = [
     members: fernandezMembers,
     posts: fernandezPosts,
     connections: ['family-williams'],
+    connectedFamilies: [
+      {
+        id: 'conn-fernandez-williams',
+        familyId: 'family-williams',
+        familyName: 'Williams Clan',
+        familySlug: 'williams-clan',
+        connectedAt: '2024-01-15T00:00:00Z',
+        canShareContent: true,
+      }
+    ],
     storageUsedMb: 2048,
     invitesSentThisMonth: 8,
     pendingMembers: [],
     highlights: ['post-fernandez-2'],
+    isPublic: true,
+    subdomain: 'fernandez-familia',
+    createdAt: '2024-01-02T00:00:00Z',
+    ownerId: 'user-fernandez-admin',
   },
   {
     id: 'family-slaughterbeck',
@@ -270,10 +312,24 @@ export const initialFamilies: FamilyProfile[] = [
     members: slaughterbeckMembers,
     posts: slaughterbeckPosts,
     connections: ['family-williams'],
+    connectedFamilies: [
+      {
+        id: 'conn-slaughterbeck-williams',
+        familyId: 'family-williams',
+        familyName: 'Williams Clan',
+        familySlug: 'williams-clan',
+        connectedAt: '2024-01-20T00:00:00Z',
+        canShareContent: true,
+      }
+    ],
     storageUsedMb: 956,
     invitesSentThisMonth: 3,
     pendingMembers: [],
     highlights: ['post-slaughterbeck-1'],
+    isPublic: false,
+    subdomain: 'slaughterbeck',
+    createdAt: '2024-01-03T00:00:00Z',
+    ownerId: 'user-root-admin',
   },
 ];
 
@@ -324,8 +380,11 @@ export const initialUsers: AuthUser[] = [
         familyName: 'Slaughterbeck Family',
         memberId: 'member-slaughterbeck-admin',
         role: 'ADMIN',
+        joinedAt: '2024-01-01T00:00:00Z',
       },
     ],
+    createdAt: '2024-01-01T00:00:00Z',
+    lastLoginAt: '2024-01-25T10:30:00Z',
   },
   {
     id: 'user-williams-admin',
@@ -340,8 +399,11 @@ export const initialUsers: AuthUser[] = [
         familyName: 'Williams Clan',
         memberId: 'member-williams-admin',
         role: 'ADMIN',
+        joinedAt: '2024-01-01T00:00:00Z',
       },
     ],
+    createdAt: '2024-01-01T00:00:00Z',
+    lastLoginAt: '2024-01-25T09:15:00Z',
   },
   {
     id: 'user-fernandez-admin',
@@ -356,8 +418,11 @@ export const initialUsers: AuthUser[] = [
         familyName: 'Fernandez Familia',
         memberId: 'member-fernandez-admin',
         role: 'ADMIN',
+        joinedAt: '2024-01-02T00:00:00Z',
       },
     ],
+    createdAt: '2024-01-02T00:00:00Z',
+    lastLoginAt: '2024-01-25T08:45:00Z',
   },
   {
     id: 'user-williams-lucas',
@@ -371,9 +436,12 @@ export const initialUsers: AuthUser[] = [
         familySlug: 'williams-clan',
         familyName: 'Williams Clan',
         memberId: 'member-williams-lucas',
-        role: 'MEMBER',
+        role: 'ADULT',
+        joinedAt: '2024-01-02T00:00:00Z',
       },
     ],
+    createdAt: '2024-01-02T00:00:00Z',
+    lastLoginAt: '2024-01-24T19:20:00Z',
   },
   {
     id: 'user-fernandez-elena',
@@ -387,9 +455,12 @@ export const initialUsers: AuthUser[] = [
         familySlug: 'fernandez-familia',
         familyName: 'Fernandez Familia',
         memberId: 'member-fernandez-elena',
-        role: 'MEMBER',
+        role: 'ADULT',
+        joinedAt: '2024-01-02T00:00:00Z',
       },
     ],
+    createdAt: '2024-01-02T00:00:00Z',
+    lastLoginAt: '2024-01-24T16:10:00Z',
   },
 ];
 
@@ -399,8 +470,9 @@ export const createEmptyMember = (
   createMember({
     name: 'New Family Member',
     email: 'member@example.com',
-    role: 'MEMBER',
+    role: 'ADULT',
     avatarColor: '#64748b',
+    joinedAt: new Date().toISOString(),
     ...overrides,
   });
 

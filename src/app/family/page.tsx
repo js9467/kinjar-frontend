@@ -2,13 +2,14 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { useAuth } from '../lib/auth';
-import { api } from '../lib/api';
+import { useAuth } from '../../lib/auth';
+import { api } from '../../lib/api';
+import { FamilyProfile } from '../../lib/types';
 
 export default function FamilyPage() {
   const { user, loading, subdomainInfo } = useAuth();
   const router = useRouter();
-  const [familyData, setFamilyData] = useState(null);
+  const [familyData, setFamilyData] = useState<FamilyProfile | null>(null);
   const [familyLoading, setFamilyLoading] = useState(false);
   const [error, setError] = useState('');
 
@@ -28,7 +29,7 @@ export default function FamilyPage() {
     }
 
     // Check if user is member of this family
-    const isMember = user.memberships.some(m => m.familySlug === subdomainInfo.familySlug);
+    const isMember = user.memberships.some((m) => m.familySlug === subdomainInfo.familySlug);
     if (!isMember) {
       // Not a member, redirect to home
       router.replace('/');
@@ -78,7 +79,7 @@ export default function FamilyPage() {
     return null;
   }
 
-  const userMembership = user.memberships.find(m => m.familySlug === subdomainInfo.familySlug);
+  const userMembership = user.memberships.find((m) => m.familySlug === subdomainInfo.familySlug);
   const isAdmin = userMembership?.role === 'ADMIN';
 
   return (

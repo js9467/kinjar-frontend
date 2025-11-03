@@ -6,11 +6,12 @@ import Link from 'next/link';
 
 import { useAuth } from '@/lib/auth';
 import { api } from '@/lib/api';
+import { FamilyProfile } from '@/lib/types';
 
 export default function HomePage() {
   const { user, loading, isRootAdmin, subdomainInfo } = useAuth();
   const router = useRouter();
-  const [familyData, setFamilyData] = useState(null);
+  const [familyData, setFamilyData] = useState<FamilyProfile | null>(null);
   const [familyLoading, setFamilyLoading] = useState(false);
   const [error, setError] = useState('');
 
@@ -78,7 +79,7 @@ export default function HomePage() {
     }
 
     // If user is logged in and member of this family, redirect to family dashboard
-    if (user && user.memberships.some(m => m.familySlug === subdomainInfo.familySlug)) {
+    if (user && user.memberships.some((m: { familySlug: string }) => m.familySlug === subdomainInfo.familySlug)) {
       router.replace('/family');
       return null;
     }
