@@ -200,12 +200,14 @@ class KinjarAPI {
       method: 'POST',
       headers: {
         'Authorization': this.token ? `Bearer ${this.token}` : '',
+        // Remove Content-Type for FormData to set boundary automatically
       },
       body: formData,
     });
 
     if (!response.ok) {
-      throw new Error('Upload failed');
+      const errorData = await response.json().catch(() => ({ message: 'Upload failed' }));
+      throw new Error(errorData.message || 'Upload failed');
     }
 
     return response.json();
@@ -221,6 +223,24 @@ class KinjarAPI {
     return this.request('/posts', {
       method: 'POST',
       body: JSON.stringify(postData),
+    });
+  }
+
+  async getFamilyPosts(familyId: string): Promise<FamilyPost[]> {
+    return this.request(`/families/${familyId}/posts`);
+  }
+
+  async addComment(postId: string, content: string): Promise<{ id: string; authorName: string; authorAvatarColor: string; content: string; createdAt: string }> {
+    return this.request(`/posts/${postId}/comments`, {
+      method: 'POST',
+      body: JSON.stringify({ content }),
+    });
+  }
+
+  async addReaction(postId: string, reaction: string): Promise<void> {
+    return this.request(`/posts/${postId}/reactions`, {
+      method: 'POST',
+      body: JSON.stringify({ reaction }),
     });
   }
 

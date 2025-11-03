@@ -36,45 +36,40 @@ A comprehensive, modern family social platform built with Next.js 14, designed s
 
 ### Installation
 
-1. **Clone the repository**
+1. **Clone and setup**
    ```bash
-   git clone https://github.com/js9467/kinjar-frontend.git
-   cd kinjar-frontend
-   ```
-
-2. **Install dependencies**
-   ```bash
+   cd "c:\Software\Kinjar Frontend\kinjar-frontend"
    npm install
    ```
 
-3. **Set up environment variables**
-   
-   Copy `.env.local.example` to `.env.local` and update:
-   
-   ```env
-   # Kinjar API Configuration
-   KINJAR_API_URL=https://kinjar-api.fly.dev
-   NEXT_PUBLIC_API_URL=https://kinjar-api.fly.dev
-   
-   # Vercel Blob Storage
-   BLOB_READ_WRITE_TOKEN=your-vercel-blob-token-here
-   
-   # Authentication
-   NEXTAUTH_SECRET=your-secure-secret-here
-   NEXTAUTH_URL=http://localhost:3000
-   
-   # App Configuration
-   NEXT_PUBLIC_APP_URL=https://kinjar.com
+2. **Set up environment variables**
+   ```bash
+   cp .env.example .env.local
+   # Edit .env.local with your actual values
    ```
 
-4. **Start the development server**
+3. **Create Slaughterbeck family admin**
+   ```bash
+   # PowerShell
+   .\scripts\setup-family.ps1
+   
+   # Or Node.js
+   node scripts/setup-family.js
+   ```
+
+4. **Start development server**
    ```bash
    npm run dev
    ```
 
-5. **Open your browser**
-   
-   Navigate to [http://localhost:3000](http://localhost:3000)
+5. **Access the application**
+   - Main site: http://localhost:3000
+   - Slaughterbeck family: http://localhost:3000/families/slaughterbeck
+   - Production: https://slaughterbeck.kinjar.com
+
+### Default Credentials (Change immediately!)
+- Email: `admin@slaughterbeck.family`
+- Password: `admin123`
 
 ## 🔧 Configuration
 

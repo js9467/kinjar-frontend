@@ -1,4 +1,6 @@
-import { PublicFamilyLanding } from '@/components/family/PublicFamilyLanding';
+'use client';
+
+import { FamilyDashboard } from '@/components/family/FamilyDashboard';
 
 interface FamilyLandingPageProps {
   params: {
@@ -7,11 +9,5 @@ interface FamilyLandingPageProps {
 }
 
 export default function FamilyLandingPage({ params }: FamilyLandingPageProps) {
-  return (
-    <div className="min-h-screen bg-slate-50 py-12">
-      <div className="mx-auto max-w-5xl px-4 lg:px-8">
-        <PublicFamilyLanding slug={params.slug} />
-      </div>
-    </div>
-  );
+  return <FamilyDashboard familySlug={params.slug} />;
 }
