@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useRef } from 'react';
-import { api, MediaUpload, Post } from '../lib/api';
+import { api, UploadResponse, Post } from '../lib/api';
 
 interface UploadComponentProps {
   familyId?: number | null;
@@ -63,16 +63,19 @@ export default function UploadComponent({
 
     try {
       // Upload media to Vercel Blob
-      const mediaUpload: MediaUpload = await api.uploadMedia(file);
+      const uploadResponse: UploadResponse = await api.uploadMedia(file);
       setUploadProgress(100);
 
       // Create post with media
       const mediaType = file.type.startsWith('image/') ? 'image' : 'video';
       const createdPost = await api.createPost({
         content: postContent.trim() || `Shared a ${mediaType}`,
-        family_id: resolvedFamilyId,
-        media_url: mediaUpload.url,
-        media_type: mediaType
+        familyId: resolvedFamilyId.toString(),
+        media: {
+          type: mediaType,
+          url: uploadResponse.url,
+          alt: `${mediaType} upload`
+        }
       });
 
       onUploadSuccess?.(createdPost);
@@ -215,7 +218,7 @@ export default function UploadComponent({
               try {
                 const createdPost = await api.createPost({
                   content: postContent.trim(),
-                  family_id: resolvedFamilyId,
+                  familyId: resolvedFamilyId.toString(),
                 });
                 onUploadSuccess?.(createdPost);
                 setPostContent('');

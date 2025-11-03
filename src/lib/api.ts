@@ -10,6 +10,10 @@ export interface MediaUpload {
   alt?: string;
 }
 
+export interface UploadResponse {
+  url: string;
+}
+
 const API_BASE_URL = typeof window !== 'undefined' 
   ? (window as any).ENV?.NEXT_PUBLIC_API_URL || 'https://kinjar-api.fly.dev'
   : 'https://kinjar-api.fly.dev';
@@ -190,7 +194,7 @@ class KinjarAPI {
   }
 
   // Media and Posts
-  async uploadMedia(file: File): Promise<{ url: string }> {
+  async uploadMedia(file: File): Promise<UploadResponse> {
     const formData = new FormData();
     formData.append('file', file);
 
