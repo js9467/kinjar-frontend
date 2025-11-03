@@ -3,6 +3,7 @@
 import { FormEvent, useMemo, useState } from 'react';
 
 import { useAppState } from '@/lib/app-state';
+import { useAuth } from '@/lib/auth';
 import { FamilyMemberProfile, FamilyPost, FamilyProfile, PostVisibility } from '@/lib/types';
 
 const VISIBILITY_OPTIONS: Array<{ value: PostVisibility; label: string }> = [
@@ -21,15 +22,7 @@ export default function FamilyAdminWorkspace() {
     updatePostVisibility,
     toggleHighlight,
   } = useAppState();
-  
-  // Mock user for demo
-  const user = { 
-    id: 'user1', 
-    name: 'Demo Admin', 
-    email: 'admin@example.com',
-    memberships: [{ familyId: 'family1', familySlug: 'slaughterbeck', role: 'ADMIN' as const, memberId: 'user1' }]
-  };
-  const isRootAdmin = false;
+  const { user, isRootAdmin } = useAuth();
   const [selectedFamilyId, setSelectedFamilyId] = useState<string | null>(null);
   const [newMember, setNewMember] = useState({ name: '', email: '', role: 'ADULT' as FamilyMemberProfile['role'] });
   const [postContent, setPostContent] = useState('');

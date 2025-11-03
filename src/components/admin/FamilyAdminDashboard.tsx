@@ -3,6 +3,7 @@
 import { useMemo, useState } from 'react';
 
 import { useAppState } from '@/lib/app-state';
+import { useAuth } from '@/lib/auth';
 import { PostVisibility } from '@/lib/types';
 import { StatCard } from '../ui/StatCard';
 import { FamilyFeed } from '../family/FamilyFeed';
@@ -30,14 +31,7 @@ export function FamilyAdminDashboard({ familyId, onBack }: FamilyAdminDashboardP
     toggleHighlight,
     requestConnection,
   } = useAppState();
-  
-  // Mock user for demo
-  const user = { 
-    id: 'user1', 
-    name: 'Demo Admin', 
-    email: 'admin@example.com',
-    memberships: [{ familyId: 'family1', familySlug: 'slaughterbeck', role: 'ADMIN' as const, memberId: 'user1' }]
-  };
+  const { user } = useAuth();
 
   const [content, setContent] = useState('');
   const [mediaUrl, setMediaUrl] = useState('');

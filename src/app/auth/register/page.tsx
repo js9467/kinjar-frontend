@@ -2,8 +2,10 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
+import { useAuth } from '../../../lib/auth';
 
 export default function RegisterPage() {
+  const { createFamily } = useAuth();
   const [formData, setFormData] = useState({
     familyName: '',
     subdomain: '',
@@ -36,11 +38,18 @@ export default function RegisterPage() {
     }
 
     try {
-      // Mock success for demo
-      setTimeout(() => {
-        alert(`Family "${formData.familyName}" would be created at ${formData.subdomain}.kinjar.com`);
-        setLoading(false);
-      }, 1000);
+      await createFamily({
+        familyName: formData.familyName,
+        subdomain: formData.subdomain,
+        description: formData.description,
+        adminName: formData.adminName,
+        adminEmail: formData.adminEmail,
+        password: formData.password,
+        isPublic: formData.isPublic
+      });
+      
+      // Redirect to family page after successful creation
+      window.location.href = `https://${formData.subdomain}.kinjar.com`;
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Registration failed');
       setLoading(false);
@@ -63,9 +72,6 @@ export default function RegisterPage() {
         <div className="text-center mb-8">
           <h1 className="text-3xl font-bold text-gray-900 mb-2">Create Your Family Space</h1>
           <p className="text-gray-600">Start your family&apos;s journey on Kinjar</p>
-          <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
-            <p className="text-sm text-yellow-800">Demo Mode - Registration not connected to backend</p>
-          </div>
         </div>
 
         {error && (
@@ -227,7 +233,7 @@ export default function RegisterPage() {
                 Creating Family...
               </>
             ) : (
-              'Create Family Space (Demo)'
+              'Create Family Space'
             )}
           </button>
         </form>

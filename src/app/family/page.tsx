@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from 'react';
 
 import { useAppState } from '@/lib/app-state';
+import { useAuth } from '@/lib/auth';
 import { FamilyPost, FamilyProfile, PostVisibility } from '@/lib/types';
 
 interface FeedPost extends FamilyPost {
@@ -26,18 +27,7 @@ export default function FamilyExperiencePage() {
     updatePostVisibility,
     toggleHighlight,
   } = useAppState();
-  
-  // Mock user for demo
-  const user = { 
-    id: 'user1', 
-    name: 'Demo User', 
-    email: 'user@example.com', 
-    familyMemberships: [{ familyId: 'family1', role: 'admin' as const }],
-    memberships: [{ familyId: 'family1', familySlug: 'slaughterbeck', role: 'ADMIN' as const, memberId: 'user1' }]
-  };
-  const loading = false;
-  const subdomainInfo = { isSubdomain: false, familySlug: null };
-  const isRootAdmin = false;
+  const { user, loading, subdomainInfo, isRootAdmin } = useAuth();
   const [selectedFamilyId, setSelectedFamilyId] = useState<string | null>(null);
   const [feedFilter, setFeedFilter] = useState<(typeof FEED_FILTERS)[number]['value']>('all');
   const [newPost, setNewPost] = useState('');

@@ -15,8 +15,8 @@ export interface UploadResponse {
 }
 
 const API_BASE_URL = typeof window !== 'undefined' 
-  ? (window as any).ENV?.NEXT_PUBLIC_API_URL || 'https://kinjar-api.fly.dev'
-  : 'https://kinjar-api.fly.dev';
+  ? (window as any).ENV?.NEXT_PUBLIC_API_URL || '/api/backend'
+  : '/api/backend';
 
 // Utility to get subdomain information
 export function getSubdomainInfo(): SubdomainInfo {
