@@ -26,6 +26,7 @@ export default function FamilyExperiencePage() {
     updatePostStatus,
     updatePostVisibility,
     toggleHighlight,
+    deleteFamilyPost,
   } = useAppState();
   const { user, loading, subdomainInfo, isRootAdmin } = useAuth();
   const [selectedFamilyId, setSelectedFamilyId] = useState<string | null>(null);
@@ -33,6 +34,7 @@ export default function FamilyExperiencePage() {
   const [newPost, setNewPost] = useState('');
   const [newPostVisibility, setNewPostVisibility] = useState<PostVisibility>('family');
   const [message, setMessage] = useState<string | null>(null);
+  const [deletingPostId, setDeletingPostId] = useState<string | null>(null);
 
   const accessibleFamilies = useMemo(() => {
     if (!user) {
@@ -175,6 +177,23 @@ export default function FamilyExperiencePage() {
     if (!activeFamily) return;
     updatePostVisibility(activeFamily.id, post.id, visibility);
     setMessage(`Post visibility updated.`);
+  };
+
+  const handleDeletePost = (post: FamilyPost) => {
+    const confirmed =
+      typeof window === 'undefined' ? true : window.confirm('Delete this post?');
+    if (!confirmed) {
+      return;
+    }
+
+    setDeletingPostId(post.id);
+    const deleted = deleteFamilyPost(post.familyId, post.id);
+    if (deleted) {
+      setMessage('Post deleted.');
+    } else {
+      setMessage('Unable to delete post.');
+    }
+    setDeletingPostId(null);
   };
 
   if (loading) {
@@ -390,56 +409,80 @@ export default function FamilyExperiencePage() {
                   No stories to show yet. Share the first update!
                 </div>
               ) : (
-                filteredPosts.map((post) => (
-                  <article key={post.id} className="rounded-2xl border border-slate-100 bg-slate-50 px-4 py-4">
-                    <div className="flex flex-wrap items-center justify-between gap-3">
-                      <div>
-                        <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                          {post.familyName}
-                        </p>
-                        <p className="text-sm font-semibold text-slate-900">{post.authorName}</p>
-                      </div>
-                      <div className="text-xs text-slate-500">{new Date(post.createdAt).toLocaleString()}</div>
-                    </div>
-                    <p className="mt-3 text-sm text-slate-700 whitespace-pre-wrap">{post.content}</p>
-                    <div className="mt-3 flex flex-wrap items-center justify-between gap-3 text-xs text-slate-500">
-                      <span>{post.visibility === 'family' ? 'Family only' : post.visibility === 'connections' ? 'Shared with connections' : 'Public highlight'}</span>
-                      {isFamilyAdmin && post.familyId === activeFamily.id ? (
-                        <div className="flex gap-2 text-xs font-semibold">
-                          {(['family', 'connections', 'public'] as PostVisibility[]).map((visibility) => (
+                filteredPosts.map((post) => {
+                  const membership = user?.memberships.find(
+                    (entry) => entry.familyId === post.familyId
+                  );
+                  const canDeletePost = Boolean(
+                    user &&
+                      (isRootAdmin ||
+                        membership?.role === 'ADMIN' ||
+                        membership?.memberId === post.authorId)
+                  );
+
+                  return (
+                    <article key={post.id} className="rounded-2xl border border-slate-100 bg-slate-50 px-4 py-4">
+                      <div className="flex flex-wrap items-center justify-between gap-3">
+                        <div>
+                          <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                            {post.familyName}
+                          </p>
+                          <p className="text-sm font-semibold text-slate-900">{post.authorName}</p>
+                        </div>
+                        <div className="flex items-center gap-3 text-xs text-slate-500">
+                          <span>{new Date(post.createdAt).toLocaleString()}</span>
+                          {canDeletePost ? (
                             <button
-                              key={visibility}
                               type="button"
-                              onClick={() => handleVisibilityChange(post, visibility)}
+                              onClick={() => handleDeletePost(post)}
+                              disabled={deletingPostId === post.id}
+                              className="rounded-full border border-rose-200 px-3 py-1 text-rose-600 transition hover:border-rose-300 hover:text-rose-700 disabled:cursor-not-allowed disabled:opacity-60"
+                            >
+                              {deletingPostId === post.id ? 'Deleting…' : 'Delete'}
+                            </button>
+                          ) : null}
+                        </div>
+                      </div>
+                      <p className="mt-3 text-sm text-slate-700 whitespace-pre-wrap">{post.content}</p>
+                      <div className="mt-3 flex flex-wrap items-center justify-between gap-3 text-xs text-slate-500">
+                        <span>{post.visibility === 'family' ? 'Family only' : post.visibility === 'connections' ? 'Shared with connections' : 'Public highlight'}</span>
+                        {isFamilyAdmin && post.familyId === activeFamily.id ? (
+                          <div className="flex gap-2 text-xs font-semibold">
+                            {(['family', 'connections', 'public'] as PostVisibility[]).map((visibility) => (
+                              <button
+                                key={visibility}
+                                type="button"
+                                onClick={() => handleVisibilityChange(post, visibility)}
+                                className={`rounded-full px-3 py-1 transition ${
+                                  post.visibility === visibility
+                                    ? 'bg-indigo-600 text-white'
+                                    : 'border border-slate-200 bg-white text-slate-600 hover:border-indigo-300 hover:text-indigo-600'
+                                }`}
+                              >
+                                {visibility === 'family'
+                                  ? 'Family'
+                                  : visibility === 'connections'
+                                    ? 'Connections'
+                                    : 'Public'}
+                              </button>
+                            ))}
+                            <button
+                              type="button"
+                              onClick={() => toggleHighlight(activeFamily.id, post.id)}
                               className={`rounded-full px-3 py-1 transition ${
-                                post.visibility === visibility
-                                  ? 'bg-indigo-600 text-white'
-                                  : 'border border-slate-200 bg-white text-slate-600 hover:border-indigo-300 hover:text-indigo-600'
+                                activeFamily.highlights.includes(post.id)
+                                  ? 'bg-amber-400 text-amber-900'
+                                  : 'border border-amber-200 bg-white text-amber-600 hover:bg-amber-50'
                               }`}
                             >
-                              {visibility === 'family'
-                                ? 'Family'
-                                : visibility === 'connections'
-                                  ? 'Connections'
-                                  : 'Public'}
+                              {activeFamily.highlights.includes(post.id) ? 'Highlighted' : 'Highlight'}
                             </button>
-                          ))}
-                          <button
-                            type="button"
-                            onClick={() => toggleHighlight(activeFamily.id, post.id)}
-                            className={`rounded-full px-3 py-1 transition ${
-                              activeFamily.highlights.includes(post.id)
-                                ? 'bg-amber-400 text-amber-900'
-                                : 'border border-amber-200 bg-white text-amber-600 hover:bg-amber-50'
-                            }`}
-                          >
-                            {activeFamily.highlights.includes(post.id) ? 'Highlighted' : 'Highlight'}
-                          </button>
-                        </div>
-                      ) : null}
-                    </div>
-                  </article>
-                ))
+                          </div>
+                        ) : null}
+                      </div>
+                    </article>
+                  );
+                })
               )}
             </div>
           </section>
