@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '../../lib/auth';
 import { api } from '../../lib/api';
@@ -13,45 +13,63 @@ export default function FamilyPage() {
   const [familyLoading, setFamilyLoading] = useState(false);
   const [error, setError] = useState('');
 
+  const loadFamilyData = useCallback(async () => {
+    if (!subdomainInfo.familySlug) {
+      setError('Family not found');
+      setFamilyData(null);
+      return;
+    }
+
+    setFamilyLoading(true);
+    setError('');
+
+    try {
+      const family = await api.getFamilyBySlug(subdomainInfo.familySlug);
+
+      const isMember =
+        user?.globalRole === 'ROOT_ADMIN' ||
+        user?.memberships.some((membership) => {
+          if (membership.familySlug === subdomainInfo.familySlug) {
+            return true;
+          }
+
+          return (
+            membership.familyId === family.id ||
+            membership.familySlug === family.slug ||
+            membership.familyName === family.name
+          );
+        });
+
+      if (!isMember) {
+        setFamilyData(null);
+        router.replace('/');
+        return;
+      }
+
+      setFamilyData(family);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to load family');
+      setFamilyData(null);
+    } finally {
+      setFamilyLoading(false);
+    }
+  }, [subdomainInfo.familySlug, user, router]);
+
   useEffect(() => {
     if (loading) return;
 
     if (!subdomainInfo.isSubdomain) {
-      // Not on a family subdomain, redirect to home
       router.replace('/');
       return;
     }
 
     if (!user) {
-      // Not authenticated, redirect to login
       router.replace('/auth/login');
       return;
     }
 
-    // Check if user is member of this family
-    const isMember = user.memberships.some((m) => m.familySlug === subdomainInfo.familySlug);
-    if (!isMember) {
-      // Not a member, redirect to home
-      router.replace('/');
-      return;
-    }
-
     loadFamilyData();
-  }, [user, loading, subdomainInfo, router]);
-
-  const loadFamilyData = async () => {
-    if (!subdomainInfo.familySlug) return;
-
-    setFamilyLoading(true);
-    try {
-      const family = await api.getFamilyBySlug(subdomainInfo.familySlug);
-      setFamilyData(family);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load family');
-    } finally {
-      setFamilyLoading(false);
-    }
-  };
+  }, [user, loading, subdomainInfo.isSubdomain, loadFamilyData, router]);
 
   if (loading || familyLoading) {
     return (
@@ -80,7 +98,14 @@ export default function FamilyPage() {
   }
 
   const userMembership = user.memberships.find((m) => m.familySlug === subdomainInfo.familySlug);
-  const isAdmin = userMembership?.role === 'ADMIN';
+  const isAdmin = userMembership?.role === 'ADMIN' || user.globalRole === 'ROOT_ADMIN';
+  const roleLabel = userMembership?.role
+    ? userMembership.role.replace('_', ' ').toLowerCase()
+    : user.globalRole === 'ROOT_ADMIN'
+      ? 'root admin'
+      : user.globalRole === 'FAMILY_ADMIN'
+        ? 'family admin'
+        : 'member';
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
@@ -93,10 +118,8 @@ export default function FamilyPage() {
               <p className="text-gray-600">Welcome back, {user.name}!</p>
             </div>
             <div className="flex items-center space-x-4">
-              <span className="text-sm text-gray-500">
-                Role: {userMembership?.role.replace('_', ' ').toLowerCase()}
-              </span>
-              <button 
+              <span className="text-sm text-gray-500">Role: {roleLabel}</span>
+              <button
                 onClick={() => api.logout()}
                 className="text-gray-600 hover:text-gray-800"
               >
