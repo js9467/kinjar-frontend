@@ -40,6 +40,9 @@ export function FamilyDashboard({ familySlug }: FamilyDashboardProps) {
       setLoading(true);
       setError(null);
       
+      // Debug logging
+      console.log(`[FamilyDashboard] Loading family data for slug: "${effectiveFamilySlug}"`);
+      
       // Try to load from API first
       try {
         const familyData = await api.getFamilyBySlug(effectiveFamilySlug);

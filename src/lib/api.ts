@@ -207,6 +207,10 @@ class KinjarAPI {
   }
 
   async getFamilyBySlug(slug: string): Promise<FamilyProfile> {
+    // Debug logging for development
+    if (process.env.NODE_ENV !== 'production') {
+      console.log(`[API Debug] getFamilyBySlug called with slug: "${slug}"`);
+    }
     return this.request(`/families/${slug}`);
   }
 
