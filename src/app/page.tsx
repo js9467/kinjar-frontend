@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 
@@ -15,6 +15,33 @@ export default function HomePage() {
   const [familyLoading, setFamilyLoading] = useState(false);
   const [error, setError] = useState('');
   const [redirected, setRedirected] = useState(false);
+  const [hasRedirectedToFamily, setHasRedirectedToFamily] = useState(false);
+
+  const isMemberOfCurrentFamily = useMemo(() => {
+    if (!user) {
+      return false;
+    }
+
+    if (user.globalRole === 'ROOT_ADMIN') {
+      return true;
+    }
+
+    return user.memberships.some((membership) => {
+      if (subdomainInfo.familySlug && membership.familySlug === subdomainInfo.familySlug) {
+        return true;
+      }
+
+      if (familyData) {
+        return (
+          membership.familyId === familyData.id ||
+          membership.familySlug === familyData.slug ||
+          membership.familyName === familyData.name
+        );
+      }
+
+      return false;
+    });
+  }, [user, subdomainInfo.familySlug, familyData]);
 
   const loadFamilyData = useCallback(async () => {
     if (!subdomainInfo.familySlug) return;
@@ -29,6 +56,25 @@ export default function HomePage() {
       setFamilyLoading(false);
     }
   }, [subdomainInfo.familySlug]);
+
+  useEffect(() => {
+    if (!subdomainInfo.isSubdomain) {
+      return;
+    }
+
+    if (!user) {
+      return;
+    }
+
+    if (hasRedirectedToFamily) {
+      return;
+    }
+
+    if (isMemberOfCurrentFamily) {
+      setHasRedirectedToFamily(true);
+      router.replace('/family');
+    }
+  }, [subdomainInfo.isSubdomain, user, isMemberOfCurrentFamily, hasRedirectedToFamily, router]);
 
   useEffect(() => {
     if (loading || redirected) return; // Don't redirect if already redirected
@@ -47,7 +93,15 @@ export default function HomePage() {
       router.replace('/families');
     }
     // If not authenticated, stay on home page (landing page)
-  }, [user, loading, isRootAdmin, subdomainInfo.isSubdomain, loadFamilyData, redirected]); // Added redirected
+  }, [
+    user,
+    loading,
+    isRootAdmin,
+    subdomainInfo.isSubdomain,
+    loadFamilyData,
+    redirected,
+    router,
+  ]);
 
   // Loading state
   if (loading || familyLoading) {
@@ -81,10 +135,15 @@ export default function HomePage() {
       return null; // Still loading
     }
 
-    // If user is logged in and member of this family, redirect to family dashboard
-    if (user && user.memberships.some((m: { familySlug: string }) => m.familySlug === subdomainInfo.familySlug)) {
-      router.replace('/family');
-      return null;
+    if (user && isMemberOfCurrentFamily) {
+      return (
+        <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center">
+          <div className="text-center">
+            <div className="loading-spinner mx-auto mb-4"></div>
+            <p className="text-gray-600">Taking you to your family dashboard...</p>
+          </div>
+        </div>
+      );
     }
 
     // Show public family landing page
