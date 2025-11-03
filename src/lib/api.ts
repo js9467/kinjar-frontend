@@ -86,6 +86,7 @@ class KinjarAPI {
 
   constructor() {
     this.baseURL = API_BASE_URL;
+    console.log(`[API Client] Initialized with baseURL: ${this.baseURL}`);
     this.loadToken();
   }
 
