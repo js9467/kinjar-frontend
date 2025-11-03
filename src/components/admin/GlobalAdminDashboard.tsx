@@ -37,7 +37,7 @@ export function GlobalAdminDashboard({ onImpersonateFamily }: GlobalAdminDashboa
     () =>
       families
         .flatMap((family) =>
-          family.posts
+          (family.posts || [])
             .filter((post) => post.status === 'pending')
             .map((post) => ({ post, family }))
         )

@@ -17,7 +17,8 @@ export function PublicFamilyLanding({ slug }: PublicFamilyLandingProps) {
     if (!family) {
       return [];
     }
-    return family.posts
+    const familyPosts = family.posts || [];
+    return familyPosts
       .filter((post) => post.status === 'approved' && post.visibility === 'public')
       .sort((a, b) => (a.createdAt < b.createdAt ? 1 : -1));
   }, [family]);

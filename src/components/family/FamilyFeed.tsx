@@ -19,7 +19,7 @@ export function FamilyFeed({ familyIds, highlightFamilyId, title = 'Family stori
     const relevantFamilies = families.filter((family) => familyIds.includes(family.id));
     return relevantFamilies
       .flatMap((family) =>
-        family.posts
+        (family.posts || [])
           .filter((post) => post.status === 'approved')
           .map((post) => ({ post, family }))
       )

@@ -99,7 +99,7 @@ export interface FamilyProfile {
   heroImage: string;
   admins: string[];
   members: FamilyMemberProfile[];
-  posts: FamilyPost[];
+  posts?: FamilyPost[]; // Make posts optional since new families might not have any
   connections: string[];
   connectedFamilies: FamilyConnection[];
   storageUsedMb: number;
