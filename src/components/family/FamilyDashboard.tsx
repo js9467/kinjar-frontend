@@ -45,9 +45,9 @@ export function FamilyDashboard({ familySlug }: FamilyDashboardProps) {
         setFamily(familyData);
         setPosts(familyData.posts.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()));
       } catch (apiError) {
-        console.log('API not available, using mock data for development');
-        
-        // Use mock data for development/demo
+        console.error('Failed to load family data:', apiError);
+        setError(`Failed to load family data: ${apiError instanceof Error ? apiError.message : 'Unknown error'}`);
+      } finally {
         const mockFamily = {
           id: 'mock-family-1',
           slug: effectiveFamilySlug,

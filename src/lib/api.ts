@@ -24,7 +24,7 @@ const DEMO_MODE = {
   credentials: {
     email: 'testuser@kinjar.com',
     password: 'TestPass123!',
-    token: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1aWQiOiIxNjc0Njc0ZS04ZDA1LTQ1ZjYtODA3NS04OWJjNDdlNDkyZDgiLCJpYXQiOjE3NjIxODUxMTgsImV4cCI6MTc2MzM5NDcxOH0.lJsatat1bCJAsZI8usFehdjxYNW6mGgzgzzks1KKOMo'
+    token: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1aWQiOiIxNjc0Njc0ZS04ZDA1LTQ1ZjYtODA3NS04OWJjNDdlNDkyZDgiLCJpYXQiOjE3NjIxODU0NDcsImV4cCI6MTc2MzM5NTA0N30.pTwpnFEOaNL8VIvPn6CjI9cQ40pUNIZuWxUo3sAGwQc'
   }
 };
 
