@@ -233,7 +233,7 @@ class KinjarAPI {
     visibility?: 'family' | 'connections' | 'public';
     tags?: string[];
   }): Promise<FamilyPost> {
-    return this.request('/posts', {
+    return this.request('/api/posts', {
       method: 'POST',
       body: JSON.stringify(postData),
     });
