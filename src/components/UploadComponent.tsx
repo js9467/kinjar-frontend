@@ -44,11 +44,32 @@ export default function UploadComponent({
     const resolvedFamilyId = ensureFamilyId();
     if (resolvedFamilyId === null) return;
 
-    // Validate file type
-    const validTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'video/mp4', 'video/webm', 'video/mov'];
-    if (!validTypes.includes(file.type)) {
-      onUploadError?.('Please select a valid image or video file (JPEG, PNG, GIF, WebP, MP4, WebM, MOV)');
-      return;
+    // Validate file type - be more inclusive for mobile devices
+    const validImageTypes = [
+      'image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp', 
+      'image/heic', 'image/heif', 'image/bmp', 'image/tiff'
+    ];
+    const validVideoTypes = [
+      'video/mp4', 'video/webm', 'video/mov', 'video/quicktime', 
+      'video/avi', 'video/m4v', 'video/3gp'
+    ];
+    
+    const isValidImage = validImageTypes.includes(file.type.toLowerCase());
+    const isValidVideo = validVideoTypes.includes(file.type.toLowerCase());
+    
+    if (!isValidImage && !isValidVideo) {
+      // Try to detect by file extension as fallback for iOS devices
+      const fileName = file.name.toLowerCase();
+      const imageExtensions = ['.jpg', '.jpeg', '.png', '.gif', '.webp', '.heic', '.heif', '.bmp', '.tiff'];
+      const videoExtensions = ['.mp4', '.mov', '.webm', '.avi', '.m4v', '.3gp'];
+      
+      const hasImageExt = imageExtensions.some(ext => fileName.endsWith(ext));
+      const hasVideoExt = videoExtensions.some(ext => fileName.endsWith(ext));
+      
+      if (!hasImageExt && !hasVideoExt) {
+        onUploadError?.('Please select a valid image or video file. Supported formats: JPEG, PNG, GIF, WebP, HEIC, MP4, MOV, and more.');
+        return;
+      }
     }
 
     // Validate file size (150MB limit)
@@ -148,7 +169,7 @@ export default function UploadComponent({
         <input
           ref={fileInputRef}
           type="file"
-          accept="image/*,video/*"
+          accept="image/*,video/*,.heic,.heif"
           onChange={(e) => handleFileSelect(e.target.files)}
           className="hidden"
         />

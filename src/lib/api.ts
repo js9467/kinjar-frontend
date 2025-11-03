@@ -359,9 +359,9 @@ class KinjarAPI {
       authorAvatarColor: backendPost.author_avatar || '#3B82F6', // Default color
       createdAt: backendPost.published_at || backendPost.created_at,
       content: backendPost.content,
-      media: backendPost.media_filename ? {
+      media: (backendPost.media_filename || backendPost.media_url || backendPost.media_external_url) ? {
         type: backendPost.media_content_type?.startsWith('image/') ? 'image' : 'video',
-        url: `/api/media/${backendPost.media_id}`, // Construct media URL
+        url: backendPost.media_url || backendPost.media_external_url || `/api/media/${backendPost.media_id}`,
         alt: backendPost.title
       } : undefined,
       visibility: backendPost.is_public ? 'public' : 'family',
