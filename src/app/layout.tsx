@@ -1,10 +1,7 @@
 import type { Metadata } from 'next';
-import { Inter } from 'next/font/google';
 import './globals.css';
 import { AppStateProvider } from '../lib/app-state';
 import { AuthProvider } from '../lib/auth';
-
-const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
   title: 'Kinjar - Family Social Platform',
@@ -31,7 +28,7 @@ export default function RootLayout({
         <link rel="apple-touch-icon" href="/icon-192x192.png" />
         <link rel="icon" href="/favicon.ico" />
       </head>
-      <body className={inter.className}>
+      <body className="min-h-screen bg-white font-sans text-gray-900 antialiased">
         <AppStateProvider>
           <AuthProvider>{children}</AuthProvider>
         </AppStateProvider>
