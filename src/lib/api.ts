@@ -392,6 +392,12 @@ class KinjarAPI {
     });
   }
 
+  async deletePost(postId: string): Promise<void> {
+    await this.request(`/api/posts/${postId}`, {
+      method: 'DELETE',
+    });
+  }
+
   // Root Admin Functions
   async getAllFamilies(): Promise<FamilyProfile[]> {
     return this.request('/admin/families');
