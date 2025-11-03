@@ -118,10 +118,9 @@ class KinjarAPI {
   private async request(endpoint: string, options: RequestInit = {}) {
     const url = `${this.baseURL}${endpoint}`;
     
-    // Debug logging for development
-    if (process.env.NODE_ENV !== 'production') {
-      console.log(`[API Request] ${options.method || 'GET'} ${url}`);
-    }
+    // Debug logging for development and production to troubleshoot
+    console.log(`[API Request] ${options.method || 'GET'} ${url}`);
+    console.log(`[API Request] baseURL: ${this.baseURL}, endpoint: ${endpoint}`);
     
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
@@ -138,9 +137,7 @@ class KinjarAPI {
       headers['x-tenant-slug'] = subdomainInfo.familySlug;
       
       // Debug logging
-      if (process.env.NODE_ENV !== 'production') {
-        console.log(`[API Request] Setting x-tenant-slug: ${subdomainInfo.familySlug}`);
-      }
+      console.log(`[API Request] Setting x-tenant-slug: ${subdomainInfo.familySlug}`);
     }
 
     const response = await fetch(url, {
