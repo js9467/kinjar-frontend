@@ -108,7 +108,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const canManageFamily = (familyId?: string) => {
-    if (!user) return false;
+    if (!user || !user.memberships) return false;
     if (isRootAdminUser(user)) return true;
 
     if (familyId) {
@@ -122,7 +122,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const hasRole = (role: FamilyRole, familyId?: string) => {
-    if (!user) return false;
+    if (!user || !user.memberships) return false;
 
     if (isRootAdminUser(user)) {
       return true;
