@@ -1,8 +1,14 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
-import { useAuth, RequireRole } from '@/lib/auth';
-import { api } from '@/lib/api';
+import { useEffect, useMemo, useState } from 'react';
+
+interface SettingDefinition {
+  key: string;
+  name: string;
+  description: string;
+  type: 'boolean' | 'number' | 'text' | 'email';
+  defaultValue: any;
+}
 
 interface GlobalSetting {
   key: string;
@@ -11,265 +17,239 @@ interface GlobalSetting {
   description?: string;
 }
 
-const SETTING_DEFINITIONS = [
+const DEFINITIONS: SettingDefinition[] = [
   {
     key: 'registration_enabled',
-    name: 'User Registration',
-    description: 'Allow new users to register for accounts',
+    name: 'User registration',
+    description: 'Allow new users to register for Kinjar accounts.',
     type: 'boolean',
     defaultValue: true,
   },
   {
-    key: 'family_creation_enabled', 
-    name: 'Family Creation',
-    description: 'Allow users to create new families',
+    key: 'family_creation_enabled',
+    name: 'Family creation',
+    description: 'Permit family admins to spin up new private spaces.',
     type: 'boolean',
     defaultValue: true,
   },
   {
     key: 'max_families_per_user',
-    name: 'Max Families Per User',
-    description: 'Maximum number of families a user can own/join',
+    name: 'Families per user',
+    description: 'Limit how many families a single account can administer.',
     type: 'number',
     defaultValue: 5,
   },
   {
     key: 'max_upload_size_mb',
-    name: 'Max Upload Size (MB)',
-    description: 'Maximum file size for media uploads',
+    name: 'Max upload size (MB)',
+    description: 'Cap media uploads to keep storage predictable.',
     type: 'number',
     defaultValue: 150,
   },
   {
     key: 'maintenance_mode',
-    name: 'Maintenance Mode',
-    description: 'Put the application in maintenance mode',
+    name: 'Maintenance mode',
+    description: 'Take Kinjar offline while you perform updates.',
     type: 'boolean',
     defaultValue: false,
   },
   {
     key: 'welcome_message',
-    name: 'Welcome Message',
-    description: 'Message shown to new users',
+    name: 'Welcome message',
+    description: 'Message displayed to brand-new family members.',
     type: 'text',
-    defaultValue: 'Welcome to Kinjar!',
+    defaultValue: 'Welcome to Kinjar! Share a moment to get started.',
   },
   {
     key: 'support_email',
-    name: 'Support Email',
-    description: 'Contact email for user support',
+    name: 'Support email',
+    description: 'Where families can reach the Kinjar team.',
     type: 'email',
     defaultValue: 'support@kinjar.com',
   },
 ];
 
-export default function AdminSettings() {
+export default function AdminSettingsPage() {
   const [settings, setSettings] = useState<Record<string, GlobalSetting>>({});
-  const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState<string | null>(null);
 
   useEffect(() => {
-    loadSettings();
+    const initial: Record<string, GlobalSetting> = {};
+    DEFINITIONS.forEach((definition) => {
+      initial[definition.key] = {
+        key: definition.key,
+        value: definition.defaultValue,
+        updated_at: new Date().toISOString(),
+        description: definition.description,
+      };
+    });
+    setSettings(initial);
   }, []);
 
-  const loadSettings = async () => {
-    try {
-      // Mock implementation - replace with actual API call
-      const mockSettings: Record<string, GlobalSetting> = {};
-      SETTING_DEFINITIONS.forEach(def => {
-        mockSettings[def.key] = {
-          key: def.key,
-          value: def.defaultValue,
-          updated_at: new Date().toISOString(),
-          description: def.description,
-        };
-      });
-      setSettings(mockSettings);
-    } catch (error) {
-      console.error('Failed to load settings:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
+  const groupedSettings = useMemo(() => {
+    return {
+      platform: DEFINITIONS.slice(0, 4),
+      controls: DEFINITIONS.slice(4),
+    };
+  }, []);
 
-  const updateSetting = async (key: string, value: any) => {
-    setSaving(key);
-    try {
-      // Mock implementation - replace with actual API call
-      console.log(`Updating setting ${key} to:`, value);
-      
-      setSettings(prev => ({
-        ...prev,
-        [key]: {
-          ...prev[key],
+  const handleUpdate = (definition: SettingDefinition, value: any) => {
+    setSaving(definition.key);
+    setTimeout(() => {
+      setSettings((current) => ({
+        ...current,
+        [definition.key]: {
+          key: definition.key,
           value,
           updated_at: new Date().toISOString(),
-        }
+          description: definition.description,
+        },
       }));
-    } catch (error) {
-      console.error(`Failed to update setting ${key}:`, error);
-    } finally {
       setSaving(null);
-    }
+    }, 300);
   };
 
-  const renderSettingInput = (definition: typeof SETTING_DEFINITIONS[0]) => {
-    const setting = settings[definition.key];
-    const value = setting?.value ?? definition.defaultValue;
-    const isLoading = saving === definition.key;
+  return (
+    <div className="space-y-8 pb-16">
+      <header className="rounded-3xl border border-slate-200 bg-white px-8 py-10 shadow-sm">
+        <h1 className="text-3xl font-semibold text-slate-900">Platform settings</h1>
+        <p className="mt-3 max-w-2xl text-sm leading-relaxed text-slate-600">
+          Fine-tune global preferences for the entire Kinjar network. Changes apply instantly for every family and admin.
+        </p>
+      </header>
 
+      <section className="grid gap-6 lg:grid-cols-2">
+        <SettingsGroup
+          title="Platform defaults"
+          subtitle="Manage registration flows, uploads, and account limits."
+          definitions={groupedSettings.platform}
+          settings={settings}
+          saving={saving}
+          onUpdate={handleUpdate}
+        />
+        <SettingsGroup
+          title="Communication & controls"
+          subtitle="Edit support details and temporary maintenance notices."
+          definitions={groupedSettings.controls}
+          settings={settings}
+          saving={saving}
+          onUpdate={handleUpdate}
+        />
+      </section>
+    </div>
+  );
+}
+
+function SettingsGroup({
+  title,
+  subtitle,
+  definitions,
+  settings,
+  saving,
+  onUpdate,
+}: {
+  title: string;
+  subtitle: string;
+  definitions: SettingDefinition[];
+  settings: Record<string, GlobalSetting>;
+  saving: string | null;
+  onUpdate: (definition: SettingDefinition, value: any) => void;
+}) {
+  return (
+    <div className="space-y-4 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+      <div>
+        <h2 className="text-lg font-semibold text-slate-900">{title}</h2>
+        <p className="text-sm text-slate-500">{subtitle}</p>
+      </div>
+      <div className="space-y-4">
+        {definitions.map((definition) => (
+          <SettingRow
+            key={definition.key}
+            definition={definition}
+            setting={settings[definition.key]}
+            isSaving={saving === definition.key}
+            onUpdate={onUpdate}
+          />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function SettingRow({
+  definition,
+  setting,
+  isSaving,
+  onUpdate,
+}: {
+  definition: SettingDefinition;
+  setting?: GlobalSetting;
+  isSaving: boolean;
+  onUpdate: (definition: SettingDefinition, value: any) => void;
+}) {
+  const currentValue = setting?.value ?? definition.defaultValue;
+
+  const renderInput = () => {
     switch (definition.type) {
       case 'boolean':
         return (
-          <div className="flex items-center">
+          <label className="inline-flex items-center gap-3 text-sm font-semibold text-slate-600">
             <input
               type="checkbox"
-              checked={value}
-              onChange={(e) => updateSetting(definition.key, e.target.checked)}
-              disabled={isLoading}
-              className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+              checked={currentValue}
+              onChange={(event) => onUpdate(definition, event.target.checked)}
+              disabled={isSaving}
+              className="h-5 w-5 rounded border-slate-300 text-indigo-600 focus:ring-indigo-200"
             />
-            {isLoading && <span className="ml-2 text-sm text-gray-500">Saving...</span>}
-          </div>
+            {isSaving ? <span className="text-xs text-slate-400">Saving…</span> : null}
+          </label>
         );
-      
       case 'number':
         return (
-          <div className="flex items-center">
-            <input
-              type="number"
-              value={value}
-              onChange={(e) => updateSetting(definition.key, parseInt(e.target.value))}
-              disabled={isLoading}
-              className="block w-32 rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
-            />
-            {isLoading && <span className="ml-2 text-sm text-gray-500">Saving...</span>}
-          </div>
+          <input
+            type="number"
+            value={currentValue}
+            onChange={(event) => onUpdate(definition, Number(event.target.value))}
+            disabled={isSaving}
+            className="w-32 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-2 text-sm focus:border-indigo-300 focus:outline-none focus:ring-2 focus:ring-indigo-200"
+          />
         );
-      
       case 'email':
         return (
-          <div className="flex items-center">
-            <input
-              type="email"
-              value={value}
-              onChange={(e) => updateSetting(definition.key, e.target.value)}
-              disabled={isLoading}
-              className="block w-64 rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
-            />
-            {isLoading && <span className="ml-2 text-sm text-gray-500">Saving...</span>}
-          </div>
+          <input
+            type="email"
+            value={currentValue}
+            onChange={(event) => onUpdate(definition, event.target.value)}
+            disabled={isSaving}
+            className="w-64 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-2 text-sm focus:border-indigo-300 focus:outline-none focus:ring-2 focus:ring-indigo-200"
+          />
         );
-      
       case 'text':
       default:
         return (
-          <div className="flex items-center">
-            <input
-              type="text"
-              value={value}
-              onChange={(e) => updateSetting(definition.key, e.target.value)}
-              disabled={isLoading}
-              className="block w-64 rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
-            />
-            {isLoading && <span className="ml-2 text-sm text-gray-500">Saving...</span>}
-          </div>
+          <textarea
+            value={currentValue}
+            onChange={(event) => onUpdate(definition, event.target.value)}
+            disabled={isSaving}
+            rows={3}
+            className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm focus:border-indigo-300 focus:outline-none focus:ring-2 focus:ring-indigo-200"
+          />
         );
     }
   };
 
   return (
-    <RequireRole role="ROOT">
-      <div className="min-h-screen bg-gray-50">
-        <div className="bg-white shadow">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="py-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h1 className="text-3xl font-bold text-gray-900">Global Settings</h1>
-                  <p className="mt-2 text-gray-600">
-                    Configure application-wide settings and preferences
-                  </p>
-                </div>
-                <a 
-                  href="/admin"
-                  className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
-                >
-                  ← Back to Dashboard
-                </a>
-              </div>
-            </div>
-          </div>
+    <div className="rounded-2xl border border-slate-100 bg-slate-50 px-4 py-3">
+      <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+        <div>
+          <p className="text-sm font-semibold text-slate-900">{definition.name}</p>
+          <p className="text-xs text-slate-500">{definition.description}</p>
         </div>
-
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <div className="bg-white shadow rounded-lg">
-            <div className="px-6 py-4 border-b border-gray-200">
-              <h2 className="text-lg font-medium text-gray-900">Application Settings</h2>
-            </div>
-            
-            {loading ? (
-              <div className="p-6">
-                <div className="animate-pulse space-y-4">
-                  {[1, 2, 3, 4].map(i => (
-                    <div key={i} className="h-16 bg-gray-200 rounded"></div>
-                  ))}
-                </div>
-              </div>
-            ) : (
-              <div className="divide-y divide-gray-200">
-                {SETTING_DEFINITIONS.map(definition => (
-                  <div key={definition.key} className="p-6 flex items-center justify-between">
-                    <div className="flex-1">
-                      <h3 className="text-sm font-medium text-gray-900">
-                        {definition.name}
-                      </h3>
-                      <p className="mt-1 text-sm text-gray-500">
-                        {definition.description}
-                      </p>
-                      {settings[definition.key]?.updated_at && (
-                        <p className="mt-1 text-xs text-gray-400">
-                          Last updated: {new Date(settings[definition.key].updated_at).toLocaleString()}
-                        </p>
-                      )}
-                    </div>
-                    <div className="ml-6">
-                      {renderSettingInput(definition)}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-
-          {/* System Information */}
-          <div className="mt-8 bg-white shadow rounded-lg">
-            <div className="px-6 py-4 border-b border-gray-200">
-              <h2 className="text-lg font-medium text-gray-900">System Information</h2>
-            </div>
-            <div className="p-6">
-              <dl className="grid grid-cols-1 gap-x-4 gap-y-6 sm:grid-cols-2">
-                <div>
-                  <dt className="text-sm font-medium text-gray-500">API Version</dt>
-                  <dd className="mt-1 text-sm text-gray-900">1.0.0</dd>
-                </div>
-                <div>
-                  <dt className="text-sm font-medium text-gray-500">Database Status</dt>
-                  <dd className="mt-1 text-sm text-green-600">Connected</dd>
-                </div>
-                <div>
-                  <dt className="text-sm font-medium text-gray-500">Storage Status</dt>
-                  <dd className="mt-1 text-sm text-green-600">Connected</dd>
-                </div>
-                <div>
-                  <dt className="text-sm font-medium text-gray-500">Last Backup</dt>
-                  <dd className="mt-1 text-sm text-gray-900">Not configured</dd>
-                </div>
-              </dl>
-            </div>
-          </div>
-        </div>
+        {renderInput()}
       </div>
-    </RequireRole>
+      <p className="mt-2 text-xs text-slate-400">
+        Updated {setting ? new Date(setting.updated_at).toLocaleString() : 'just now'}
+      </p>
+    </div>
   );
 }

@@ -1,157 +1,224 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
-import { useAuth, RequireRole } from '@/lib/auth';
-import { api } from '@/lib/api';
+import Link from 'next/link';
+import { useMemo } from 'react';
 
-interface AdminStats {
-  totalUsers: number;
-  totalFamilies: number;
-  pendingSignups: number;
-  totalPosts: number;
-  activeUsers: number;
-}
+import { useAppState } from '@/lib/app-state';
+import { useAuth } from '@/lib/auth';
 
 export default function AdminDashboard() {
+  const { families, pendingFamilySignups, connectionRequests, globalStats } = useAppState();
   const { user } = useAuth();
-  const [stats, setStats] = useState<AdminStats | null>(null);
-  const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    const loadStats = async () => {
-      try {
-        // Mock data for now - will implement real API calls
-        setStats({
-          totalUsers: 0,
-          totalFamilies: 0,
-          pendingSignups: 0,
-          totalPosts: 0,
-          activeUsers: 0,
-        });
-      } catch (error) {
-        console.error('Failed to load admin stats:', error);
-      } finally {
-        setLoading(false);
+  const { pendingPosts, flaggedPosts, publicFamilies } = useMemo(() => {
+    let pending = 0;
+    let flagged = 0;
+    let publicCount = 0;
+
+    families.forEach((family) => {
+      if (family.isPublic) {
+        publicCount += 1;
       }
-    };
+      family.posts.forEach((post) => {
+        if (post.status === 'pending') {
+          pending += 1;
+        }
+        if (post.status === 'flagged') {
+          flagged += 1;
+        }
+      });
+    });
 
-    loadStats();
-  }, []);
+    return { pendingPosts: pending, flaggedPosts: flagged, publicFamilies: publicCount };
+  }, [families]);
+
+  const pendingConnections = connectionRequests.filter((request) => request.status === 'pending');
+  const awaitingSignups = pendingFamilySignups.filter((signup) => signup.status === 'pending');
 
   return (
-    <RequireRole role="ROOT" fallback={
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <h1 className="text-2xl font-bold text-red-600 mb-2">Access Denied</h1>
-          <p className="text-gray-600">You need root admin privileges to access this page.</p>
-        </div>
-      </div>
-    }>
-      <div className="min-h-screen bg-gray-50">
-        <div className="bg-white shadow">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="py-6">
-              <h1 className="text-3xl font-bold text-gray-900">Admin Dashboard</h1>
-              <p className="mt-2 text-gray-600">
-                Welcome, {user?.email} - Root Administrator
-              </p>
-            </div>
+    <div className="space-y-10 pb-16">
+      <section className="rounded-3xl border border-slate-200 bg-white px-8 py-10 shadow-sm">
+        <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
+          <div className="space-y-3">
+            <p className="text-xs font-semibold uppercase tracking-wide text-indigo-600">Welcome back</p>
+            <h1 className="text-3xl font-semibold text-slate-900">
+              {user?.name ?? user?.email}, you&apos;re overseeing {globalStats.totalFamilies} active families
+            </h1>
+            <p className="max-w-2xl text-sm leading-relaxed text-slate-600">
+              Track new signups, monitor moderation queues, and keep every family space healthy. All admin tooling is now
+              consolidated in this control center.
+            </p>
+          </div>
+          <div className="flex flex-col gap-3 text-sm">
+            <Link
+              href="/family-admin"
+              className="inline-flex items-center justify-center rounded-full border border-slate-200 px-5 py-2 font-semibold text-slate-700 transition hover:border-indigo-300 hover:text-indigo-600"
+            >
+              Jump to family admin workspace
+            </Link>
+            <Link
+              href="/families"
+              className="inline-flex items-center justify-center rounded-full bg-slate-900 px-5 py-2 font-semibold text-white shadow-sm transition hover:bg-slate-700"
+            >
+              View public directory
+            </Link>
           </div>
         </div>
+      </section>
 
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          {/* Quick Stats */}
-          <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-6 mb-8">
-            <div className="bg-white p-6 rounded-lg shadow">
-              <h3 className="text-sm font-medium text-gray-500">Total Users</h3>
-              <p className="text-3xl font-bold text-blue-600">{loading ? '...' : stats?.totalUsers}</p>
+      <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+        <StatCard label="Total members" value={globalStats.totalMembers.toLocaleString()} trend="Across all approved families" />
+        <StatCard label="Stories awaiting moderation" value={pendingPosts.toString()} highlight={pendingPosts > 0} />
+        <StatCard label="Public family landing pages" value={publicFamilies.toString()} />
+        <StatCard
+          label="Storage used"
+          value={`${Math.round(globalStats.storageUsedMb).toLocaleString()} MB`}
+          trend="Monitored across all uploads"
+        />
+      </section>
+
+      <div className="grid gap-8 lg:grid-cols-5">
+        <section className="lg:col-span-3 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="text-lg font-semibold text-slate-900">Operational priorities</h2>
+              <p className="text-sm text-slate-500">Follow up on the most pressing tasks for Kinjar.</p>
             </div>
-            <div className="bg-white p-6 rounded-lg shadow">
-              <h3 className="text-sm font-medium text-gray-500">Families</h3>
-              <p className="text-3xl font-bold text-green-600">{loading ? '...' : stats?.totalFamilies}</p>
-            </div>
-            <div className="bg-white p-6 rounded-lg shadow">
-              <h3 className="text-sm font-medium text-gray-500">Pending Signups</h3>
-              <p className="text-3xl font-bold text-orange-600">{loading ? '...' : stats?.pendingSignups}</p>
-            </div>
-            <div className="bg-white p-6 rounded-lg shadow">
-              <h3 className="text-sm font-medium text-gray-500">Total Posts</h3>
-              <p className="text-3xl font-bold text-purple-600">{loading ? '...' : stats?.totalPosts}</p>
-            </div>
-            <div className="bg-white p-6 rounded-lg shadow">
-              <h3 className="text-sm font-medium text-gray-500">Active Users</h3>
-              <p className="text-3xl font-bold text-indigo-600">{loading ? '...' : stats?.activeUsers}</p>
-            </div>
+            <Link href="/admin/families" className="text-sm font-semibold text-indigo-600 hover:text-indigo-700">
+              Manage families →
+            </Link>
           </div>
-
-          {/* Admin Navigation */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            <AdminCard
-              title="User Management"
-              description="View and manage all users, roles, and permissions"
-              href="/admin/users"
-              icon="👥"
-            />
-            <AdminCard
-              title="Family Management"
-              description="Manage families, suspend accounts, view statistics"
-              href="/admin/families"
-              icon="🏠"
-            />
-            <AdminCard
-              title="Signup Requests"
-              description="Review and approve pending family registration requests"
+          <ul className="mt-6 space-y-4 text-sm">
+            <PriorityItem
+              title={`${awaitingSignups.length} pending family signup${awaitingSignups.length === 1 ? '' : 's'}`}
+              description="Review requests, onboard new clans, and assign their admins."
               href="/admin/signups"
-              icon="📝"
             />
-            <AdminCard
-              title="Global Settings"
-              description="Configure application-wide settings and preferences"
-              href="/admin/settings"
-              icon="⚙️"
+            <PriorityItem
+              title={`${pendingPosts} posts waiting for approval`}
+              description="Publish or decline items in family moderation queues."
+              href="/family-admin"
             />
-            <AdminCard
-              title="Audit Log"
-              description="View system events and administrative actions"
-              href="/admin/audit"
-              icon="📋"
+            <PriorityItem
+              title={`${pendingConnections.length} connection request${pendingConnections.length === 1 ? '' : 's'}`}
+              description="Approve cross-family sharing so content flows securely."
+              href="/family-admin"
             />
-            <AdminCard
-              title="System Status"
-              description="Monitor system health, storage, and performance"
-              href="/admin/status"
-              icon="📊"
+            <PriorityItem
+              title={`${flaggedPosts} flagged story${flaggedPosts === 1 ? '' : 'ies'}`}
+              description="Investigate reported items and take action if necessary."
+              href="/family-admin"
             />
+          </ul>
+        </section>
+        <section className="lg:col-span-2 space-y-4">
+          <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+            <h2 className="text-lg font-semibold text-slate-900">Live platform health</h2>
+            <dl className="mt-4 space-y-3 text-sm text-slate-600">
+              <div className="flex items-center justify-between rounded-2xl border border-slate-100 bg-slate-50 px-4 py-3">
+                <dt>Families sharing publicly</dt>
+                <dd className="font-semibold text-slate-900">{publicFamilies}</dd>
+              </div>
+              <div className="flex items-center justify-between rounded-2xl border border-slate-100 bg-slate-50 px-4 py-3">
+                <dt>Connections between clans</dt>
+                <dd className="font-semibold text-slate-900">{connectionRequests.length}</dd>
+              </div>
+              <div className="flex items-center justify-between rounded-2xl border border-slate-100 bg-slate-50 px-4 py-3">
+                <dt>Families with pending invites</dt>
+                <dd className="font-semibold text-slate-900">
+                  {
+                    families.filter((family) => family.pendingMembers.length > 0).length
+                  }
+                </dd>
+              </div>
+              <div className="flex items-center justify-between rounded-2xl border border-slate-100 bg-slate-50 px-4 py-3">
+                <dt>Stories highlighted to the public</dt>
+                <dd className="font-semibold text-slate-900">
+                  {
+                    families.reduce(
+                      (count, family) =>
+                        count +
+                        family.posts.filter(
+                          (post) => post.status === 'approved' && post.visibility === 'public'
+                        ).length,
+                      0
+                    )
+                  }
+                </dd>
+              </div>
+            </dl>
           </div>
-        </div>
+          <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+            <h2 className="text-lg font-semibold text-slate-900">Quick links</h2>
+            <div className="mt-4 grid gap-3 text-sm">
+              <QuickLink href="/admin/signups" label="Approve signup requests" />
+              <QuickLink href="/admin/users" label="Review global roles" />
+              <QuickLink href="/admin/settings" label="Update platform settings" />
+              <QuickLink href="/family-admin" label="Moderate family content" />
+            </div>
+          </div>
+        </section>
       </div>
-    </RequireRole>
+    </div>
   );
 }
 
-function AdminCard({ 
-  title, 
-  description, 
-  href, 
-  icon 
-}: { 
+function StatCard({
+  label,
+  value,
+  trend,
+  highlight,
+}: {
+  label: string;
+  value: string;
+  trend?: string;
+  highlight?: boolean;
+}) {
+  return (
+    <div
+      className={`rounded-3xl border border-slate-200 bg-white p-6 shadow-sm ${
+        highlight ? 'ring-2 ring-amber-400' : ''
+      }`}
+    >
+      <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">{label}</p>
+      <p className="mt-3 text-3xl font-semibold text-slate-900">{value}</p>
+      {trend ? <p className="mt-2 text-xs text-slate-500">{trend}</p> : null}
+    </div>
+  );
+}
+
+function PriorityItem({
+  title,
+  description,
+  href,
+}: {
   title: string;
   description: string;
   href: string;
-  icon: string;
 }) {
   return (
-    <a 
-      href={href}
-      className="block bg-white p-6 rounded-lg shadow hover:shadow-lg transition-shadow duration-200"
-    >
-      <div className="flex items-start">
-        <span className="text-3xl mr-4">{icon}</span>
+    <li className="rounded-3xl border border-slate-200 bg-slate-50 px-5 py-4">
+      <div className="flex items-start justify-between gap-4">
         <div>
-          <h3 className="text-lg font-semibold text-gray-900 mb-2">{title}</h3>
-          <p className="text-gray-600 text-sm">{description}</p>
+          <p className="text-sm font-semibold text-slate-900">{title}</p>
+          <p className="mt-1 text-xs text-slate-600">{description}</p>
         </div>
+        <Link href={href} className="text-xs font-semibold text-indigo-600 hover:text-indigo-700">
+          Manage
+        </Link>
       </div>
-    </a>
+    </li>
+  );
+}
+
+function QuickLink({ href, label }: { href: string; label: string }) {
+  return (
+    <Link
+      href={href}
+      className="flex items-center justify-between rounded-2xl border border-slate-200 px-4 py-3 text-sm font-semibold text-slate-700 transition hover:border-indigo-300 hover:text-indigo-600"
+    >
+      <span>{label}</span>
+      <span aria-hidden>→</span>
+    </Link>
   );
 }

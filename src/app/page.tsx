@@ -1,294 +1,231 @@
 'use client';
 
-import { useEffect, useState, useCallback, useMemo } from 'react';
-import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { useEffect, useMemo, useState } from 'react';
 
+import { useAppState } from '@/lib/app-state';
 import { useAuth } from '@/lib/auth';
-import { api } from '@/lib/api';
-import { FamilyProfile } from '@/lib/types';
+import { PublicFamilyLanding } from '@/components/family/PublicFamilyLanding';
 
 export default function HomePage() {
-  const { user, loading, isRootAdmin, subdomainInfo } = useAuth();
-  const router = useRouter();
-  const [familyData, setFamilyData] = useState<FamilyProfile | null>(null);
-  const [familyLoading, setFamilyLoading] = useState(false);
-  const [error, setError] = useState('');
+  const { families, globalStats } = useAppState();
+  const { user, loading, isRootAdmin, isFamilyAdmin, subdomainInfo } = useAuth();
   const [redirected, setRedirected] = useState(false);
-  const [hasRedirectedToFamily, setHasRedirectedToFamily] = useState(false);
 
-  const isMemberOfCurrentFamily = useMemo(() => {
-    if (!user) {
-      return false;
-    }
-
-    if (user.globalRole === 'ROOT_ADMIN') {
-      return true;
-    }
-
-    return user.memberships.some((membership) => {
-      if (subdomainInfo.familySlug && membership.familySlug === subdomainInfo.familySlug) {
-        return true;
-      }
-
-      if (familyData) {
-        return (
-          membership.familyId === familyData.id ||
-          membership.familySlug === familyData.slug ||
-          membership.familyName === familyData.name
-        );
-      }
-
-      return false;
-    });
-  }, [user, subdomainInfo.familySlug, familyData]);
-
-  const loadFamilyData = useCallback(async () => {
-    if (!subdomainInfo.familySlug) return;
-
-    setFamilyLoading(true);
-    try {
-      const family = await api.getFamilyBySlug(subdomainInfo.familySlug);
-      setFamilyData(family);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load family');
-    } finally {
-      setFamilyLoading(false);
-    }
-  }, [subdomainInfo.familySlug]);
+  const spotlightFamilies = useMemo(() => families.slice(0, 3), [families]);
 
   useEffect(() => {
-    if (!subdomainInfo.isSubdomain) {
+    if (loading || redirected) {
       return;
     }
 
-    if (!user) {
-      return;
-    }
-
-    if (hasRedirectedToFamily) {
-      return;
-    }
-
-    if (isMemberOfCurrentFamily) {
-      setHasRedirectedToFamily(true);
-      router.replace('/family');
-    }
-  }, [subdomainInfo.isSubdomain, user, isMemberOfCurrentFamily, hasRedirectedToFamily, router]);
-
-  useEffect(() => {
-    if (loading || redirected) return; // Don't redirect if already redirected
-
-    // Handle different routing scenarios
     if (subdomainInfo.isSubdomain) {
-      // On a family subdomain - load family data
-      loadFamilyData();
-    } else if (user && isRootAdmin && !redirected) {
-      // Root admin on main domain - redirect to admin
-      setRedirected(true);
-      router.replace('/admin');
-    } else if (user && !redirected) {
-      // Regular user on main domain - redirect to family selection
-      setRedirected(true);
-      router.replace('/families');
+      if (user) {
+        setRedirected(true);
+        window.location.assign('/family');
+      }
+      return;
     }
-    // If not authenticated, stay on home page (landing page)
-  }, [
-    user,
-    loading,
-    isRootAdmin,
-    subdomainInfo.isSubdomain,
-    loadFamilyData,
-    redirected,
-    router,
-  ]);
 
-  // Loading state
-  if (loading || familyLoading) {
+    if (user) {
+      if (isRootAdmin) {
+        setRedirected(true);
+        window.location.assign('/admin');
+        return;
+      }
+
+      if (isFamilyAdmin) {
+        setRedirected(true);
+        window.location.assign('/family-admin');
+        return;
+      }
+
+      if (user.memberships.length > 0) {
+        setRedirected(true);
+        window.location.assign('/family');
+        return;
+      }
+    }
+  }, [loading, redirected, subdomainInfo.isSubdomain, user, isRootAdmin, isFamilyAdmin]);
+
+  if (subdomainInfo.isSubdomain && subdomainInfo.familySlug) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center">
-        <div className="text-center">
-          <div className="loading-spinner mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading...</p>
+      <div className="bg-slate-50 py-12">
+        <div className="mx-auto max-w-5xl px-4 lg:px-8">
+          <PublicFamilyLanding slug={subdomainInfo.familySlug} />
+          <div className="mt-10 rounded-3xl border border-slate-200 bg-white p-6 text-sm text-slate-600 shadow-sm">
+            {user ? (
+              <p>
+                We&apos;re taking you to the family dashboard. If the page doesn&apos;t redirect automatically,{' '}
+                <Link href="/family" className="font-semibold text-indigo-600 hover:text-indigo-700">
+                  open it here
+                </Link>
+                .
+              </p>
+            ) : (
+              <p>
+                Want to contribute more stories?{' '}
+                <Link href="/auth/login" className="font-semibold text-indigo-600 hover:text-indigo-700">
+                  Sign in
+                </Link>{' '}
+                or ask the family admin for an invite.
+              </p>
+            )}
+          </div>
         </div>
       </div>
     );
   }
 
-  // Family subdomain - show family landing page
-  if (subdomainInfo.isSubdomain) {
-    if (error) {
-      return (
-        <div className="min-h-screen bg-gradient-to-br from-red-50 to-pink-100 flex items-center justify-center p-4">
-          <div className="max-w-md w-full bg-white rounded-lg shadow-lg p-8 text-center">
-            <h1 className="text-2xl font-bold text-gray-900 mb-4">Family Not Found</h1>
-            <p className="text-gray-600 mb-6">{error}</p>
-            <Link href="https://www.kinjar.com" className="text-blue-600 hover:text-blue-700">
-              ← Back to Kinjar
+  return (
+    <div className="space-y-16 bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950 text-slate-100">
+      <section className="relative overflow-hidden">
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(99,102,241,0.25),_transparent_55%)]" aria-hidden />
+        <div className="mx-auto flex max-w-5xl flex-col gap-10 px-6 py-24 text-center">
+          <div className="space-y-4">
+            <span className="inline-flex items-center justify-center rounded-full border border-indigo-400/40 bg-indigo-400/10 px-4 py-1 text-xs font-semibold uppercase tracking-wide text-indigo-200">
+              Kinjar keeps every branch connected
+            </span>
+            <h1 className="text-4xl font-semibold leading-tight sm:text-5xl">
+              A private home for your family&apos;s stories, run by admins you trust.
+            </h1>
+            <p className="text-base leading-relaxed text-slate-300">
+              Approve new relatives in seconds, highlight the memories that deserve the spotlight, and decide exactly which
+              stories the public can see.
+            </p>
+          </div>
+          <div className="flex flex-col items-center justify-center gap-3 sm:flex-row">
+            <Link
+              href="/auth/login"
+              className="inline-flex items-center justify-center rounded-full bg-indigo-500 px-6 py-3 text-sm font-semibold text-white shadow-lg shadow-indigo-500/30 transition hover:bg-indigo-400"
+            >
+              Sign in to your family
+            </Link>
+            <Link
+              href="/families"
+              className="inline-flex items-center justify-center rounded-full border border-slate-700 px-6 py-3 text-sm font-semibold text-slate-200 transition hover:border-indigo-400 hover:text-indigo-200"
+            >
+              Explore public landings
             </Link>
           </div>
         </div>
-      );
-    }
+      </section>
 
-    if (!familyData) {
-      return null; // Still loading
-    }
-
-    if (user && isMemberOfCurrentFamily) {
-      return (
-        <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center">
-          <div className="text-center">
-            <div className="loading-spinner mx-auto mb-4"></div>
-            <p className="text-gray-600">Taking you to your family dashboard...</p>
-          </div>
+      <section className="mx-auto grid max-w-6xl gap-8 px-6 pb-16 lg:grid-cols-2">
+        <div className="space-y-6 rounded-3xl border border-slate-800/60 bg-slate-900/40 p-8 shadow-lg">
+          <h2 className="text-2xl font-semibold text-white">Root admins hold the keys</h2>
+          <p className="text-sm leading-relaxed text-slate-300">
+            Global admins manage every family space from a single control center. Approve signups, monitor content trends, and
+            keep Kinjar&apos;s culture healthy.
+          </p>
+          <ul className="space-y-3 text-sm text-slate-300">
+            <li className="flex items-start gap-3">
+              <span className="mt-1 h-2 w-2 rounded-full bg-indigo-400" aria-hidden />
+              <span>Approve or decline new family signup requests.</span>
+            </li>
+            <li className="flex items-start gap-3">
+              <span className="mt-1 h-2 w-2 rounded-full bg-indigo-400" aria-hidden />
+              <span>Review flagged stories and keep the network safe.</span>
+            </li>
+            <li className="flex items-start gap-3">
+              <span className="mt-1 h-2 w-2 rounded-full bg-indigo-400" aria-hidden />
+              <span>Adjust global settings, storage, and support messaging.</span>
+            </li>
+          </ul>
+          <Link
+            href="/admin"
+            className="inline-flex items-center justify-center rounded-full border border-indigo-400/60 px-5 py-2 text-xs font-semibold uppercase tracking-wide text-indigo-200 transition hover:border-indigo-300 hover:text-white"
+          >
+            Launch control center
+          </Link>
         </div>
-      );
-    }
-
-    // Show public family landing page
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
-        <div className="container mx-auto px-4 py-16">
-          <div className="max-w-4xl mx-auto text-center">
-            <h1 className="text-5xl font-bold text-gray-900 mb-6">
-              Welcome to {familyData.name}
-            </h1>
-            <p className="text-xl text-gray-600 mb-8">
-              {familyData.description || 'A family sharing their journey on Kinjar'}
-            </p>
-            
-            {!user ? (
-              <div className="space-x-4">
-                <Link 
-                  href="/auth/login"
-                  className="inline-block bg-blue-600 text-white px-8 py-3 rounded-lg font-medium hover:bg-blue-700"
-                >
-                  Sign In
-                </Link>
-                <Link 
-                  href="https://www.kinjar.com/auth/register"
-                  className="inline-block bg-gray-600 text-white px-8 py-3 rounded-lg font-medium hover:bg-gray-700"
-                >
-                  Create Your Family
-                </Link>
-              </div>
-            ) : (
-              <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-6 max-w-md mx-auto">
-                <p className="text-yellow-800 mb-4">
-                  You&apos;re not a member of this family. Contact a family admin to request access.
-                </p>
-                <Link 
-                  href="/families"
-                  className="text-blue-600 hover:text-blue-700 font-medium"
-                >
-                  View Your Families →
-                </Link>
-              </div>
-            )}
-          </div>
+        <div className="space-y-6 rounded-3xl border border-slate-800/60 bg-slate-900/40 p-8 shadow-lg">
+          <h2 className="text-2xl font-semibold text-white">Family admins shape their clan</h2>
+          <p className="text-sm leading-relaxed text-slate-300">
+            Each family subdomain has dedicated admins who invite members, approve posts, and decide what should become a
+            public highlight.
+          </p>
+          <ul className="space-y-3 text-sm text-slate-300">
+            <li className="flex items-start gap-3">
+              <span className="mt-1 h-2 w-2 rounded-full bg-emerald-400" aria-hidden />
+              <span>Welcome new relatives and assign roles in seconds.</span>
+            </li>
+            <li className="flex items-start gap-3">
+              <span className="mt-1 h-2 w-2 rounded-full bg-emerald-400" aria-hidden />
+              <span>Approve or flag stories directly from the moderation queue.</span>
+            </li>
+            <li className="flex items-start gap-3">
+              <span className="mt-1 h-2 w-2 rounded-full bg-emerald-400" aria-hidden />
+              <span>Choose which memories are shared with connected families or the public.</span>
+            </li>
+          </ul>
+          <Link
+            href="/family-admin"
+            className="inline-flex items-center justify-center rounded-full border border-emerald-400/60 px-5 py-2 text-xs font-semibold uppercase tracking-wide text-emerald-200 transition hover:border-emerald-300 hover:text-white"
+          >
+            Open family workspace
+          </Link>
         </div>
-      </div>
-    );
-  }
+      </section>
 
-  // Main domain - show marketing landing page
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-50 to-pink-100">
-      <div className="container mx-auto px-4 py-16">
-        <div className="max-w-6xl mx-auto">
-          
-          {/* Header */}
-          <header className="text-center mb-16">
-            <h1 className="text-6xl font-bold text-gray-900 mb-6">
-              Kinjar
-            </h1>
-            <p className="text-2xl text-gray-600 mb-8">
-              The family social platform that brings everyone together
+      <section className="bg-slate-900/70 py-16">
+        <div className="mx-auto max-w-6xl px-6">
+          <div className="flex flex-col gap-4 text-center">
+            <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">Trusted families already sharing</p>
+            <h2 className="text-3xl font-semibold text-white">Spotlight families</h2>
+            <p className="text-sm text-slate-400">
+              Each landing lets families control what the public sees. Root admins can preview any space instantly.
             </p>
-            
-            {!user ? (
-              <div className="space-x-4">
-                <Link 
-                  href="/auth/register"
-                  className="inline-block bg-purple-600 text-white px-8 py-3 rounded-lg font-medium hover:bg-purple-700 text-lg"
-                >
-                  Create Your Family Space
-                </Link>
-                <Link 
-                  href="/auth/login"
-                  className="inline-block border border-purple-600 text-purple-600 px-8 py-3 rounded-lg font-medium hover:bg-purple-50 text-lg"
-                >
-                  Sign In
-                </Link>
-              </div>
-            ) : (
-              <div className="space-x-4">
-                <Link 
-                  href="/families"
-                  className="inline-block bg-purple-600 text-white px-8 py-3 rounded-lg font-medium hover:bg-purple-700 text-lg"
-                >
-                  View Your Families
-                </Link>
-                {isRootAdmin && (
-                  <Link 
-                    href="/admin"
-                    className="inline-block bg-red-600 text-white px-8 py-3 rounded-lg font-medium hover:bg-red-700 text-lg"
-                  >
-                    Admin Dashboard
-                  </Link>
-                )}
-              </div>
-            )}
-          </header>
-
-          {/* Features */}
-          <div className="grid md:grid-cols-3 gap-8 mb-16">
-            <div className="text-center p-6 bg-white rounded-lg shadow-lg">
-              <div className="text-4xl mb-4">👨‍👩‍👧‍👦</div>
-              <h3 className="text-xl font-semibold mb-2">Family-First Design</h3>
-              <p className="text-gray-600">
-                Every family gets their own subdomain and private space to share memories safely.
-              </p>
-            </div>
-            
-            <div className="text-center p-6 bg-white rounded-lg shadow-lg">
-              <div className="text-4xl mb-4">🔒</div>
-              <h3 className="text-xl font-semibold mb-2">Privacy Controls</h3>
-              <p className="text-gray-600">
-                Control who sees what with family-only, connected families, or public visibility options.
-              </p>
-            </div>
-            
-            <div className="text-center p-6 bg-white rounded-lg shadow-lg">
-              <div className="text-4xl mb-4">🎯</div>
-              <h3 className="text-xl font-semibold mb-2">Age-Appropriate Roles</h3>
-              <p className="text-gray-600">
-                Different roles for different ages, from young children to adults, with appropriate permissions.
-              </p>
-            </div>
           </div>
-
-          {/* Call to Action */}
-          <div className="text-center bg-white rounded-lg shadow-lg p-12">
-            <h2 className="text-3xl font-bold text-gray-900 mb-6">
-              Ready to start your family&apos;s journey?
-            </h2>
-            <p className="text-lg text-gray-600 mb-8">
-              Create your family space in minutes and start sharing memories with those who matter most.
-            </p>
-            
-            {!user && (
-              <Link 
-                href="/auth/register"
-                className="inline-block bg-purple-600 text-white px-12 py-4 rounded-lg font-medium hover:bg-purple-700 text-xl"
+          <div className="mt-8 grid gap-6 md:grid-cols-3">
+            {spotlightFamilies.map((family) => (
+              <Link
+                key={family.id}
+                href={`/families/${family.slug}`}
+                className="group relative overflow-hidden rounded-3xl border border-slate-800/70 bg-slate-950/60 p-6 shadow-lg transition hover:border-indigo-500/60"
               >
-                Get Started Free
+                <div className="absolute inset-0 bg-gradient-to-br from-white/5 to-transparent opacity-0 transition group-hover:opacity-100" aria-hidden />
+                <div className="relative space-y-3">
+                  <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">/{family.slug}</p>
+                  <h3 className="text-xl font-semibold text-white">{family.name}</h3>
+                  <p className="text-sm text-slate-300 line-clamp-3">{family.description}</p>
+                  <div className="flex flex-wrap gap-3 text-xs font-semibold uppercase tracking-wide text-slate-400">
+                    <span>{family.members.length} members</span>
+                    <span>{family.connections.length} connections</span>
+                    <span>
+                      {
+                        family.posts.filter((post) => post.status === 'approved' && post.visibility === 'public').length
+                      }{' '}
+                      public stories
+                    </span>
+                  </div>
+                </div>
               </Link>
-            )}
+            ))}
           </div>
         </div>
-      </div>
+      </section>
+
+      <footer className="border-t border-slate-800/50 bg-slate-950/80 py-12">
+        <div className="mx-auto flex max-w-5xl flex-col gap-6 px-6 text-sm text-slate-500 md:flex-row md:items-center md:justify-between">
+          <div>
+            <p className="text-slate-300">Kinjar</p>
+            <p className="text-xs">A safe place for every branch of your family tree.</p>
+          </div>
+          <div className="flex flex-wrap gap-4 text-xs uppercase tracking-wide">
+            <Link href="/families" className="hover:text-slate-200">
+              Directory
+            </Link>
+            <Link href="/auth/login" className="hover:text-slate-200">
+              Sign in
+            </Link>
+            <Link href="mailto:support@kinjar.com" className="hover:text-slate-200">
+              Support
+            </Link>
+          </div>
+          <p className="text-xs">{globalStats.totalFamilies} families · {globalStats.totalMembers} members connected</p>
+        </div>
+      </footer>
     </div>
   );
 }

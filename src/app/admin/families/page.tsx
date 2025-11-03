@@ -1,310 +1,217 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
-import { useAuth, RequireRole } from '@/lib/auth';
-import { api } from '@/lib/api';
+import Link from 'next/link';
+import { useEffect, useMemo, useState } from 'react';
 
-interface Family {
-  id: string;
-  slug: string;
-  name: string;
-  created_at: string;
-  member_count: number;
-  post_count: number;
-  is_suspended: boolean;
-  suspension_reason?: string;
-}
+import { useAppState } from '@/lib/app-state';
+import { FamilyProfile } from '@/lib/types';
 
-export default function AdminFamilies() {
-  const [families, setFamilies] = useState<Family[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [selectedFamily, setSelectedFamily] = useState<Family | null>(null);
-  const [showSuspendModal, setShowSuspendModal] = useState(false);
-  const [suspendReason, setSuspendReason] = useState('');
+export default function AdminFamiliesPage() {
+  const { families, updateFamilyProfile } = useAppState();
+  const [search, setSearch] = useState('');
+  const [selectedFamilyId, setSelectedFamilyId] = useState<string | null>(null);
+
+  const filteredFamilies = useMemo(() => {
+    const query = search.trim().toLowerCase();
+    if (!query) {
+      return families;
+    }
+
+    return families.filter((family) => {
+      return (
+        family.name.toLowerCase().includes(query) ||
+        family.slug.toLowerCase().includes(query) ||
+        family.description.toLowerCase().includes(query)
+      );
+    });
+  }, [families, search]);
 
   useEffect(() => {
-    loadFamilies();
-  }, []);
-
-  const loadFamilies = async () => {
-    try {
-      // Mock data - replace with actual API call
-      const mockFamilies: Family[] = [
-        {
-          id: '1',
-          slug: 'smith-family',
-          name: 'Smith Family',
-          created_at: '2024-01-15T10:00:00Z',
-          member_count: 5,
-          post_count: 24,
-          is_suspended: false,
-        },
-        {
-          id: '2', 
-          slug: 'jones-clan',
-          name: 'Jones Clan',
-          created_at: '2024-02-01T14:30:00Z',
-          member_count: 8,
-          post_count: 47,
-          is_suspended: true,
-          suspension_reason: 'Inappropriate content reports',
-        },
-      ];
-      setFamilies(mockFamilies);
-    } catch (error) {
-      console.error('Failed to load families:', error);
-    } finally {
-      setLoading(false);
+    if (filteredFamilies.length === 0) {
+      setSelectedFamilyId(null);
+      return;
     }
-  };
 
-  const suspendFamily = async (family: Family) => {
-    try {
-      // Mock implementation - replace with actual API call
-      console.log(`Suspending family ${family.slug} with reason: ${suspendReason}`);
-      
-      setFamilies(prev => prev.map(f => 
-        f.id === family.id 
-          ? { ...f, is_suspended: true, suspension_reason: suspendReason }
-          : f
-      ));
-      
-      setShowSuspendModal(false);
-      setSelectedFamily(null);
-      setSuspendReason('');
-    } catch (error) {
-      console.error('Failed to suspend family:', error);
+    if (!selectedFamilyId || !filteredFamilies.some((family) => family.id === selectedFamilyId)) {
+      setSelectedFamilyId(filteredFamilies[0].id);
     }
-  };
+  }, [filteredFamilies, selectedFamilyId]);
 
-  const unsuspendFamily = async (family: Family) => {
-    try {
-      // Mock implementation - replace with actual API call
-      console.log(`Unsuspending family ${family.slug}`);
-      
-      setFamilies(prev => prev.map(f => 
-        f.id === family.id 
-          ? { ...f, is_suspended: false, suspension_reason: undefined }
-          : f
-      ));
-    } catch (error) {
-      console.error('Failed to unsuspend family:', error);
-    }
-  };
-
-  const filteredFamilies = families.filter(family =>
-    family.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    family.slug.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const selectedFamily: FamilyProfile | null =
+    filteredFamilies.find((family) => family.id === selectedFamilyId) ?? filteredFamilies[0] ?? null;
 
   return (
-    <RequireRole role="ROOT">
-      <div className="min-h-screen bg-gray-50">
-        <div className="bg-white shadow">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="py-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h1 className="text-3xl font-bold text-gray-900">Family Management</h1>
-                  <p className="mt-2 text-gray-600">
-                    View and manage all family accounts
-                  </p>
-                </div>
-                <a 
-                  href="/admin"
-                  className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
-                >
-                  ← Back to Dashboard
-                </a>
-              </div>
-            </div>
-          </div>
+    <div className="space-y-8 pb-16">
+      <header className="flex flex-col gap-4 rounded-3xl border border-slate-200 bg-white px-8 py-10 shadow-sm lg:flex-row lg:items-center lg:justify-between">
+        <div>
+          <h1 className="text-3xl font-semibold text-slate-900">Family management</h1>
+          <p className="mt-2 max-w-2xl text-sm leading-relaxed text-slate-600">
+            Search, audit, or adjust every family space on the network. Toggle public visibility, review pending invitations,
+            and jump into a family&apos;s admin tools with a single click.
+          </p>
         </div>
+        <Link
+          href="/admin/signups"
+          className="inline-flex items-center justify-center rounded-full border border-slate-200 px-5 py-2 text-sm font-semibold text-slate-700 transition hover:border-indigo-300 hover:text-indigo-600"
+        >
+          Review pending signups
+        </Link>
+      </header>
 
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          {/* Search and Filters */}
-          <div className="bg-white shadow rounded-lg mb-6 p-6">
-            <div className="flex items-center space-x-4">
-              <div className="flex-1">
-                <input
-                  type="text"
-                  placeholder="Search families by name or slug..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
-                />
-              </div>
-              <div className="text-sm text-gray-500">
-                {filteredFamilies.length} families found
-              </div>
-            </div>
+      <div className="grid gap-6 lg:grid-cols-[320px,1fr]">
+        <section className="space-y-4 rounded-3xl border border-slate-200 bg-white p-4 shadow-sm">
+          <div className="rounded-2xl border border-slate-200 bg-slate-50 p-3">
+            <input
+              type="search"
+              value={search}
+              onChange={(event) => setSearch(event.target.value)}
+              placeholder="Search by name, slug, or description"
+              className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-200"
+            />
           </div>
-
-          {/* Families Table */}
-          <div className="bg-white shadow rounded-lg">
-            <div className="px-6 py-4 border-b border-gray-200">
-              <h2 className="text-lg font-medium text-gray-900">All Families</h2>
-            </div>
-            
-            {loading ? (
-              <div className="p-6">
-                <div className="animate-pulse space-y-4">
-                  {[1, 2, 3].map(i => (
-                    <div key={i} className="h-16 bg-gray-200 rounded"></div>
-                  ))}
-                </div>
-              </div>
-            ) : filteredFamilies.length === 0 ? (
-              <div className="p-6 text-center text-gray-500">
-                No families found matching your search.
-              </div>
+          <ul className="space-y-2">
+            {filteredFamilies.length === 0 ? (
+              <li className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 p-4 text-center text-sm text-slate-500">
+                No families match that search yet.
+              </li>
             ) : (
-              <div className="overflow-x-auto">
-                <table className="min-w-full divide-y divide-gray-200">
-                  <thead className="bg-gray-50">
-                    <tr>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Family
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Created
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Members
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Posts
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Status
-                      </th>
-                      <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Actions
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody className="bg-white divide-y divide-gray-200">
-                    {filteredFamilies.map((family) => (
-                      <tr key={family.id} className="hover:bg-gray-50">
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div>
-                            <div className="text-sm font-medium text-gray-900">
-                              {family.name}
-                            </div>
-                            <div className="text-sm text-gray-500">
-                              /{family.slug}
-                            </div>
-                          </div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                          {new Date(family.created_at).toLocaleDateString()}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                          {family.member_count}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                          {family.post_count}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          {family.is_suspended ? (
-                            <div>
-                              <span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-red-100 text-red-800">
-                                Suspended
-                              </span>
-                              {family.suspension_reason && (
-                                <div className="text-xs text-gray-500 mt-1">
-                                  {family.suspension_reason}
-                                </div>
-                              )}
-                            </div>
-                          ) : (
-                            <span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800">
-                              Active
-                            </span>
-                          )}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                          <div className="flex items-center justify-end space-x-2">
-                            <a
-                              href={`/families/${family.slug}`}
-                              className="text-blue-600 hover:text-blue-900"
-                            >
-                              View
-                            </a>
-                            {family.is_suspended ? (
-                              <button
-                                onClick={() => unsuspendFamily(family)}
-                                className="text-green-600 hover:text-green-900"
-                              >
-                                Unsuspend
-                              </button>
-                            ) : (
-                              <button
-                                onClick={() => {
-                                  setSelectedFamily(family);
-                                  setShowSuspendModal(true);
-                                }}
-                                className="text-red-600 hover:text-red-900"
-                              >
-                                Suspend
-                              </button>
-                            )}
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+              filteredFamilies.map((family) => {
+                const isActive = family.id === selectedFamily?.id;
+                return (
+                  <li key={family.id}>
+                    <button
+                      type="button"
+                      onClick={() => setSelectedFamilyId(family.id)}
+                      className={`w-full rounded-2xl border px-4 py-3 text-left text-sm transition ${
+                        isActive
+                          ? 'border-indigo-300 bg-indigo-50 text-indigo-700 shadow-sm'
+                          : 'border-transparent bg-slate-50 text-slate-600 hover:border-slate-200 hover:bg-white hover:text-slate-900'
+                      }`}
+                    >
+                      <p className="font-semibold">{family.name}</p>
+                      <p className="text-xs text-slate-500">/{family.slug}</p>
+                    </button>
+                  </li>
+                );
+              })
             )}
+          </ul>
+        </section>
+
+        <section className="space-y-6">
+          {!selectedFamily ? (
+            <div className="rounded-3xl border border-dashed border-slate-200 bg-slate-50 p-10 text-center text-sm text-slate-500">
+              Select a family to inspect their activity and controls.
+            </div>
+          ) : (
+            <FamilyDetail family={selectedFamily} onTogglePublic={updateFamilyProfile} />
+          )}
+        </section>
+      </div>
+    </div>
+  );
+}
+
+function FamilyDetail({
+  family,
+  onTogglePublic,
+}: {
+  family: FamilyProfile;
+  onTogglePublic: (familyId: string, updates: Partial<FamilyProfile>) => FamilyProfile | null;
+}) {
+  const approvedPublicStories = family.posts.filter(
+    (post) => post.status === 'approved' && post.visibility === 'public'
+  );
+  const pendingPosts = family.posts.filter((post) => post.status === 'pending');
+
+  return (
+    <div className="space-y-6">
+      <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+        <div className="flex flex-col gap-4 border-b border-slate-100 pb-5 lg:flex-row lg:items-start lg:justify-between">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Family overview</p>
+            <h2 className="mt-2 text-2xl font-semibold text-slate-900">{family.name}</h2>
+            <p className="mt-2 text-sm text-slate-600">{family.description}</p>
+          </div>
+          <div className="flex flex-col gap-2 text-sm">
+            <button
+              type="button"
+              onClick={() => onTogglePublic(family.id, { isPublic: !family.isPublic })}
+              className={`inline-flex items-center justify-center rounded-full px-4 py-2 font-semibold transition ${
+                family.isPublic
+                  ? 'bg-emerald-600 text-white hover:bg-emerald-700'
+                  : 'border border-slate-200 bg-white text-slate-700 hover:border-indigo-300 hover:text-indigo-600'
+              }`}
+            >
+              {family.isPublic ? 'Public landing enabled' : 'Make landing public'}
+            </button>
+            <Link
+              href={`/families/${family.slug}`}
+              className="inline-flex items-center justify-center rounded-full border border-slate-200 px-4 py-2 font-semibold text-slate-700 transition hover:border-indigo-300 hover:text-indigo-600"
+            >
+              View public landing
+            </Link>
           </div>
         </div>
 
-        {/* Suspend Family Modal */}
-        {showSuspendModal && selectedFamily && (
-          <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
-            <div className="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
-              <div className="mt-3">
-                <h3 className="text-lg font-medium text-gray-900 mb-4">
-                  Suspend Family: {selectedFamily.name}
-                </h3>
-                <div className="mb-4">
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Reason for suspension:
-                  </label>
-                  <textarea
-                    value={suspendReason}
-                    onChange={(e) => setSuspendReason(e.target.value)}
-                    rows={3}
-                    className="block w-full rounded-md border-gray-300 shadow-sm focus:border-red-500 focus:ring-red-500 sm:text-sm"
-                    placeholder="Enter reason for suspension..."
-                  />
-                </div>
-                <div className="flex items-center justify-end space-x-3">
-                  <button
-                    onClick={() => {
-                      setShowSuspendModal(false);
-                      setSelectedFamily(null);
-                      setSuspendReason('');
-                    }}
-                    className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-md"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    onClick={() => suspendFamily(selectedFamily)}
-                    disabled={!suspendReason.trim()}
-                    className="px-4 py-2 text-sm font-medium text-white bg-red-600 hover:bg-red-700 disabled:bg-gray-300 rounded-md"
-                  >
-                    Suspend Family
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
+        <dl className="mt-5 grid gap-4 text-sm text-slate-600 sm:grid-cols-2">
+          <InfoRow label="Members" value={`${family.members.length}`} />
+          <InfoRow label="Pending invites" value={`${family.pendingMembers.length}`} />
+          <InfoRow label="Connections" value={`${family.connections.length}`} />
+          <InfoRow label="Storage used" value={`${family.storageUsedMb.toLocaleString()} MB`} />
+          <InfoRow label="Public highlights" value={`${approvedPublicStories.length}`} />
+          <InfoRow label="Posts pending" value={`${pendingPosts.length}`} />
+        </dl>
       </div>
-    </RequireRole>
+
+      <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+        <h3 className="text-lg font-semibold text-slate-900">Admins and recent activity</h3>
+        <ul className="mt-4 space-y-3 text-sm text-slate-600">
+          {family.members
+            .filter((member) => member.role === 'ADMIN')
+            .map((member) => (
+              <li key={member.id} className="flex items-center justify-between rounded-2xl border border-slate-100 bg-slate-50 px-4 py-3">
+                <span>
+                  <span className="font-semibold text-slate-900">{member.name}</span>
+                  <span className="ml-2 text-xs uppercase tracking-wide text-slate-500">Admin</span>
+                </span>
+                <span className="text-xs text-slate-500">{member.email}</span>
+              </li>
+            ))}
+        </ul>
+      </div>
+
+      <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+        <div className="flex items-center justify-between">
+          <h3 className="text-lg font-semibold text-slate-900">Recent highlights</h3>
+          <Link href={`/family-admin?family=${family.slug}`} className="text-sm font-semibold text-indigo-600 hover:text-indigo-700">
+            Open family workspace →
+          </Link>
+        </div>
+        <ul className="mt-4 space-y-3 text-sm text-slate-600">
+          {approvedPublicStories.length === 0 ? (
+            <li className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 px-4 py-5 text-center text-xs text-slate-500">
+              No public stories yet. Encourage the family admin to publish highlights.
+            </li>
+          ) : (
+            approvedPublicStories.slice(0, 4).map((post) => (
+              <li key={post.id} className="rounded-2xl border border-slate-100 bg-slate-50 px-4 py-3">
+                <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">{post.authorName}</p>
+                <p className="mt-1 text-sm text-slate-700">{post.content}</p>
+              </li>
+            ))
+          )}
+        </ul>
+      </div>
+    </div>
+  );
+}
+
+function InfoRow({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-2xl border border-slate-100 bg-slate-50 px-4 py-3">
+      <dt className="text-xs font-semibold uppercase tracking-wide text-slate-500">{label}</dt>
+      <dd className="mt-1 text-sm font-semibold text-slate-900">{value}</dd>
+    </div>
   );
 }
