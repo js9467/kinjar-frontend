@@ -326,7 +326,7 @@ export const AppStateProvider = ({ children }: { children: ReactNode }) => {
 
       updateFamily(familyId, (current) => ({
         ...current,
-        posts: [post, ...current.posts],
+        posts: [post, ...(current.posts || [])],
       }));
 
       return post;
@@ -339,7 +339,7 @@ export const AppStateProvider = ({ children }: { children: ReactNode }) => {
       (familyId, postId, visibility) => {
         updateFamily(familyId, (family) => ({
           ...family,
-          posts: family.posts.map((post) =>
+          posts: (family.posts || []).map((post) =>
             post.id === postId
               ? {
                   ...post,
@@ -356,7 +356,7 @@ export const AppStateProvider = ({ children }: { children: ReactNode }) => {
     (familyId, postId, status) => {
       updateFamily(familyId, (family) => ({
         ...family,
-        posts: family.posts.map((post) =>
+        posts: (family.posts || []).map((post) =>
           post.id === postId
             ? {
                 ...post,
@@ -441,11 +441,11 @@ export const AppStateProvider = ({ children }: { children: ReactNode }) => {
     );
     const pendingModeration = state.families.reduce(
       (count, family) =>
-        count + family.posts.filter((post) => post.status === 'pending').length,
+        count + (family.posts || []).filter((post) => post.status === 'pending').length,
       0
     );
     const publicHighlights = state.families.reduce((count, family) => {
-      const approvedPublicPosts = family.posts.filter(
+      const approvedPublicPosts = (family.posts || []).filter(
         (post) => post.visibility === 'public' && post.status === 'approved'
       );
       return count + approvedPublicPosts.length;

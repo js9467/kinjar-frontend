@@ -163,7 +163,7 @@ function deriveUsers(families: FamilyProfile[]): DerivedUser[] {
   });
 
   families.forEach((family) => {
-    family.posts.forEach((post) => {
+    (family.posts || []).forEach((post) => {
       const lookup = memberLookup.get(post.authorId);
       const userId = lookup?.member.userId ?? lookup?.member.id ?? post.authorId;
       const derived = userId ? byUser.get(userId) : undefined;

@@ -100,7 +100,7 @@ export default function FamilyExperiencePage() {
     const posts: FeedPost[] = [];
 
     allFamilies.forEach((family) => {
-      family.posts.forEach((post) => {
+      (family.posts || []).forEach((post) => {
         if (post.status !== 'approved' && family.id !== activeFamily.id) {
           return;
         }
@@ -134,7 +134,7 @@ export default function FamilyExperiencePage() {
     return visiblePosts.filter((post) => post.visibility === 'public');
   }, [visiblePosts, feedFilter, activeFamily?.id]);
 
-  const pendingModeration = activeFamily?.posts.filter((post) => post.status === 'pending') ?? [];
+  const pendingModeration = (activeFamily?.posts || []).filter((post) => post.status === 'pending');
   const pendingConnections = connectionRequests.filter(
     (request) => request.status === 'pending' && request.toFamilyId === activeFamily?.id
   );

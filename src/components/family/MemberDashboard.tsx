@@ -40,7 +40,7 @@ export function MemberDashboard({ familyId }: MemberDashboardProps) {
         </p>
         <div className="mt-6 flex flex-wrap gap-3 text-xs font-semibold uppercase tracking-wide text-indigo-600">
           <span className="rounded-full bg-white px-4 py-2 shadow">{family.members.length} active members</span>
-          <span className="rounded-full bg-white px-4 py-2 shadow">{family.posts.length} stories</span>
+          <span className="rounded-full bg-white px-4 py-2 shadow">{(family.posts || []).length} stories</span>
           <span className="rounded-full bg-white px-4 py-2 shadow">{connections.length} connected families</span>
         </div>
       </section>

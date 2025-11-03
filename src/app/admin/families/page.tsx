@@ -119,10 +119,11 @@ function FamilyDetail({
   family: FamilyProfile;
   onTogglePublic: (familyId: string, updates: Partial<FamilyProfile>) => FamilyProfile | null;
 }) {
-  const approvedPublicStories = family.posts.filter(
+  const familyPosts = family.posts || [];
+  const approvedPublicStories = familyPosts.filter(
     (post) => post.status === 'approved' && post.visibility === 'public'
   );
-  const pendingPosts = family.posts.filter((post) => post.status === 'pending');
+  const pendingPosts = familyPosts.filter((post) => post.status === 'pending');
 
   return (
     <div className="space-y-6">

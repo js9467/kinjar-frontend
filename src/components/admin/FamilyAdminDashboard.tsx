@@ -92,9 +92,9 @@ export function FamilyAdminDashboard({ familyId, onBack }: FamilyAdminDashboardP
   };
 
   const familyStats = {
-    totalPosts: family.posts.length,
-    publicPosts: family.posts.filter((post) => post.visibility === 'public' && post.status === 'approved').length,
-    pendingModeration: family.posts.filter((post) => post.status === 'pending').length,
+    totalPosts: (family.posts || []).length,
+    publicPosts: (family.posts || []).filter((post) => post.visibility === 'public' && post.status === 'approved').length,
+    pendingModeration: (family.posts || []).filter((post) => post.status === 'pending').length,
     connectedFamilies: family.connections.length,
   };
 
@@ -277,10 +277,10 @@ export function FamilyAdminDashboard({ familyId, onBack }: FamilyAdminDashboardP
             <h3 className="text-lg font-semibold text-slate-900">Story controls</h3>
             <p className="mt-2 text-sm text-slate-500">Update visibility, pin highlights, and approve pending submissions.</p>
             <div className="mt-4 space-y-4">
-              {family.posts.length === 0 ? (
+              {(family.posts || []).length === 0 ? (
                 <p className="text-sm text-slate-500">No stories shared yet. Your first post will appear here.</p>
               ) : (
-                family.posts.map((post) => (
+                (family.posts || []).map((post) => (
                   <div key={post.id} className="rounded-xl border border-slate-100 bg-slate-50/70 p-4">
                     <div className="flex items-start justify-between gap-3">
                       <div>

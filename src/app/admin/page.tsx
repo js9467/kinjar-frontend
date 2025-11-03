@@ -19,7 +19,7 @@ export default function AdminDashboard() {
       if (family.isPublic) {
         publicCount += 1;
       }
-      family.posts.forEach((post) => {
+      (family.posts || []).forEach((post) => {
         if (post.status === 'pending') {
           pending += 1;
         }
@@ -138,7 +138,7 @@ export default function AdminDashboard() {
                     families.reduce(
                       (count, family) =>
                         count +
-                        family.posts.filter(
+                        (family.posts || []).filter(
                           (post) => post.status === 'approved' && post.visibility === 'public'
                         ).length,
                       0

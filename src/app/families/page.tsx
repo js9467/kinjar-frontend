@@ -19,7 +19,7 @@ export default function FamilyDirectoryPage() {
         </div>
         <div className="grid gap-6 md:grid-cols-2">
           {families.map((family) => {
-            const publicStories = family.posts.filter(
+            const publicStories = (family.posts || []).filter(
               (post) => post.status === 'approved' && post.visibility === 'public'
             ).length;
             return (
