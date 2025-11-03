@@ -27,9 +27,15 @@ export function PostCreator({ familyId, onPostCreated, onError, className = '' }
     const file = files[0];
     
     // Validate file type
-    const validTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'video/mp4', 'video/webm', 'video/mov'];
-    if (!validTypes.includes(file.type)) {
-      onError?.('Please select a valid image or video file (JPEG, PNG, GIF, WebP, MP4, WebM, MOV)');
+    const isSupportedType =
+      file.type.startsWith('image/') ||
+      file.type.startsWith('video/') ||
+      // Some browsers (notably iOS Safari) provide more specific or empty MIME types for media captures
+      ['image/heic', 'image/heif', 'video/quicktime', ''].includes(file.type);
+    if (!isSupportedType) {
+      onError?.(
+        'Please select a valid image or video file (JPEG, PNG, GIF, WebP, HEIC, MP4, MOV, and similar formats)'
+      );
       return;
     }
 
