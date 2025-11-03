@@ -43,9 +43,22 @@ export function FamilyDashboard({ familySlug }: FamilyDashboardProps) {
       try {
         const familyData = await api.getFamilyBySlug(effectiveFamilySlug);
         setFamily(familyData);
+        
         // Handle cases where posts might be undefined or null
         const familyPosts = familyData.posts || [];
-        setPosts(familyPosts.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()));
+        
+        // If no posts included in family data, try to load them separately
+        if (familyPosts.length === 0) {
+          try {
+            const postsData = await api.getFamilyPosts(effectiveFamilySlug);
+            setPosts(postsData.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()));
+          } catch (postsError) {
+            console.log('No posts found for family, using empty array');
+            setPosts([]);
+          }
+        } else {
+          setPosts(familyPosts.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()));
+        }
       } catch (apiError) {
         console.error('Failed to load family data:', apiError);
         setError(`Failed to load family data: ${apiError instanceof Error ? apiError.message : 'Unknown error'}`);

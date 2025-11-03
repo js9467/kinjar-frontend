@@ -275,8 +275,14 @@ class KinjarAPI {
     });
   }
 
-  async getFamilyPosts(familyId: string): Promise<FamilyPost[]> {
-    return this.request(`/families/${familyId}/posts`);
+  async getFamilyPosts(familySlugOrId: string, limit: number = 20, offset: number = 0): Promise<FamilyPost[]> {
+    // Try the API endpoint first (uses slug)
+    try {
+      return await this.request(`/api/families/${familySlugOrId}/posts?limit=${limit}&offset=${offset}`);
+    } catch (error) {
+      // Fallback to families endpoint (uses ID) 
+      return this.request(`/families/${familySlugOrId}/posts?limit=${limit}&offset=${offset}`);
+    }
   }
 
   async addComment(postId: string, content: string): Promise<{ id: string; authorName: string; authorAvatarColor: string; content: string; createdAt: string }> {
