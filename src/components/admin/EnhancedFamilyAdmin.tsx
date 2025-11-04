@@ -18,6 +18,21 @@ export function EnhancedFamilyAdmin({ familyId, familySlug }: EnhancedFamilyAdmi
   const [members, setMembers] = useState<FamilyMemberProfile[]>([]);
   const [loading, setLoading] = useState(false);
 
+  useEffect(() => {
+    // Set default author to first member when members are loaded
+    if (members.length > 0 && !postAuthorId) {
+      setPostAuthorId(members[0].id);
+    }
+  }, [members, postAuthorId]);
+
+  useEffect(() => {
+    if (activeTab === 'pending') {
+      loadPendingPosts();
+    } else if (activeTab === 'members') {
+      loadMembers();
+    }
+  }, [activeTab]);
+
   // Member invitation form
   const [newMember, setNewMember] = useState({
     email: '',
@@ -238,9 +253,6 @@ export function EnhancedFamilyAdmin({ familyId, familySlug }: EnhancedFamilyAdmi
               </form>
             </div>
           )}
-  // Post creation state for admin
-  const [postContent, setPostContent] = useState('');
-  const [postAuthorId, setPostAuthorId] = useState(members.length > 0 ? members[0].id : '');
 
           {/* Members Tab */}
           {activeTab === 'members' && (
