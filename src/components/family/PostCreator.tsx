@@ -152,6 +152,10 @@ export function PostCreator({ familyId, familySlug, initialMembers = [], onPostC
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleFileSelect = (files: FileList | null) => {
+    if (fileInputRef.current) {
+      fileInputRef.current.removeAttribute('capture');
+      fileInputRef.current.accept = 'image/*,video/*';
+    }
     if (!files || files.length === 0) return;
 
     const file = files[0];
@@ -306,11 +310,24 @@ export function PostCreator({ familyId, familySlug, initialMembers = [], onPostC
   };
 
   const triggerFileSelect = () => {
-    fileInputRef.current?.click();
+    if (fileInputRef.current) {
+      fileInputRef.current.accept = 'image/*,video/*';
+      fileInputRef.current.removeAttribute('capture');
+      fileInputRef.current.click();
+    }
   };
 
   const triggerCamera = () => {
     if (fileInputRef.current) {
+      fileInputRef.current.accept = 'image/*';
+      fileInputRef.current.setAttribute('capture', 'environment');
+      fileInputRef.current.click();
+    }
+  };
+
+  const triggerVideoCapture = () => {
+    if (fileInputRef.current) {
+      fileInputRef.current.accept = 'video/*';
       fileInputRef.current.setAttribute('capture', 'environment');
       fileInputRef.current.click();
     }
@@ -405,6 +422,18 @@ export function PostCreator({ familyId, familySlug, initialMembers = [], onPostC
             </button>
             <button
               type="button"
+              onClick={triggerVideoCapture}
+              disabled={uploading}
+              className="flex-1 bg-purple-600 text-white py-2 px-4 rounded-lg font-medium hover:bg-purple-700 disabled:opacity-50 flex items-center justify-center gap-2"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14V10z" />
+                <rect x="3" y="7" width="12" height="10" rx="2" ry="2" stroke="currentColor" strokeWidth="2" fill="none" />
+              </svg>
+              Video
+            </button>
+            <button
+              type="button"
               onClick={triggerFileSelect}
               disabled={uploading}
               className="flex-1 bg-gray-600 text-white py-2 px-4 rounded-lg font-medium hover:bg-gray-700 disabled:opacity-50 flex items-center justify-center gap-2"
@@ -441,7 +470,7 @@ export function PostCreator({ familyId, familySlug, initialMembers = [], onPostC
               disabled={uploading || members.length === 0}
             >
               {members.map(m => (
-                <option key={m.id} value={m.id}>{m.name} ({m.role})</option>
+                <option key={m.id} value={m.id}>{m.name}</option>
               ))}
             </select>
           </div>

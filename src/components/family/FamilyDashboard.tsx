@@ -268,10 +268,11 @@ export function FamilyDashboard({ familySlug }: FamilyDashboardProps) {
 
     try {
       setSavingEdit(true);
-      const updatedPost = await api.editPost(editingPostId, editContent.trim());
-      
+      const tenantSlug = effectiveFamilySlug || family?.slug || family?.id;
+      const updatedPost = await api.editPost(editingPostId, editContent.trim(), tenantSlug);
+
       // Update the posts list with the edited post
-      setPosts(prev => prev.map(post => 
+      setPosts(prev => prev.map(post =>
         post.id === editingPostId ? updatedPost : post
       ));
       
