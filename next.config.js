@@ -1,5 +1,6 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  // TypeScript configuration updated - force new deployment
   eslint: {
     // Disable ESLint during builds to avoid deployment issues
     ignoreDuringBuilds: true,
