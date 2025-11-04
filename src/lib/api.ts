@@ -303,10 +303,24 @@ class KinjarAPI {
     // Unwrap family object if present
     if (response.family) {
       const family = response.family;
+      
+      // Transform members to match frontend expectations
+      const transformedMembers = (family.members || response.members || []).map((member: any) => ({
+        ...member,
+        // Backend returns user_id as 'id', but frontend expects both 'id' and 'userId'  
+        id: member.id, // Keep the original id (user_id from backend)
+        userId: member.id, // Also set userId to the same value for consistency
+        name: member.name || member.display_name || member.email?.split('@')[0] || 'User',
+        avatarColor: member.avatar_color || '#3B82F6',
+        joinedAt: member.joined_at || member.createdAt || new Date().toISOString()
+      }));
+      
+      console.log('[API] Transformed family members:', transformedMembers.map((m: any) => ({ id: m.id, userId: m.userId, name: m.name })));
+      
       return {
         ...family,
         posts: family.posts || response.posts || [],
-        members: family.members || response.members || [],
+        members: transformedMembers,
         connections: family.connections || response.connections || [],
         connectedFamilies: family.connectedFamilies || response.connectedFamilies || [],
         admins: family.admins || response.admins || [],
@@ -316,7 +330,23 @@ class KinjarAPI {
         storageUsedMb: family.storageUsedMb ?? response.storageUsedMb ?? 0,
       } as FamilyProfile;
     }
-    return response;
+    
+    // If no nested family object, transform the response directly
+    const transformedMembers = (response.members || []).map((member: any) => ({
+      ...member,
+      id: member.id,
+      userId: member.id,
+      name: member.name || member.display_name || member.email?.split('@')[0] || 'User',
+      avatarColor: member.avatar_color || '#3B82F6',
+      joinedAt: member.joined_at || member.createdAt || new Date().toISOString()
+    }));
+    
+    console.log('[API] Transformed family members (direct):', transformedMembers.map((m: any) => ({ id: m.id, userId: m.userId, name: m.name })));
+    
+    return {
+      ...response,
+      members: transformedMembers
+    };
   }
 
   async getCurrentFamily(): Promise<FamilyProfile> {
@@ -472,7 +502,7 @@ class KinjarAPI {
       visibility: backendPost.is_public ? 'public' : 'family',
       status: 'approved', // Backend posts are auto-approved
       reactions: 0, // TODO: Get from backend
-      comments: [], // TODO: Get from backend
+      comments: [], // Comments start empty, will be added via UI interactions
       tags: [] // TODO: Get from backend
     }));
 
@@ -503,6 +533,18 @@ class KinjarAPI {
     
     console.log(`[API] Formatted comment:`, formattedComment);
     return formattedComment;
+  }
+
+  async getPostComments(postId: string): Promise<{ id: string; authorName: string; authorAvatarColor: string; content: string; createdAt: string }[]> {
+    try {
+      // Note: This endpoint doesn't exist in the backend yet, so this will fail
+      // For now, return empty array and comments will be added via addComment
+      console.log(`[API] Would load comments for post ${postId}, but endpoint doesn't exist yet`);
+      return [];
+    } catch (error) {
+      console.warn(`[API] Failed to load comments for post ${postId}:`, error);
+      return [];
+    }
   }
 
   async addReaction(postId: string, reaction: string): Promise<void> {
