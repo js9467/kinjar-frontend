@@ -127,100 +127,108 @@ export function FamilyFeed({ familyIds, highlightFamilyId, title = 'Family stori
             No stories to display yet. Share something to kick things off!
           </div>
         ) : (
-          filteredPosts.map(({ post, family }) => (
-            <article
-              key={post.id}
-              className={`rounded-3xl border border-slate-200 bg-white p-6 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md ${
-                family.id === highlightFamilyId ? 'ring-2 ring-indigo-200' : ''
-              }`}
-            >
-              <div className="flex items-start justify-between gap-3">
-                <div>
-                  <p className="text-xs font-semibold uppercase tracking-wide text-indigo-600">
-                    {family.name} · {post.visibility === 'public' ? 'Public' : post.visibility === 'connections' ? 'Connections' : 'Family only'}
-                  </p>
-                  <h5 className="mt-2 text-lg font-semibold text-slate-900">{post.authorName || 'User'}</h5>
-                  <p className="mt-2 whitespace-pre-wrap text-sm text-slate-600">{post.content}</p>
-                </div>
-                <div className="flex items-center gap-3">
-                  {(canManageFamily(family.id) || canManageFamily(family.slug) || post.authorId === user?.id) && (
-                    <button
-                      onClick={() => handleDeletePost(post.id)}
-                      disabled={deletingPostId === post.id}
-                      className="text-sm text-red-600 hover:text-red-700 disabled:cursor-not-allowed disabled:opacity-50"
-                    >
-                      {deletingPostId === post.id ? 'Deleting…' : 'Delete'}
-                    </button>
-                  )}
-                  <span
-                    className="flex h-10 w-10 items-center justify-center rounded-full text-sm font-semibold text-white"
-                    style={{ backgroundColor: post.authorAvatarColor }}
-                  >
-                    {(post.authorName || 'User')
-                      .split(' ')
-                      .map((part) => part[0])
-                      .join('')}
-                  </span>
-                </div>
-              </div>
-              {post.media ? (
-                <div className="mt-4 overflow-hidden rounded-2xl">
-                  {post.media.type === 'image' ? (
-                    <div className="relative h-64 w-full">
-                      <Image
-                        src={post.media.url}
-                        alt={post.media.alt ?? 'Family moment'}
-                        fill
-                        className="object-cover"
-                        sizes="(min-width: 768px) 60vw, 100vw"
-                      />
-                    </div>
-                  ) : (
-                    <video 
-                      controls 
-                      className="w-full rounded-2xl"
-                      preload="metadata"
-                    >
-                      <source src={post.media.url} type="video/mp4" />
-                      <source src={post.media.url} type="video/quicktime" />
-                      Your browser does not support the video tag.
-                    </video>
-                  )}
-                </div>
-              ) : null}
-              <div className="mt-4 flex flex-wrap items-center gap-3 text-xs text-slate-500">
-                <span>{new Date(post.createdAt).toLocaleString()}</span>
-                <span>Reactions: {post.reactions}</span>
-                {post.tags.map((tag) => (
-                  <span key={tag} className="rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-600">
-                    #{tag}
-                  </span>
-                ))}
-              </div>
-              {post.comments.length > 0 ? (
-                <div className="mt-4 space-y-3 rounded-2xl border border-slate-100 bg-slate-50/70 p-4">
-                  {post.comments.map((comment) => (
-                    <div key={comment.id} className="flex items-start gap-3 text-sm text-slate-600">
-                      <span
-                        className="mt-1 inline-flex h-6 w-6 items-center justify-center rounded-full text-[10px] font-semibold text-white"
-                        style={{ backgroundColor: comment.authorAvatarColor }}
+          filteredPosts.map(({ post, family }) => {
+            const ownsPost =
+              post.authorId === user?.id ||
+              user?.memberships?.some((membership) => membership.memberId === post.authorId);
+            const canDeletePost =
+              canManageFamily(family.id) || canManageFamily(family.slug) || ownsPost;
+
+            return (
+              <article
+                key={post.id}
+                className={`rounded-3xl border border-slate-200 bg-white p-6 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md ${
+                  family.id === highlightFamilyId ? 'ring-2 ring-indigo-200' : ''
+                }`}
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <p className="text-xs font-semibold uppercase tracking-wide text-indigo-600">
+                      {family.name} · {post.visibility === 'public' ? 'Public' : post.visibility === 'connections' ? 'Connections' : 'Family only'}
+                    </p>
+                    <h5 className="mt-2 text-lg font-semibold text-slate-900">{post.authorName || 'User'}</h5>
+                    <p className="mt-2 whitespace-pre-wrap text-sm text-slate-600">{post.content}</p>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    {canDeletePost ? (
+                      <button
+                        onClick={() => handleDeletePost(post.id)}
+                        disabled={deletingPostId === post.id}
+                        className="text-sm text-red-600 hover:text-red-700 disabled:cursor-not-allowed disabled:opacity-50"
                       >
-                        {(comment.authorName || 'User')
-                          .split(' ')
-                          .map((part) => part[0])
-                          .join('')}
-                      </span>
-                      <div>
-                        <p className="font-semibold text-slate-700">{comment.authorName || 'User'}</p>
-                        <p>{comment.content}</p>
-                        <p className="text-xs text-slate-400">{new Date(comment.createdAt).toLocaleString()}</p>
+                        {deletingPostId === post.id ? 'Deleting…' : 'Delete'}
+                      </button>
+                    ) : null}
+                    <span
+                      className="flex h-10 w-10 items-center justify-center rounded-full text-sm font-semibold text-white"
+                      style={{ backgroundColor: post.authorAvatarColor }}
+                    >
+                      {(post.authorName || 'User')
+                        .split(' ')
+                        .map((part) => part[0])
+                        .join('')}
+                    </span>
+                  </div>
+                </div>
+                {post.media ? (
+                  <div className="mt-4 overflow-hidden rounded-2xl">
+                    {post.media.type === 'image' ? (
+                      <div className="relative h-64 w-full">
+                        <Image
+                          src={post.media.url}
+                          alt={post.media.alt ?? 'Family moment'}
+                          fill
+                          className="object-cover"
+                          sizes="(min-width: 768px) 60vw, 100vw"
+                        />
                       </div>
-                    </div>
+                    ) : (
+                      <video
+                        controls
+                        className="w-full rounded-2xl"
+                        preload="metadata"
+                      >
+                        <source src={post.media.url} type="video/mp4" />
+                        <source src={post.media.url} type="video/quicktime" />
+                        Your browser does not support the video tag.
+                      </video>
+                    )}
+                  </div>
+                ) : null}
+                <div className="mt-4 flex flex-wrap items-center gap-3 text-xs text-slate-500">
+                  <span>{new Date(post.createdAt).toLocaleString()}</span>
+                  <span>Reactions: {post.reactions}</span>
+                  {post.tags.map((tag) => (
+                    <span key={tag} className="rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-600">
+                      #{tag}
+                    </span>
                   ))}
                 </div>
-              ) : null}
-            </article>
-          ))
+                {post.comments.length > 0 ? (
+                  <div className="mt-4 space-y-3 rounded-2xl border border-slate-100 bg-slate-50/70 p-4">
+                    {post.comments.map((comment) => (
+                      <div key={comment.id} className="flex items-start gap-3 text-sm text-slate-600">
+                        <span
+                          className="mt-1 inline-flex h-6 w-6 items-center justify-center rounded-full text-[10px] font-semibold text-white"
+                          style={{ backgroundColor: comment.authorAvatarColor }}
+                        >
+                          {(comment.authorName || 'User')
+                            .split(' ')
+                            .map((part) => part[0])
+                            .join('')}
+                        </span>
+                        <div>
+                          <p className="font-semibold text-slate-700">{comment.authorName || 'User'}</p>
+                          <p>{comment.content}</p>
+                          <p className="text-xs text-slate-400">{new Date(comment.createdAt).toLocaleString()}</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : null}
+              </article>
+            );
+          })
         )}
       </div>
       

@@ -520,118 +520,126 @@ export function FamilyDashboard({ familySlug }: FamilyDashboardProps) {
                   <p className="text-gray-600">Share your first family moment to get started!</p>
                 </div>
               ) : (
-                filteredPosts.map((post) => (
-                  <article key={post.id} className="bg-white rounded-lg border border-gray-200 shadow-sm">
-                    {/* Post Header */}
-                    <div className="p-6 pb-4">
-                      <div className="flex items-start justify-between">
-                        <div className="flex items-center gap-3">
-                          <div
-                            className="w-10 h-10 rounded-full flex items-center justify-center text-white font-semibold"
-                            style={{ backgroundColor: post.authorAvatarColor }}
-                          >
-                            {(post.authorName || 'User')
-                              .split(' ')
-                              .map(part => part[0])
-                              .join('')
-                              .slice(0, 2)}
-                          </div>
-                          <div>
-                            <h3 className="font-semibold text-gray-900">{post.authorName || 'User'}</h3>
-                            <div className="flex items-center gap-2 text-sm text-gray-500">
-                              <span>{new Date(post.createdAt).toLocaleDateString()}</span>
-                              <span>•</span>
-                              <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                                post.visibility === 'public'
-                                  ? 'bg-green-100 text-green-800'
-                                  : post.visibility === 'connections'
-                                  ? 'bg-blue-100 text-blue-800'
-                                  : 'bg-gray-100 text-gray-800'
-                              }`}>
-                                {post.visibility === 'public' ? 'Public'
-                                 : post.visibility === 'connections' ? 'Connections'
-                                 : 'Family Only'}
-                              </span>
+                filteredPosts.map((post) => {
+                  const ownsPost =
+                    post.authorId === user?.id ||
+                    user?.memberships?.some((membership) => membership.memberId === post.authorId);
+                  const canDeletePost =
+                    canManageFamily(family.id) || canManageFamily(family.slug) || ownsPost;
+
+                  return (
+                    <article key={post.id} className="bg-white rounded-lg border border-gray-200 shadow-sm">
+                      {/* Post Header */}
+                      <div className="p-6 pb-4">
+                        <div className="flex items-start justify-between">
+                          <div className="flex items-center gap-3">
+                            <div
+                              className="w-10 h-10 rounded-full flex items-center justify-center text-white font-semibold"
+                              style={{ backgroundColor: post.authorAvatarColor }}
+                            >
+                              {(post.authorName || 'User')
+                                .split(' ')
+                                .map(part => part[0])
+                                .join('')
+                                .slice(0, 2)}
+                            </div>
+                            <div>
+                              <h3 className="font-semibold text-gray-900">{post.authorName || 'User'}</h3>
+                              <div className="flex items-center gap-2 text-sm text-gray-500">
+                                <span>{new Date(post.createdAt).toLocaleDateString()}</span>
+                                <span>•</span>
+                                <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                                  post.visibility === 'public'
+                                    ? 'bg-green-100 text-green-800'
+                                    : post.visibility === 'connections'
+                                    ? 'bg-blue-100 text-blue-800'
+                                    : 'bg-gray-100 text-gray-800'
+                                }`}>
+                                  {post.visibility === 'public' ? 'Public'
+                                   : post.visibility === 'connections' ? 'Connections'
+                                   : 'Family Only'}
+                                </span>
+                              </div>
                             </div>
                           </div>
+                          {canDeletePost ? (
+                            <button
+                              onClick={() => handleDeletePost(post.id)}
+                              disabled={deletingPostId === post.id}
+                              className="text-sm text-red-600 hover:text-red-700 disabled:cursor-not-allowed disabled:opacity-50"
+                            >
+                              {deletingPostId === post.id ? 'Deleting…' : 'Delete'}
+                            </button>
+                          ) : null}
                         </div>
-                        {(canManageFamily(family.id) || canManageFamily(family.slug) || post.authorId === user?.id) && (
-                          <button
-                            onClick={() => handleDeletePost(post.id)}
-                            disabled={deletingPostId === post.id}
-                            className="text-sm text-red-600 hover:text-red-700 disabled:cursor-not-allowed disabled:opacity-50"
-                          >
-                            {deletingPostId === post.id ? 'Deleting…' : 'Delete'}
-                          </button>
+                      </div>
+
+                      {/* Post Content */}
+                      <div className="px-6">
+                        {post.content && (
+                          <p className="text-gray-900 whitespace-pre-wrap mb-4">{post.content}</p>
+                        )}
+                      
+                        {/* Tags */}
+                        {post.tags && post.tags.length > 0 && (
+                          <div className="flex flex-wrap gap-2 mb-4">
+                            {post.tags.map((tag) => (
+                              <span 
+                                key={tag}
+                                className="px-2 py-1 bg-gray-100 text-gray-700 text-xs rounded-full"
+                              >
+                                #{tag}
+                              </span>
+                            ))}
+                          </div>
+                        )}
+                      
+                        {/* Media */}
+                        {post.media && (
+                          <div className="mb-4 rounded-lg overflow-hidden">
+                            {post.media.type === 'image' ? (
+                              <div className="relative w-full h-96">
+                                <Image
+                                  src={post.media.url}
+                                  alt={post.media.alt || 'Post image'}
+                                  fill
+                                  className="object-cover"
+                                  sizes="(max-width: 768px) 100vw, 66vw"
+                                />
+                              </div>
+                            ) : (
+                              <video
+                                controls
+                                className="w-full max-h-96 rounded-lg"
+                                poster={post.media.alt}
+                              >
+                                <source src={post.media.url} type="video/mp4" />
+                                Your browser does not support the video tag.
+                              </video>
+                            )}
+                          </div>
                         )}
                       </div>
-                    </div>
 
-                    {/* Post Content */}
-                    <div className="px-6">
-                      {post.content && (
-                        <p className="text-gray-900 whitespace-pre-wrap mb-4">{post.content}</p>
-                      )}
-                      
-                      {/* Tags */}
-                      {post.tags && post.tags.length > 0 && (
-                        <div className="flex flex-wrap gap-2 mb-4">
-                          {post.tags.map((tag) => (
-                            <span 
-                              key={tag}
-                              className="px-2 py-1 bg-gray-100 text-gray-700 text-xs rounded-full"
-                            >
-                              #{tag}
-                            </span>
-                          ))}
-                        </div>
-                      )}
-                      
-                      {/* Media */}
-                      {post.media && (
-                        <div className="mb-4 rounded-lg overflow-hidden">
-                          {post.media.type === 'image' ? (
-                            <div className="relative w-full h-96">
-                              <Image
-                                src={post.media.url}
-                                alt={post.media.alt || 'Post image'}
-                                fill
-                                className="object-cover"
-                                sizes="(max-width: 768px) 100vw, 66vw"
-                              />
-                            </div>
-                          ) : (
-                            <video
-                              controls
-                              className="w-full max-h-96 rounded-lg"
-                              poster={post.media.alt}
-                            >
-                              <source src={post.media.url} type="video/mp4" />
-                              Your browser does not support the video tag.
-                            </video>
-                          )}
-                        </div>
-                      )}
-                    </div>
+                      {/* Post Interactions */}
+                      <div className="px-6 py-4 border-t border-gray-100">
+                        <PostReactions 
+                          post={post} 
+                          onReaction={handleReaction}
+                        />
+                      </div>
 
-                    {/* Post Interactions */}
-                    <div className="px-6 py-4 border-t border-gray-100">
-                      <PostReactions 
-                        post={post} 
-                        onReaction={handleReaction}
-                      />
-                    </div>
-
-                    {/* Comments */}
-                    <div className="px-6 pb-6">
-                      <CommentSection
-                        post={post}
-                        onCommentAdded={(comment) => handleCommentAdded(post.id, comment)}
-                        onError={setError}
-                      />
-                    </div>
-                  </article>
-                ))
+                      {/* Comments */}
+                      <div className="px-6 pb-6">
+                        <CommentSection
+                          post={post}
+                          onCommentAdded={(comment) => handleCommentAdded(post.id, comment)}
+                          onError={setError}
+                        />
+                      </div>
+                    </article>
+                  );
+                })
               )}
             </div>
           </div>

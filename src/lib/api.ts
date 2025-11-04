@@ -90,6 +90,7 @@ export function getSubdomainInfo(): SubdomainInfo {
 class KinjarAPI {
   private baseURL: string;
   private token: string | null = null;
+  private currentUser: AuthUser | null = null;
 
   constructor() {
     this.baseURL = API_BASE_URL;
@@ -144,6 +145,10 @@ class KinjarAPI {
     if (typeof window !== 'undefined') {
       localStorage.removeItem('kinjar-auth-token');
     }
+  }
+
+  setCurrentUser(user: AuthUser | null) {
+    this.currentUser = user;
   }
 
   private async request(endpoint: string, options: RequestInit = {}) {
@@ -210,6 +215,7 @@ class KinjarAPI {
     });
 
     this.saveToken(response.token);
+    this.setCurrentUser(response.user);
     return response;
   }
 
@@ -227,11 +233,14 @@ class KinjarAPI {
       await this.request('/auth/logout', { method: 'POST' });
     } finally {
       this.removeToken();
+      this.setCurrentUser(null);
     }
   }
 
   async getCurrentUser(): Promise<AuthUser> {
-    return this.request('/auth/me');
+    const user = await this.request('/auth/me');
+    this.setCurrentUser(user);
+    return user;
   }
 
   // Family Management
@@ -242,6 +251,7 @@ class KinjarAPI {
     });
 
     this.saveToken(response.token);
+    this.setCurrentUser(response.user);
     return response;
   }
 
@@ -350,12 +360,15 @@ class KinjarAPI {
     // Transform backend response to frontend format
     const backendPost = response.post;
     
+    const fallbackAuthor = this.currentUser;
+
     const frontendPost: FamilyPost = {
       id: backendPost.id,
-      familyId: backendPost.tenant_id,
-      authorId: backendPost.author_id,
-      authorName: backendPost.author_name || 'User',
-      authorAvatarColor: backendPost.author_avatar || '#3B82F6',
+      familyId: backendPost.tenant_id || postData.familyId,
+      authorId: backendPost.author_id || fallbackAuthor?.id || 'current-user',
+      authorName: backendPost.author_name || fallbackAuthor?.name || 'User',
+      authorAvatarColor:
+        backendPost.author_avatar || fallbackAuthor?.avatarColor || '#3B82F6',
       createdAt: backendPost.published_at || backendPost.created_at,
       content: backendPost.content,
       media: postData.media, // Use original media from frontend
