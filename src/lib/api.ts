@@ -103,7 +103,11 @@ export function getSubdomainInfo(): SubdomainInfo {
 class KinjarAPI {
   private baseURL: string;
   private token: string | null = null;
-  private currentUser: AuthUser | null = null;
+  private _currentUser: AuthUser | null = null;
+
+  get currentUser(): AuthUser | null {
+    return this._currentUser;
+  }
 
   constructor() {
     this.baseURL = API_BASE_URL;
@@ -155,7 +159,7 @@ class KinjarAPI {
   }
 
   setCurrentUser(user: AuthUser | null) {
-    this.currentUser = user;
+  this._currentUser = user;
   }
 
   private async request(endpoint: string, options: RequestInit = {}, tenantSlug?: string) {

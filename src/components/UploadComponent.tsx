@@ -116,6 +116,7 @@ export default function UploadComponent({
       const createdPost = await api.createPost({
         content: postContent.trim() || defaultPostContent,
         familyId: resolvedFamilyId.toString(),
+        authorId: api.currentUser?.id || 'current-user',
         media: {
           type: mediaKind,
           url: uploadResponse.url,
