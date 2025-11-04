@@ -1,6 +1,10 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   // TypeScript configuration updated - force new deployment
+  typescript: {
+    // Skip type checking during builds if dependencies are missing
+    ignoreBuildErrors: false,
+  },
   eslint: {
     // Disable ESLint during builds to avoid deployment issues
     ignoreDuringBuilds: true,
