@@ -32,6 +32,20 @@ export function FamilyDashboard({ familySlug }: FamilyDashboardProps) {
   // Add a backup for posts to prevent data loss
   const [postsBackup, setPostsBackup] = useState<FamilyPost[]>([]);
   
+  // Add localStorage persistence for posts
+  const [persistedPosts, setPersistedPosts] = useState<FamilyPost[]>(() => {
+    if (typeof window !== 'undefined' && effectiveFamilySlug) {
+      try {
+        const saved = localStorage.getItem(`familyPosts_${effectiveFamilySlug}`);
+        return saved ? JSON.parse(saved) : [];
+      } catch (error) {
+        console.error('[FamilyDashboard] Failed to load persisted posts:', error);
+        return [];
+      }
+    }
+    return [];
+  });
+  
   // Edit functionality
   const [editingPostId, setEditingPostId] = useState<string | null>(null);
   const [editContent, setEditContent] = useState('');
@@ -100,9 +114,28 @@ export function FamilyDashboard({ familySlug }: FamilyDashboardProps) {
             const sortedPosts = normalizedPosts.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
             setPosts(sortedPosts);
             setPostsBackup(sortedPosts); // Backup the posts
+            
+            // Persist to localStorage
+            if (typeof window !== 'undefined' && effectiveFamilySlug) {
+              try {
+                localStorage.setItem(`familyPosts_${effectiveFamilySlug}`, JSON.stringify(sortedPosts));
+                console.log('[FamilyDashboard] Posts persisted to localStorage:', sortedPosts.length);
+              } catch (error) {
+                console.error('[FamilyDashboard] Failed to persist posts:', error);
+              }
+            }
           } catch (postsError) {
-            console.log('[FamilyDashboard] No posts found for family, using empty array');
-            setPosts([]);
+            console.log('[FamilyDashboard] No posts found for family via API, checking localStorage...');
+            
+            // Try to recover from localStorage
+            if (persistedPosts.length > 0) {
+              console.log('[FamilyDashboard] Recovering posts from localStorage:', persistedPosts.length);
+              setPosts(persistedPosts);
+              setPostsBackup(persistedPosts);
+            } else {
+              console.log('[FamilyDashboard] No posts in localStorage either, using empty array');
+              setPosts([]);
+            }
           }
         } else {
           console.log('[FamilyDashboard] Using posts from family data:', familyPosts.length);
@@ -114,6 +147,16 @@ export function FamilyDashboard({ familySlug }: FamilyDashboardProps) {
           const sortedPosts = normalizedPosts.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
           setPosts(sortedPosts);
           setPostsBackup(sortedPosts); // Backup the posts
+          
+          // Persist to localStorage
+          if (typeof window !== 'undefined' && effectiveFamilySlug) {
+            try {
+              localStorage.setItem(`familyPosts_${effectiveFamilySlug}`, JSON.stringify(sortedPosts));
+              console.log('[FamilyDashboard] Posts persisted to localStorage:', sortedPosts.length);
+            } catch (error) {
+              console.error('[FamilyDashboard] Failed to persist posts:', error);
+            }
+          }
         }
       } catch (apiError) {
         console.error('Failed to load family data:', apiError);
@@ -215,11 +258,20 @@ export function FamilyDashboard({ familySlug }: FamilyDashboardProps) {
 
   // Safety check: restore posts from backup if they get cleared unexpectedly
   useEffect(() => {
-    if (posts.length === 0 && postsBackup.length > 0 && !loading) {
-      console.log('[FamilyDashboard] Posts were cleared, restoring from backup:', postsBackup.length);
-      setPosts(postsBackup);
+    if (posts.length === 0 && !loading) {
+      // Try backup first
+      if (postsBackup.length > 0) {
+        console.log('[FamilyDashboard] Posts were cleared, restoring from backup:', postsBackup.length);
+        setPosts(postsBackup);
+      } 
+      // Try localStorage if no backup
+      else if (persistedPosts.length > 0) {
+        console.log('[FamilyDashboard] No backup available, restoring from localStorage:', persistedPosts.length);
+        setPosts(persistedPosts);
+        setPostsBackup(persistedPosts);
+      }
     }
-  }, [posts.length, postsBackup.length, loading]);
+  }, [posts.length, postsBackup.length, persistedPosts.length, loading]);
 
   const handlePostCreated = (newPost: FamilyPost) => {
     setPosts(prev => [newPost, ...prev]);

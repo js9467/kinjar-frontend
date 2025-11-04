@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import { PostComment, FamilyPost } from '@/lib/types';
 import { api } from '@/lib/api';
+import { useAuth } from '@/lib/auth';
 
 interface CommentSectionProps {
   post: FamilyPost;
@@ -11,6 +12,7 @@ interface CommentSectionProps {
 }
 
 export function CommentSection({ post, onCommentAdded, onError }: CommentSectionProps) {
+  const { user } = useAuth();
   const [newComment, setNewComment] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [showComments, setShowComments] = useState(post.comments.length > 0);
@@ -33,8 +35,8 @@ export function CommentSection({ post, onCommentAdded, onError }: CommentSection
       // Fallback to mock comment for demo
       const mockComment: PostComment = {
         id: `comment-${Date.now()}`,
-        authorName: 'Current User', // This would come from auth context
-        authorAvatarColor: '#3B82F6', // This would come from auth context
+        authorName: user?.name || 'Current User',
+        authorAvatarColor: user?.avatarColor || '#3B82F6',
         content: newComment.trim(),
         createdAt: new Date().toISOString()
       };
@@ -106,9 +108,12 @@ export function CommentSection({ post, onCommentAdded, onError }: CommentSection
       <form onSubmit={handleSubmitComment} className="space-y-3">
         <div className="flex gap-3">
           <div 
-            className="flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center text-white text-sm font-semibold bg-blue-600"
+            className="flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center text-white text-sm font-semibold"
+            style={{ backgroundColor: user?.avatarColor || '#3B82F6' }}
           >
-            CU
+            {user?.name
+              ? user.name.split(' ').map(part => part[0]).join('').slice(0, 2)
+              : 'CU'}
           </div>
           <div className="flex-1">
             <textarea
