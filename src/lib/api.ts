@@ -1029,6 +1029,36 @@ class KinjarAPI {
     });
   }
 
+  // Admin Functions
+  async listAllFamilies(search = '', limit = 50, offset = 0): Promise<{
+    families: Array<{
+      id: string;
+      slug: string;
+      name: string;
+      createdAt: string;
+      memberCount: number;
+      postCount: number;
+      mediaCount: number;
+      storageBytes: number;
+      familyPhoto?: string;
+      description?: string;
+      isPublic: boolean;
+      lastPostAt?: string;
+      lastActivityAt?: string;
+    }>;
+    total: number;
+    limit: number;
+    offset: number;
+  }> {
+    const params = new URLSearchParams({
+      search,
+      limit: limit.toString(),
+      offset: offset.toString()
+    });
+    
+    return this.request(`/admin/families?${params}`);
+  }
+
   async uploadAvatar(file: File): Promise<{ avatarUrl: string }> {
     const formData = new FormData();
     formData.append('avatar', file);

@@ -19,7 +19,7 @@ interface FamilyDashboardProps {
 
 export function FamilyDashboard({ familySlug }: FamilyDashboardProps) {
     console.log('[FamilyDashboard] ===== COMPONENT LOADED - VERSION 2.0 =====');
-  const { user, isAuthenticated, canManageFamily } = useAuth();
+  const { user, isAuthenticated, canManageFamily, isRootAdmin } = useAuth();
   const { families } = useAppState();
   const [family, setFamily] = useState<FamilyProfile | null>(null);
   const [posts, setPosts] = useState<FamilyPost[]>([]);
@@ -68,10 +68,10 @@ export function FamilyDashboard({ familySlug }: FamilyDashboardProps) {
       setError(null);
       
       // Check if user has access to this family
-      if (user && user.memberships) {
+      if (user && user.memberships && !isRootAdmin) {
         const hasAccess = user.memberships.some(membership => membership.familySlug === effectiveFamilySlug);
         if (!hasAccess) {
-          // User is logged in but not a member of this family
+          // User is logged in but not a member of this family and not a root admin
           setError(`Access denied: You are not a member of the ${effectiveFamilySlug} family.`);
           setLoading(false);
           return;
