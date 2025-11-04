@@ -175,10 +175,18 @@ class KinjarAPI {
     console.log(`[API Request] ${options.method || 'GET'} ${url}`);
     console.log(`[API Request] baseURL: ${this.baseURL}, endpoint: ${endpoint}`);
     
-    const headers: Record<string, string> = {
-      'Content-Type': 'application/json',
-      ...(options.headers as Record<string, string>),
-    };
+    const headers: Record<string, string> = {};
+    
+    // Only set Content-Type if not FormData and headers don't explicitly override it
+    const providedHeaders = (options.headers as Record<string, string>) || {};
+    const isFormData = options.body instanceof FormData;
+    
+    if (!isFormData && !providedHeaders.hasOwnProperty('Content-Type')) {
+      headers['Content-Type'] = 'application/json';
+    }
+    
+    // Merge provided headers
+    Object.assign(headers, providedHeaders);
 
     if (this.token) {
       headers['Authorization'] = `Bearer ${this.token}`;
@@ -746,10 +754,88 @@ class KinjarAPI {
     familyId: string;
     birthdate?: string;
     role?: string;
-  }): Promise<{ userId: string; assignedRole: string }> {
+  }): Promise<{ 
+    userId?: string; 
+    assignedRole: string; 
+    emailSent: boolean;
+    invitationId?: string;
+    expiresAt?: string;
+    message: string;
+  }> {
     return this.request('/auth/invite-member', {
       method: 'POST',
       body: JSON.stringify(data),
+    });
+  }
+
+  async getInvitationDetails(token: string): Promise<{
+    email: string;
+    role: string;
+    familyName: string;
+    familySlug: string;
+    expiresAt: string;
+  }> {
+    const response = await this.request(`/auth/invitation/${token}`);
+    return response.invitation;
+  }
+
+  async registerWithInvitation(data: {
+    email: string;
+    password: string;
+    token: string;
+  }): Promise<{
+    user: AuthUser;
+    family?: {
+      id: string;
+      name: string;
+      slug: string;
+      role: string;
+    };
+  }> {
+    return this.request('/auth/register', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async uploadAvatar(file: File): Promise<{ avatarUrl: string }> {
+    const formData = new FormData();
+    formData.append('avatar', file);
+    
+    return this.request('/auth/upload-avatar', {
+      method: 'POST',
+      body: formData,
+      // Don't set Content-Type header, let browser set it for FormData
+      headers: {},
+    });
+  }
+
+  async uploadMemberAvatar(familyId: string, memberId: string, file: File): Promise<{ avatarUrl: string }> {
+    const formData = new FormData();
+    formData.append('avatar', file);
+    
+    return this.request(`/api/family/${familyId}/member/${memberId}/avatar`, {
+      method: 'POST',
+      body: formData,
+      headers: {},
+    });
+  }
+
+  async updateFamilyMember(familyId: string, memberId: string, data: {
+    name?: string;
+    quote?: string;
+    birthdate?: string;
+    role?: string;
+  }): Promise<{ message: string }> {
+    return this.request(`/api/family/${familyId}/member/${memberId}`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async removeFamilyMember(familyId: string, memberId: string): Promise<{ message: string }> {
+    return this.request(`/api/family/${familyId}/member/${memberId}`, {
+      method: 'DELETE',
     });
   }
 

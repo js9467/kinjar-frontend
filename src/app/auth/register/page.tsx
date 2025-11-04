@@ -1,19 +1,33 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { api } from '../../../lib/api';
+
+interface InvitationDetails {
+  email: string;
+  role: string;
+  familyName: string;
+  familySlug: string;
+  expiresAt: string;
+}
 
 export default function RegisterPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const invitationToken = searchParams.get('token');
+  
+  const [invitationDetails, setInvitationDetails] = useState<InvitationDetails | null>(null);
+  const [loadingInvitation, setLoadingInvitation] = useState(!!invitationToken);
+  
   const [formData, setFormData] = useState({
     // Personal info
     adminName: '',
     adminEmail: '',
     password: '',
     confirmPassword: '',
-    // Family info
+    // Family info (only for new family creation)
     familyName: '',
     subdomain: '',
     description: '',
@@ -23,9 +37,71 @@ export default function RegisterPage() {
   const [error, setError] = useState('');
   const [step, setStep] = useState(1); // 1 = personal info, 2 = family info
 
+  // Load invitation details if token is provided
+  useEffect(() => {
+    if (invitationToken) {
+      loadInvitationDetails();
+    }
+  }, [invitationToken]);
+
+  const loadInvitationDetails = async () => {
+    try {
+      setLoadingInvitation(true);
+      const details = await api.getInvitationDetails(invitationToken!);
+      setInvitationDetails(details);
+      
+      // Pre-fill the email from invitation
+      setFormData(prev => ({
+        ...prev,
+        adminEmail: details.email
+      }));
+      
+      setError('');
+    } catch (err) {
+      setError('Invalid or expired invitation link');
+    } finally {
+      setLoadingInvitation(false);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
+    if (invitationDetails) {
+      // Invitation-based registration
+      if (formData.password !== formData.confirmPassword) {
+        setError('Passwords do not match');
+        return;
+      }
+      if (formData.password.length < 8) {
+        setError('Password must be at least 8 characters');
+        return;
+      }
+
+      setLoading(true);
+      setError('');
+
+      try {
+        const response = await api.registerWithInvitation({
+          email: formData.adminEmail,
+          password: formData.password,
+          token: invitationToken!
+        });
+        
+        // Redirect to family page after successful registration
+        if (response.family) {
+          window.location.href = `https://${response.family.slug}.kinjar.com`;
+        } else {
+          router.push('/');
+        }
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Registration failed');
+        setLoading(false);
+      }
+      return;
+    }
+    
+    // Regular family creation flow
     if (step === 1) {
       // Validate personal info
       if (formData.password !== formData.confirmPassword) {
@@ -88,30 +164,63 @@ export default function RegisterPage() {
     }
   };
 
-  const handleBack = () => {
-    setStep(1);
-    setError('');
-  };
+  if (loadingInvitation) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-purple-50 to-pink-100 flex items-center justify-center p-4">
+        <div className="max-w-md w-full bg-white rounded-lg shadow-lg p-8 text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading invitation details...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-50 to-pink-100 flex items-center justify-center p-4">
       <div className="max-w-md w-full bg-white rounded-lg shadow-lg p-8">
         <div className="text-center mb-8">
           <h1 className="text-3xl font-bold text-gray-900 mb-2">
-            {step === 1 ? 'Create Your Account' : 'Set Up Your Family'}
+            {invitationDetails 
+              ? `Join ${invitationDetails.familyName}` 
+              : step === 1 ? 'Create Your Account' : 'Set Up Your Family'}
           </h1>
           <p className="text-gray-600">
-            {step === 1 
-              ? 'Join Kinjar and create your family space' 
-              : 'Choose your family name and subdomain'}
+            {invitationDetails 
+              ? 'Complete your registration to join your family on Kinjar'
+              : step === 1 
+                ? 'Join Kinjar and create your family space' 
+                : 'Choose your family name and subdomain'}
           </p>
         </div>
 
-        {/* Progress indicator */}
-        <div className="flex mb-8">
-          <div className={`flex-1 h-2 rounded-l ${step >= 1 ? 'bg-blue-600' : 'bg-gray-200'}`}></div>
-          <div className={`flex-1 h-2 rounded-r ${step >= 2 ? 'bg-blue-600' : 'bg-gray-200'}`}></div>
-        </div>
+        {/* Invitation details banner */}
+        {invitationDetails && (
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+            <div className="flex items-center">
+              <div className="flex-shrink-0">
+                <svg className="w-5 h-5 text-blue-400" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+                </svg>
+              </div>
+              <div className="ml-3">
+                <p className="text-sm text-blue-700">
+                  <strong>You're invited!</strong> You'll be joining as a <strong>{invitationDetails.role.toLowerCase()}</strong> member.
+                </p>
+                <p className="text-xs text-blue-600 mt-1">
+                  Invitation expires: {new Date(invitationDetails.expiresAt).toLocaleDateString()}
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Progress indicator - only show for new family creation */}
+        {!invitationDetails && (
+          <div className="flex mb-8">
+            <div className={`flex-1 h-2 rounded-l ${step >= 1 ? 'bg-blue-600' : 'bg-gray-200'}`}></div>
+            <div className={`flex-1 h-2 rounded-r ${step >= 2 ? 'bg-blue-600' : 'bg-gray-200'}`}></div>
+          </div>
+        )}
 
         {error && (
           <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-6">
@@ -120,23 +229,25 @@ export default function RegisterPage() {
         )}
 
         <form onSubmit={handleSubmit} className="space-y-6">
-          {step === 1 && (
+          {(step === 1 || invitationDetails) && (
             <>
-              <div>
-                <label htmlFor="adminName" className="block text-sm font-medium text-gray-700 mb-2">
-                  Your Name
-                </label>
-                <input
-                  type="text"
-                  id="adminName"
-                  name="adminName"
-                  value={formData.adminName}
-                  onChange={handleChange}
-                  required
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  placeholder="Enter your full name"
-                />
-              </div>
+              {!invitationDetails && (
+                <div>
+                  <label htmlFor="adminName" className="block text-sm font-medium text-gray-700 mb-2">
+                    Your Name
+                  </label>
+                  <input
+                    type="text"
+                    id="adminName"
+                    name="adminName"
+                    value={formData.adminName}
+                    onChange={handleChange}
+                    required
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    placeholder="Enter your full name"
+                  />
+                </div>
+              )}
 
               <div>
                 <label htmlFor="adminEmail" className="block text-sm font-medium text-gray-700 mb-2">
@@ -149,9 +260,15 @@ export default function RegisterPage() {
                   value={formData.adminEmail}
                   onChange={handleChange}
                   required
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  disabled={!!invitationDetails}
+                  className={`w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+                    invitationDetails ? 'bg-gray-100 cursor-not-allowed' : ''
+                  }`}
                   placeholder="Enter your email address"
                 />
+                {invitationDetails && (
+                  <p className="text-sm text-gray-500 mt-1">This email was specified in your invitation</p>
+                )}
               </div>
 
               <div>
@@ -188,7 +305,7 @@ export default function RegisterPage() {
             </>
           )}
 
-          {step === 2 && (
+          {step === 2 && !invitationDetails && (
             <>
               <div>
                 <label htmlFor="familyName" className="block text-sm font-medium text-gray-700 mb-2">
@@ -263,7 +380,7 @@ export default function RegisterPage() {
           )}
 
           <div className="flex gap-4">
-            {step === 2 && (
+            {step === 2 && !invitationDetails && (
               <button
                 type="button"
                 onClick={() => setStep(1)}
@@ -281,10 +398,12 @@ export default function RegisterPage() {
               {loading ? (
                 <>
                   <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                  Creating Family...
+                  {invitationDetails ? 'Joining Family...' : 'Creating Family...'}
                 </>
               ) : (
-                step === 1 ? 'Next: Family Setup' : 'Create Family Space'
+                invitationDetails 
+                  ? 'Join Family'
+                  : step === 1 ? 'Next: Family Setup' : 'Create Family Space'
               )}
             </button>
           </div>

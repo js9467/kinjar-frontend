@@ -368,25 +368,38 @@ export function EnhancedFamilyAdmin({ familyId, familySlug }: EnhancedFamilyAdmi
                     {members.map((member) => (
                       <div key={member.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
                         <div className="flex items-center gap-4">
-                          <div>
-                            <img
-                              src={member.avatarUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(member.name)}&background=3B82F6&color=fff`}
-                              alt={member.name}
-                              className="w-12 h-12 rounded-full object-cover border"
-                            />
-                            <input
-                              type="file"
-                              accept="image/*"
-                              style={{ display: 'block', marginTop: '0.5rem' }}
-                              onChange={async (e) => {
-                                const file = e.target.files?.[0];
-                                if (file) {
-                                  // TODO: Implement avatar upload API call
-                                  alert('Avatar upload not yet implemented.');
+                      <div>
+                        <div className="relative">
+                          <img
+                            src={member.avatarUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(member.name)}&background=3B82F6&color=fff`}
+                            alt={member.name}
+                            className="w-12 h-12 rounded-full object-cover border"
+                          />
+                          <input
+                            type="file"
+                            accept="image/*"
+                            className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                            onChange={async (e) => {
+                              const file = e.target.files?.[0];
+                              if (file) {
+                                try {
+                                  setLoading(true);
+                                  const result = await api.uploadMemberAvatar(familyId, member.id, file);
+                                  // Refresh members list to show new avatar
+                                  loadMembers();
+                                  console.log('Avatar uploaded successfully:', result.avatarUrl);
+                                } catch (error) {
+                                  console.error('Failed to upload avatar:', error);
+                                  alert('Failed to upload avatar. Please try again.');
+                                } finally {
+                                  setLoading(false);
                                 }
-                              }}
-                            />
-                          </div>
+                              }
+                            }}
+                          />
+                        </div>
+                        <p className="text-xs text-gray-500 mt-1 text-center">Click to change</p>
+                      </div>
                           <div>
                             <h4 className="font-medium text-gray-900">{member.name}</h4>
                             <p className="text-sm text-gray-600">{member.email}</p>
@@ -399,18 +412,62 @@ export function EnhancedFamilyAdmin({ familyId, familySlug }: EnhancedFamilyAdmi
                                 placeholder="Add a personal quote..."
                                 className="w-48 rounded border px-2 py-1 text-sm"
                                 onChange={async (e) => {
-                                  // TODO: Implement quote update API call
-                                  alert('Quote editing not yet implemented.');
+                                  try {
+                                    await api.updateFamilyMember(familyId, member.id, {
+                                      quote: e.target.value
+                                    });
+                                    // Update local state
+                                    setMembers(prev => prev.map(m => 
+                                      m.id === member.id ? { ...m, quote: e.target.value } : m
+                                    ));
+                                  } catch (error) {
+                                    console.error('Failed to update quote:', error);
+                                    alert('Failed to update quote. Please try again.');
+                                  }
+                                }}
+                                onBlur={() => {
+                                  // Optional: save on blur if you want immediate updates
                                 }}
                               />
                             </div>
                           </div>
                         </div>
                         <div className="flex space-x-2">
-                          <button className="text-blue-600 hover:text-blue-700 text-sm font-medium">
+                          <button 
+                            className="text-blue-600 hover:text-blue-700 text-sm font-medium"
+                            onClick={() => {
+                              // TODO: Open edit modal or inline editing for more fields
+                              const newName = prompt('Enter new name:', member.name);
+                              if (newName && newName !== member.name) {
+                                api.updateFamilyMember(familyId, member.id, { name: newName })
+                                  .then(() => {
+                                    loadMembers(); // Refresh the list
+                                  })
+                                  .catch(error => {
+                                    console.error('Failed to update member:', error);
+                                    alert('Failed to update member. Please try again.');
+                                  });
+                              }
+                            }}
+                          >
                             Edit
                           </button>
-                          <button className="text-red-600 hover:text-red-700 text-sm font-medium">
+                          <button 
+                            className="text-red-600 hover:text-red-700 text-sm font-medium"
+                            onClick={() => {
+                              if (confirm(`Are you sure you want to remove ${member.name} from the family?`)) {
+                                api.removeFamilyMember(familyId, member.id)
+                                  .then(() => {
+                                    loadMembers(); // Refresh the list
+                                    alert(`${member.name} has been removed from the family.`);
+                                  })
+                                  .catch(error => {
+                                    console.error('Failed to remove member:', error);
+                                    alert('Failed to remove member. Please try again.');
+                                  });
+                              }
+                            }}
+                          >
                             Remove
                           </button>
                         </div>
