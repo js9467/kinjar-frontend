@@ -325,6 +325,7 @@ class KinjarAPI {
     }
 
     console.log('[API] Sending post data to backend (v2):', backendData);
+    console.log('[API] PostData.familyId for tenant header:', postData.familyId);
 
     const response = await this.request('/api/posts', {
       method: 'POST',

@@ -479,7 +479,7 @@ export function FamilyDashboard({ familySlug }: FamilyDashboardProps) {
           <div className="lg:col-span-2 space-y-6">
             {/* Post Creator */}
             <PostCreator
-              familyId={family.slug || family.id}
+              familyId={effectiveFamilySlug || family?.slug || family?.id || 'unknown'}
               onPostCreated={handlePostCreated}
               onError={setError}
             />
