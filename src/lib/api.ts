@@ -302,16 +302,19 @@ class KinjarAPI {
     const response = await this.request(`/families/${slug}`);
     // Unwrap family object if present
     if (response.family) {
+      const family = response.family;
       return {
-        ...response.family,
-        posts: response.posts || [],
-        members: response.members || [],
-        connections: response.connections || [],
-        connectedFamilies: response.connectedFamilies || [],
-        admins: response.admins || [],
-        highlights: response.highlights || [],
-        pendingMembers: response.pendingMembers || [],
-      };
+        ...family,
+        posts: family.posts || response.posts || [],
+        members: family.members || response.members || [],
+        connections: family.connections || response.connections || [],
+        connectedFamilies: family.connectedFamilies || response.connectedFamilies || [],
+        admins: family.admins || response.admins || [],
+        highlights: family.highlights || response.highlights || [],
+        pendingMembers: family.pendingMembers || response.pendingMembers || [],
+        invitesSentThisMonth: family.invitesSentThisMonth ?? response.invitesSentThisMonth ?? 0,
+        storageUsedMb: family.storageUsedMb ?? response.storageUsedMb ?? 0,
+      } as FamilyProfile;
     }
     return response;
   }
