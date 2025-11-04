@@ -24,26 +24,15 @@ export function CommentSection({ post, onCommentAdded, onError }: CommentSection
 
     setSubmitting(true);
     try {
-      // Try to add comment via API
+      // Add comment via API - no fallbacks
       const comment = await api.addComment(post.id, newComment.trim());
       onCommentAdded?.(comment);
       setNewComment('');
       setShowComments(true);
     } catch (error) {
       console.error('Failed to add comment:', error);
-      
-      // Fallback to mock comment for demo
-      const mockComment: PostComment = {
-        id: `comment-${Date.now()}`,
-        authorName: user?.name || 'Current User',
-        authorAvatarColor: user?.avatarColor || '#3B82F6',
-        content: newComment.trim(),
-        createdAt: new Date().toISOString()
-      };
-
-      onCommentAdded?.(mockComment);
-      setNewComment('');
-      setShowComments(true);
+      // Show error to user instead of fallback
+      alert('Failed to add comment. Please check your connection and try again.');
     } finally {
       setSubmitting(false);
     }

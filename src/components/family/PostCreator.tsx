@@ -240,13 +240,8 @@ export function PostCreator({ familyId, familySlug, initialMembers = [], onPostC
             alt: `${mediaPreview.type} upload`
           };
         } catch (uploadError) {
-          // If upload fails, create mock media for demo
-          console.log('Upload failed, using mock data for demo');
-          media = {
-            type: mediaPreview.type,
-            url: mediaPreview.url, // Use the blob URL for demo
-            alt: `${mediaPreview.type} upload`
-          };
+          console.error('Media upload failed:', uploadError);
+          throw new Error('Failed to upload media. Please try again.');
         }
       }
       // Create post
@@ -254,44 +249,22 @@ export function PostCreator({ familyId, familySlug, initialMembers = [], onPostC
         .split(',')
         .map(tag => tag.trim())
         .filter(tag => tag.length > 0);
-      try {
-        console.log('[PostCreator] Creating post with familyId:', familyId);
-        console.log('[PostCreator] Selected member ID:', selectedMemberId);
-        console.log('[PostCreator] Available members:', members.map(m => ({ id: m.id, name: m.name, userId: m.userId })));
-        const createdPost = await api.createPost({
-          content: content.trim() || (media ? `Shared a ${media.type}` : ''),
-          familyId,
-          authorId: selectedMemberId,
-          media,
-          visibility,
-          tags: postTags
-        });
-        setUploadProgress(100);
-        onPostCreated?.(createdPost);
-      } catch (apiError) {
-        // If API fails, create mock post for demo
-        console.log('API failed, creating mock post for demo');
-        const mockMember = members.find(m => m.id === selectedMemberId);
-        const mockAuthorId = mockMember?.id || user.id;
-        const mockAuthorName = mockMember?.name || user.name;
-        const mockAuthorColor = mockMember?.avatarColor || user.avatarColor || '#3B82F6';
-        const mockPost = {
-          id: `mock-post-${Date.now()}`,
-          familyId,
-          authorId: mockAuthorId,
-          authorName: mockAuthorName,
-          authorAvatarColor: mockAuthorColor,
-          createdAt: new Date().toISOString(),
-          content: content.trim() || (media ? `Shared a ${media.type}` : ''),
-          media,
-          visibility,
-          status: 'approved' as const,
-          reactions: 0,
-          comments: [],
-          tags: postTags
-        };
-        onPostCreated?.(mockPost);
-      }
+      
+      console.log('[PostCreator] Creating post with familyId:', familyId);
+      console.log('[PostCreator] Selected member ID:', selectedMemberId);
+      console.log('[PostCreator] Available members:', members.map(m => ({ id: m.id, name: m.name, userId: m.userId })));
+      
+      const createdPost = await api.createPost({
+        content: content.trim() || (media ? `Shared a ${media.type}` : ''),
+        familyId,
+        authorId: selectedMemberId,
+        media,
+        visibility,
+        tags: postTags
+      });
+      
+      setUploadProgress(100);
+      onPostCreated?.(createdPost);
       // Reset form
       setContent('');
       setTags('');
