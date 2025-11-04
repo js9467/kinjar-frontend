@@ -106,7 +106,7 @@ export function PostCreator({ familyId, familySlug, initialMembers = [], onPostC
 
       if (candidateMembers.length === 0) {
         const slugToFetch = familySlug || contextFamily?.slug || (!isUuid(familyId) ? familyId : undefined);
-        if (slugToFetch) {
+        if (slugToFetch && !loadingMembers) {
           try {
             setLoadingMembers(true);
             const fetchedFamily = await api.getFamilyBySlug(slugToFetch);
@@ -124,11 +124,13 @@ export function PostCreator({ familyId, familySlug, initialMembers = [], onPostC
     const normalizedMembers = normalizeEligibleMembers(candidateMembers);
     setMembers(normalizedMembers);
     ensureSelectedMember(normalizedMembers);
-  }, [initialMembers, families, familyId, familySlug, onError, ensureSelectedMember]);
+  }, [initialMembers, families, familyId, familySlug, onError, ensureSelectedMember, loadingMembers]);
 
   useEffect(() => {
-    loadMembers();
-  }, [loadMembers]);
+    if (members.length === 0) {
+      loadMembers();
+    }
+  }, []);
 
   useEffect(() => {
     if (initialMembers.length > 0) {
