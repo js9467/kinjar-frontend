@@ -531,17 +531,27 @@ export function FamilyDashboard({ familySlug }: FamilyDashboardProps) {
       {/* Main Content */}
       <div className="max-w-4xl mx-auto px-4 py-8">
         {/* Enhanced Family Admin Interface */}
-        {showAdminInterface && family && family.id ? (
+        {showAdminInterface && loading && (
           <div className="mb-8">
-            <EnhancedFamilyAdmin 
-              familyId={family.id} 
-              familySlug={effectiveFamilySlug || family.slug} 
-            />
+            <div className="text-center py-8">
+              <span className="loader inline-block mr-2"></span> Loading family data...
+            </div>
           </div>
-        ) : showAdminInterface && family && !family.id ? (
+        )}
+        {showAdminInterface && family && family.id ? (
+          (() => { console.log('[FamilyDashboard] Loaded family:', family); return (
+            <div className="mb-8">
+              <EnhancedFamilyAdmin 
+                familyId={family.id} 
+                familySlug={effectiveFamilySlug || family.slug} 
+              />
+            </div>
+          ); })()
+        ) : showAdminInterface && family && !family.id && !loading ? (
           <div className="mb-8">
             <div className="bg-red-100 text-red-800 p-4 rounded-lg">
-              Error: Family ID is missing. Cannot manage members until family is fully loaded.
+              Error: Family ID is missing. Cannot manage members until family is fully loaded.<br />
+              <pre className="text-xs mt-2">{JSON.stringify(family, null, 2)}</pre>
             </div>
           </div>
         ) : null}
