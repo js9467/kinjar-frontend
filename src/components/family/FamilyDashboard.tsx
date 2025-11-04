@@ -29,31 +29,11 @@ export function FamilyDashboard({ familySlug }: FamilyDashboardProps) {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [postToDelete, setPostToDelete] = useState<string | null>(null);
   
-  // Determine family context
-  const subdomainInfo = useMemo(() => getSubdomainInfo(), []);
-  const effectiveFamilySlug = familySlug || subdomainInfo.familySlug;
-
   // Add a backup for posts to prevent data loss
   const [postsBackup, setPostsBackup] = useState<FamilyPost[]>([]);
   
-  // Add localStorage persistence for posts (moved after effectiveFamilySlug is defined)
+  // Add localStorage persistence for posts (initialize after effectiveFamilySlug is available)
   const [persistedPosts, setPersistedPosts] = useState<FamilyPost[]>([]);
-  
-  // Initialize persisted posts from localStorage
-  useEffect(() => {
-    if (typeof window !== 'undefined' && effectiveFamilySlug) {
-      try {
-        const saved = localStorage.getItem(`familyPosts_${effectiveFamilySlug}`);
-        if (saved) {
-          const parsed = JSON.parse(saved);
-          setPersistedPosts(parsed);
-          console.log('[FamilyDashboard] Loaded persisted posts from localStorage:', parsed.length);
-        }
-      } catch (error) {
-        console.error('[FamilyDashboard] Failed to load persisted posts:', error);
-      }
-    }
-  }, [effectiveFamilySlug]);
   
   // Edit functionality
   const [editingPostId, setEditingPostId] = useState<string | null>(null);
@@ -68,6 +48,10 @@ export function FamilyDashboard({ familySlug }: FamilyDashboardProps) {
 
   // Admin interface state
   const [showAdminInterface, setShowAdminInterface] = useState(false);
+
+  // Determine family context
+  const subdomainInfo = useMemo(() => getSubdomainInfo(), []);
+  const effectiveFamilySlug = familySlug || subdomainInfo.familySlug;
 
   const loadFamilyData = useCallback(async () => {
     if (!effectiveFamilySlug) {
@@ -108,24 +92,38 @@ export function FamilyDashboard({ familySlug }: FamilyDashboardProps) {
         // If no posts included in family data, try to load them separately
         if (familyPosts.length === 0) {
           console.log('[FamilyDashboard] No posts in family data, loading separately...');
-          const postsData = await api.getFamilyPosts(effectiveFamilySlug);
-          console.log('[FamilyDashboard] Loaded posts separately:', postsData.length);
-          const normalizedPosts = postsData.map(post => ({
-            ...post,
-            comments: post.comments || [],
-            tags: post.tags || []
-          }));
-          const sortedPosts = normalizedPosts.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-          setPosts(sortedPosts);
-          setPostsBackup(sortedPosts); // Backup the posts
-          
-          // Persist to localStorage
-          if (typeof window !== 'undefined' && effectiveFamilySlug) {
-            try {
-              localStorage.setItem(`familyPosts_${effectiveFamilySlug}`, JSON.stringify(sortedPosts));
-              console.log('[FamilyDashboard] Posts persisted to localStorage:', sortedPosts.length);
-            } catch (error) {
-              console.error('[FamilyDashboard] Failed to persist posts:', error);
+          try {
+            const postsData = await api.getFamilyPosts(effectiveFamilySlug);
+            console.log('[FamilyDashboard] Loaded posts separately:', postsData.length);
+            const normalizedPosts = postsData.map(post => ({
+              ...post,
+              comments: post.comments || [],
+              tags: post.tags || []
+            }));
+            const sortedPosts = normalizedPosts.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+            setPosts(sortedPosts);
+            setPostsBackup(sortedPosts); // Backup the posts
+            
+            // Persist to localStorage
+            if (typeof window !== 'undefined' && effectiveFamilySlug) {
+              try {
+                localStorage.setItem(`familyPosts_${effectiveFamilySlug}`, JSON.stringify(sortedPosts));
+                console.log('[FamilyDashboard] Posts persisted to localStorage:', sortedPosts.length);
+              } catch (error) {
+                console.error('[FamilyDashboard] Failed to persist posts:', error);
+              }
+            }
+          } catch (postsError) {
+            console.log('[FamilyDashboard] No posts found for family via API, checking localStorage...');
+            
+            // Try to recover from localStorage
+            if (persistedPosts.length > 0) {
+              console.log('[FamilyDashboard] Recovering posts from localStorage:', persistedPosts.length);
+              setPosts(persistedPosts);
+              setPostsBackup(persistedPosts);
+            } else {
+              console.log('[FamilyDashboard] No posts in localStorage either, using empty array');
+              setPosts([]);
             }
           }
         } else {
@@ -151,8 +149,10 @@ export function FamilyDashboard({ familySlug }: FamilyDashboardProps) {
         }
       } catch (apiError) {
         console.error('Failed to load family data:', apiError);
-        throw apiError; // Let the error bubble up instead of falling back to mock data
-      }
+        setError(`Failed to load family data: ${apiError instanceof Error ? apiError.message : 'Unknown error'}`);
+        
+        // Only create mock family as fallback when API fails
+        const mockFamily = {
           id: 'mock-family-1',
           slug: effectiveFamilySlug,
           name: effectiveFamilySlug.charAt(0).toUpperCase() + effectiveFamilySlug.slice(1),
@@ -244,6 +244,22 @@ export function FamilyDashboard({ familySlug }: FamilyDashboardProps) {
     console.log('[FamilyDashboard] useEffect triggered, effectiveFamilySlug:', effectiveFamilySlug);
     loadFamilyData();
   }, [loadFamilyData]);
+
+  // Initialize localStorage posts when familySlug is available
+  useEffect(() => {
+    if (typeof window !== 'undefined' && effectiveFamilySlug) {
+      try {
+        const saved = localStorage.getItem(`familyPosts_${effectiveFamilySlug}`);
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          setPersistedPosts(parsed);
+          console.log('[FamilyDashboard] Loaded persisted posts from localStorage:', parsed.length);
+        }
+      } catch (error) {
+        console.error('[FamilyDashboard] Failed to load persisted posts:', error);
+      }
+    }
+  }, [effectiveFamilySlug]);
 
   // Safety check: restore posts from backup if they get cleared unexpectedly
   useEffect(() => {
