@@ -438,6 +438,8 @@ class KinjarAPI {
   }
 
   async getFamilyPosts(familySlugOrId: string, limit: number = 20, offset: number = 0): Promise<FamilyPost[]> {
+    console.log(`[API] getFamilyPosts called for: ${familySlugOrId}, limit: ${limit}, offset: ${offset}`);
+    
     // Try the API endpoint first (uses slug)
     let response;
     try {
@@ -449,6 +451,8 @@ class KinjarAPI {
 
     // Transform backend posts to frontend format
     const backendPosts = response.posts || response || [];
+    console.log(`[API] Raw backend posts received: ${backendPosts.length}`);
+    
     const frontendPosts: FamilyPost[] = backendPosts.map((backendPost: any) => ({
       id: backendPost.id,
       familyId: backendPost.tenant_id || familySlugOrId,

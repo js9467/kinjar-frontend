@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { FamilyPost, FamilyProfile } from '@/lib/types';
 import { api, getSubdomainInfo } from '@/lib/api';
 import { useAuth } from '@/lib/auth';
@@ -26,6 +26,9 @@ export function FamilyDashboard({ familySlug }: FamilyDashboardProps) {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [postToDelete, setPostToDelete] = useState<string | null>(null);
   
+  // Add a backup for posts to prevent data loss
+  const [postsBackup, setPostsBackup] = useState<FamilyPost[]>([]);
+  
   // Edit functionality
   const [editingPostId, setEditingPostId] = useState<string | null>(null);
   const [editContent, setEditContent] = useState('');
@@ -41,20 +44,17 @@ export function FamilyDashboard({ familySlug }: FamilyDashboardProps) {
   const [showAdminInterface, setShowAdminInterface] = useState(false);
 
   // Determine family context
-  const subdomainInfo = getSubdomainInfo();
+  const subdomainInfo = useMemo(() => getSubdomainInfo(), []);
   const effectiveFamilySlug = familySlug || subdomainInfo.familySlug;
 
-  useEffect(() => {
-    loadFamilyData();
-  }, [effectiveFamilySlug]);
-
-  const loadFamilyData = async () => {
+  const loadFamilyData = useCallback(async () => {
     if (!effectiveFamilySlug) {
       setError('No family context found');
       setLoading(false);
       return;
     }
 
+    console.log('[FamilyDashboard] Loading family data for:', effectiveFamilySlug);
     try {
       setLoading(true);
       setError(null);
@@ -78,30 +78,39 @@ export function FamilyDashboard({ familySlug }: FamilyDashboardProps) {
         setFamily(normalizedFamily);
         setError(null);
         
+        console.log('[FamilyDashboard] Family data loaded:', normalizedFamily.name, 'Posts in family data:', normalizedFamily.posts?.length || 0);
+        
         // Handle cases where posts might be undefined or null
         const familyPosts = normalizedFamily.posts || [];
         
         // If no posts included in family data, try to load them separately
         if (familyPosts.length === 0) {
+          console.log('[FamilyDashboard] No posts in family data, loading separately...');
           try {
             const postsData = await api.getFamilyPosts(effectiveFamilySlug);
+            console.log('[FamilyDashboard] Loaded posts separately:', postsData.length);
             const normalizedPosts = postsData.map(post => ({
               ...post,
               comments: post.comments || [],
               tags: post.tags || []
             }));
-            setPosts(normalizedPosts.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()));
+            const sortedPosts = normalizedPosts.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+            setPosts(sortedPosts);
+            setPostsBackup(sortedPosts); // Backup the posts
           } catch (postsError) {
-            console.log('No posts found for family, using empty array');
+            console.log('[FamilyDashboard] No posts found for family, using empty array');
             setPosts([]);
           }
         } else {
+          console.log('[FamilyDashboard] Using posts from family data:', familyPosts.length);
           const normalizedPosts = familyPosts.map(post => ({
             ...post,
             comments: post.comments || [],
             tags: post.tags || []
           }));
-          setPosts(normalizedPosts.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()));
+          const sortedPosts = normalizedPosts.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+          setPosts(sortedPosts);
+          setPostsBackup(sortedPosts); // Backup the posts
         }
       } catch (apiError) {
         console.error('Failed to load family data:', apiError);
@@ -194,7 +203,20 @@ export function FamilyDashboard({ familySlug }: FamilyDashboardProps) {
     } finally {
       setLoading(false);
     }
-  };
+  }, [effectiveFamilySlug]);
+
+  useEffect(() => {
+    console.log('[FamilyDashboard] useEffect triggered, effectiveFamilySlug:', effectiveFamilySlug);
+    loadFamilyData();
+  }, [loadFamilyData]);
+
+  // Safety check: restore posts from backup if they get cleared unexpectedly
+  useEffect(() => {
+    if (posts.length === 0 && postsBackup.length > 0 && !loading) {
+      console.log('[FamilyDashboard] Posts were cleared, restoring from backup:', postsBackup.length);
+      setPosts(postsBackup);
+    }
+  }, [posts.length, postsBackup.length, loading]);
 
   const handlePostCreated = (newPost: FamilyPost) => {
     setPosts(prev => [newPost, ...prev]);
