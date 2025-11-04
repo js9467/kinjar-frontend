@@ -496,12 +496,16 @@ class KinjarAPI {
     });
   }
 
-  async editPost(postId: string, content: string): Promise<FamilyPost> {
+  async editPost(postId: string, content: string, tenantSlug?: string): Promise<FamilyPost> {
     try {
-      const response = await this.request(`/api/posts/${postId}`, {
-        method: 'PATCH',
-        body: JSON.stringify({ content }),
-      });
+      const response = await this.request(
+        `/api/posts/${postId}`,
+        {
+          method: 'PATCH',
+          body: JSON.stringify({ content }),
+        },
+        tenantSlug
+      );
 
       console.log('[API] Edit post response:', response);
 

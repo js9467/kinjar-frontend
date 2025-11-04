@@ -106,8 +106,10 @@ export function FamilyFeed({ familyIds, highlightFamilyId, title = 'Family stori
 
     try {
       setSavingEdit(true);
-      await api.editPost(editingPostId, editContent.trim());
-      
+      const editingEntry = posts.find(({ post }) => post.id === editingPostId);
+      const tenantSlug = editingEntry?.family.slug || editingEntry?.family.id || familyIds[0];
+      await api.editPost(editingPostId, editContent.trim(), tenantSlug);
+
       // Refresh the posts to show updated content
       onRefresh?.();
       
