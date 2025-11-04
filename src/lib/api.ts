@@ -23,26 +23,6 @@ if (typeof window !== 'undefined') {
   console.log(`[API] Final API_BASE_URL: ${API_BASE_URL}`);
 }
 
-// Demo mode configuration for development/testing
-const DEMO_MODE = {
-  enabled: false,  // Using getCurrentUser fallback instead
-  credentials: {
-    email: 'testuser@kinjar.com',
-    password: 'TestPass123!',
-    token: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1aWQiOiIzZDc3N2Y4NC0zMjM2LTQxY2QtYjVkMS05OTRlN2Y4OWE0ZjAiLCJpYXQiOjE3NjIyMjEwMzksImV4cCI6MTc2MzQzMDYzOX0.ktax1wjmjYvZ3x-v5qwJO4LGYm44D-RtPDvVncxV4sg'
-  }
-};
-
-// Development helper - auto-set valid token for testing
-if (typeof window !== 'undefined' && process.env.NODE_ENV === 'development') {
-  const currentToken = localStorage.getItem('kinjar-auth-token');
-  if (!currentToken && window.location.search.includes('dev-auth=true')) {
-    console.log('[DEV] Auto-setting test token for development');
-    localStorage.setItem('kinjar-auth-token', DEMO_MODE.credentials.token);
-    window.location.reload();
-  }
-}
-
 // Utility to get subdomain information
 export function getSubdomainInfo(): SubdomainInfo {
   if (typeof window === 'undefined') {
@@ -75,7 +55,7 @@ export function getSubdomainInfo(): SubdomainInfo {
     return result;
   }
 
-  // Check for path-based family access (e.g., www.kinjar.com/families/slaughterbeck)
+  // Check for path-based family access (e.g., www.kinjar.com/families/smithfamily)
   const pathMatch = pathname.match(/^\/families\/([^\/]+)/);
   if (pathMatch) {
     const familySlug = pathMatch[1];
@@ -103,7 +83,7 @@ export function getSubdomainInfo(): SubdomainInfo {
     }
   }
 
-  // Handle direct .kinjar.com subdomains (like slaughterbeck.kinjar.com)
+  // Handle direct .kinjar.com subdomains (like familyname.kinjar.com)
   if (parts.length === 3 && parts[1] === 'kinjar' && parts[2] === 'com') {
     const subdomain = parts[0];
     if (subdomain && subdomain !== 'www' && subdomain !== 'admin') {
@@ -135,12 +115,6 @@ class KinjarAPI {
     if (typeof window !== 'undefined') {
       this.token = localStorage.getItem('kinjar-auth-token');
       console.log(`[API] Token loaded: ${this.token ? this.token.substring(0, 20) + '...' : 'none'}`);
-      
-      // In demo mode, auto-load the demo token if no token exists
-      if (DEMO_MODE.enabled && !this.token) {
-        this.token = DEMO_MODE.credentials.token;
-        localStorage.setItem('kinjar-auth-token', this.token);
-      }
     }
   }
 
@@ -298,31 +272,6 @@ class KinjarAPI {
       // Clear current user state
       this.setCurrentUser(null);
       
-      // Only use mock user in specific development scenarios
-      const isDevelopment = process.env.NODE_ENV === 'development';
-      const isLocalhost = typeof window !== 'undefined' && window.location.hostname === 'localhost';
-      
-      if (isDevelopment && isLocalhost && process.env.NEXT_PUBLIC_USE_MOCK_USER === 'true') {
-        console.log('[API] Using mock user for development');
-        return {
-          id: 'mock-user-id',
-          name: 'Jay Slaughterbeck',
-          email: 'slaughterbeck@gmail.com',
-          avatarColor: '#3B82F6',
-          globalRole: 'FAMILY_ADMIN',
-          memberships: [{
-            familyId: 'slaughterbeck',
-            familySlug: 'slaughterbeck',
-            familyName: 'Slaughterbeck Family',
-            memberId: 'mock-member-id',
-            role: 'ADMIN',
-            joinedAt: new Date().toISOString()
-          }],
-          createdAt: new Date().toISOString(),
-          lastLoginAt: new Date().toISOString()
-        };
-      }
-      
       // Re-throw the error so the auth context can handle it properly
       throw error;
     }
@@ -364,13 +313,6 @@ class KinjarAPI {
     return this.request('/families/invite', {
       method: 'POST',
       body: JSON.stringify(invite),
-    });
-  }
-
-  async updateMemberRole(familyId: string, memberId: string, role: string): Promise<void> {
-    return this.request(`/families/${familyId}/members/${memberId}/role`, {
-      method: 'PATCH',
-      body: JSON.stringify({ role }),
     });
   }
 
@@ -614,6 +556,62 @@ class KinjarAPI {
     } catch {
       return false;
     }
+  }
+
+  // User Profile Management
+  async updateUserProfile(data: {
+    displayName?: string;
+    bio?: string;
+    phone?: string;
+    avatarColor?: string;
+    avatarUrl?: string;
+    birthdate?: string;
+  }): Promise<void> {
+    return this.request('/auth/profile', {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    });
+  }
+
+  // Family Member Management
+  async inviteFamilyMember(data: {
+    email: string;
+    name: string;
+    familyId: string;
+    birthdate?: string;
+    role?: string;
+  }): Promise<{ userId: string; assignedRole: string }> {
+    return this.request('/auth/invite-member', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async updateMemberRole(familyId: string, memberId: string, role: string, manualOverride = false): Promise<{
+    newRole: string;
+    permissions: any;
+  }> {
+    return this.request(`/families/${familyId}/members/${memberId}/role`, {
+      method: 'PATCH',
+      body: JSON.stringify({ role, manualOverride }),
+    });
+  }
+
+  // Post Approval System
+  async getPendingPosts(): Promise<FamilyPost[]> {
+    return this.request('/api/posts/pending');
+  }
+
+  async approvePost(postId: string, action: 'approve' | 'reject', reason = ''): Promise<{ newStatus: string }> {
+    return this.request(`/api/posts/${postId}/approve`, {
+      method: 'PATCH',
+      body: JSON.stringify({ action, reason }),
+    });
+  }
+
+  // Public Feed
+  async getPublicFeed(limit = 20, offset = 0): Promise<FamilyPost[]> {
+    return this.request(`/api/public-feed?limit=${limit}&offset=${offset}`);
   }
 }
 

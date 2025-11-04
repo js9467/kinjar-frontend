@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { getSubdomainInfo } from '@/lib/api';
 import { FamilyDashboard } from '@/components/family/FamilyDashboard';
+import { PublicFeed } from '@/components/PublicFeed';
 import Link from 'next/link';
 
 export default function HomePage() {
@@ -26,17 +27,17 @@ export default function HomePage() {
     );
   }
 
-  // If we're on a family subdomain (like slaughterbeck.kinjar.com), show the family dashboard
+  // If we're on a family subdomain (like familyname.kinjar.com), show the family dashboard
   if (subdomainInfo?.isSubdomain && subdomainInfo?.familySlug) {
     return <FamilyDashboard familySlug={subdomainInfo.familySlug} />;
   }
 
   // Main kinjar.com landing page
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
+    <div className="min-h-screen bg-gray-50">
       {/* Hero Section */}
-      <div className="relative overflow-hidden">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24">
+      <div className="bg-gradient-to-br from-blue-50 via-white to-purple-50">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
           <div className="text-center">
             <h1 className="text-4xl md:text-6xl font-bold text-gray-900 mb-6">
               Connect Your
@@ -65,23 +66,37 @@ export default function HomePage() {
         </div>
       </div>
 
-      {/* Demo Section */}
-      <div className="py-24 bg-gray-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+      {/* Public Feed Section */}
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+        <div className="text-center mb-8">
           <h2 className="text-3xl font-bold text-gray-900 mb-4">
-            See It In Action
+            Recent Family Updates
           </h2>
-          <p className="text-xl text-gray-600 mb-8">
-            Visit our demo family space to see how it works
+          <p className="text-lg text-gray-600">
+            See what families are sharing publicly on Kinjar
+          </p>
+        </div>
+        
+        <PublicFeed />
+      </div>
+
+      {/* Call to Action */}
+      <div className="bg-gradient-to-r from-blue-600 to-purple-600 py-16">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+          <h2 className="text-3xl font-bold text-white mb-4">
+            Ready to Connect Your Family?
+          </h2>
+          <p className="text-xl text-blue-100 mb-8">
+            Join thousands of families already using Kinjar to stay connected
           </p>
           <Link
-            href="/families/slaughterbeck"
-            className="inline-flex items-center gap-2 bg-gradient-to-r from-blue-600 to-purple-600 text-white px-8 py-3 rounded-lg font-semibold hover:from-blue-700 hover:to-purple-700 transition-all transform hover:scale-105"
+            href="/auth/register"
+            className="inline-flex items-center gap-2 bg-white text-blue-600 px-8 py-3 rounded-lg font-semibold hover:bg-gray-100 transition-all transform hover:scale-105"
           >
+            Get Started Today
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 7l5 5m0 0l-5 5m5-5H6" />
             </svg>
-            Visit Slaughterbeck Family
           </Link>
         </div>
       </div>

@@ -17,6 +17,11 @@ export interface AuthUser {
   name: string;
   email: string;
   avatarColor: string;
+  avatarUrl?: string;
+  birthdate?: string;
+  age?: number;
+  bio?: string;
+  phone?: string;
   globalRole: GlobalRole;
   memberships: FamilyMembership[];
   createdAt: string;
@@ -30,9 +35,24 @@ export interface FamilyMemberProfile {
   email: string;
   role: FamilyRole;
   avatarColor: string;
-  joinedAt: string;
+  avatarUrl?: string;
+  birthdate?: string;
   age?: number;
+  bio?: string;
+  permissions?: RolePermissions;
+  joinedAt: string;
   birthYear?: number;
+}
+
+export interface RolePermissions {
+  can_post: boolean;
+  can_post_public: boolean;
+  can_comment: boolean;
+  can_react: boolean;
+  can_invite_members: boolean;
+  can_manage_family: boolean;
+  requires_approval: boolean;
+  can_moderate: boolean;
 }
 
 export interface MediaAttachment {
@@ -55,10 +75,14 @@ export interface PostComment {
 export interface FamilyPost {
   id: string;
   familyId: string;
+  familySlug?: string;  // For public feed
+  familyName?: string;  // For public feed
+  familyThemeColor?: string;  // For public feed
   authorId: string;
   authorName: string;
   authorAvatarColor: string;
   createdAt: string;
+  title?: string;  // For enhanced posts
   content: string;
   media?: MediaAttachment;
   visibility: PostVisibility;

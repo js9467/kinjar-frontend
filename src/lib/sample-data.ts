@@ -1,3 +1,11 @@
+/*
+ * Sample Data for Development and Testing
+ * 
+ * This file contains mock data for development purposes.
+ * In production, all data comes from the live API endpoints.
+ * This data is only used when the API is unavailable or for component testing.
+ */
+
 import {
   AuthUser,
   FamilyConnectionRequest,
