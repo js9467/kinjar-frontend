@@ -50,9 +50,10 @@ export function getSubdomainInfo(): SubdomainInfo {
   }
 
   const hostname = window.location.hostname;
+  const pathname = window.location.pathname;
   const parts = hostname.split('.');
   
-  console.log(`[Subdomain Detection] hostname: ${hostname}, search: ${window.location.search}`);
+  console.log(`[Subdomain Detection] hostname: ${hostname}, pathname: ${pathname}, search: ${window.location.search}`);
 
   // Handle localhost development
   if (hostname === 'localhost' || hostname.startsWith('192.168.') || hostname.startsWith('127.0.0.1')) {
@@ -71,6 +72,21 @@ export function getSubdomainInfo(): SubdomainInfo {
     }
     const result = { isSubdomain: false, isRootDomain: true };
     console.log(`[Subdomain Detection] localhost no family param result:`, result);
+    return result;
+  }
+
+  // Check for path-based family access (e.g., www.kinjar.com/families/slaughterbeck)
+  const pathMatch = pathname.match(/^\/families\/([^\/]+)/);
+  if (pathMatch) {
+    const familySlug = pathMatch[1];
+    console.log(`[Subdomain Detection] path-based family detected: ${familySlug}`);
+    const result = {
+      isSubdomain: true, // Treat as subdomain for API purposes
+      subdomain: familySlug,
+      familySlug: familySlug,
+      isRootDomain: false
+    };
+    console.log(`[Subdomain Detection] path-based result:`, result);
     return result;
   }
 
@@ -508,6 +524,34 @@ class KinjarAPI {
     await this.request(`/api/posts/${postId}`, {
       method: 'DELETE',
     });
+  }
+
+  async editPost(postId: string, content: string): Promise<FamilyPost> {
+    const response = await this.request(`/api/posts/${postId}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ content }),
+    });
+
+    // Transform backend response to frontend format
+    return {
+      id: response.id,
+      content: response.content,
+      authorId: response.author_id,
+      authorName: response.author_name,
+      authorAvatarColor: response.author_avatar_color || '#3B82F6',
+      createdAt: response.created_at,
+      familyId: response.tenant_id,
+      media: response.media_url ? {
+        url: response.media_url,
+        type: this.determineMediaType(response.media_type, response.media_url),
+        alt: response.media_alt || 'User uploaded media'
+      } as MediaAttachment : undefined,
+      visibility: response.visibility || 'family',
+      status: response.status || 'approved',
+      reactions: 0, // TODO: Get from backend
+      comments: [], // TODO: Get from backend
+      tags: [] // TODO: Get from backend
+    };
   }
 
   // Root Admin Functions

@@ -6,15 +6,17 @@ import { useMemo, useState } from 'react';
 import { useAppState } from '@/lib/app-state';
 import { useAuth } from '@/lib/auth';
 import { api } from '@/lib/api';
+import { FamilyPost } from '@/lib/types';
 import { ConfirmModal } from '@/components/ui/ConfirmModal';
 
 interface FamilyFeedProps {
   familyIds: string[];
   highlightFamilyId?: string;
   title?: string;
+  onRefresh?: () => void;
 }
 
-export function FamilyFeed({ familyIds, highlightFamilyId, title = 'Family stories' }: FamilyFeedProps) {
+export function FamilyFeed({ familyIds, highlightFamilyId, title = 'Family stories', onRefresh }: FamilyFeedProps) {
   const { families } = useAppState();
   const { user, canManageFamily } = useAuth();
   const [filter, setFilter] = useState<'all' | 'public' | 'family'>('all');
@@ -22,6 +24,11 @@ export function FamilyFeed({ familyIds, highlightFamilyId, title = 'Family stori
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [postToDelete, setPostToDelete] = useState<string | null>(null);
   const [deletedPosts, setDeletedPosts] = useState<Set<string>>(new Set());
+  
+  // Edit functionality
+  const [editingPostId, setEditingPostId] = useState<string | null>(null);
+  const [editContent, setEditContent] = useState('');
+  const [savingEdit, setSavingEdit] = useState(false);
 
   const posts = useMemo(() => {
     const relevantFamilies = families.filter((family) => familyIds.includes(family.id));
@@ -89,6 +96,36 @@ export function FamilyFeed({ familyIds, highlightFamilyId, title = 'Family stori
     setPostToDelete(null);
   };
 
+  const handleEditPost = (post: FamilyPost) => {
+    setEditingPostId(post.id);
+    setEditContent(post.content);
+  };
+
+  const saveEditPost = async () => {
+    if (!editingPostId || !editContent.trim()) return;
+
+    try {
+      setSavingEdit(true);
+      await api.editPost(editingPostId, editContent.trim());
+      
+      // Refresh the posts to show updated content
+      onRefresh?.();
+      
+      setEditingPostId(null);
+      setEditContent('');
+    } catch (err) {
+      console.error('Failed to edit post:', err);
+      alert(err instanceof Error ? err.message : 'Failed to edit post');
+    } finally {
+      setSavingEdit(false);
+    }
+  };
+
+  const cancelEditPost = () => {
+    setEditingPostId(null);
+    setEditContent('');
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -147,17 +184,54 @@ export function FamilyFeed({ familyIds, highlightFamilyId, title = 'Family stori
                       {family.name} · {post.visibility === 'public' ? 'Public' : post.visibility === 'connections' ? 'Connections' : 'Family only'}
                     </p>
                     <h5 className="mt-2 text-lg font-semibold text-slate-900">{post.authorName || 'User'}</h5>
-                    <p className="mt-2 whitespace-pre-wrap text-sm text-slate-600">{post.content}</p>
+                    
+                    {editingPostId === post.id ? (
+                      <div className="mt-2 space-y-2">
+                        <textarea
+                          value={editContent}
+                          onChange={(e) => setEditContent(e.target.value)}
+                          className="w-full rounded-lg border border-slate-300 p-2 text-sm resize-none focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                          rows={3}
+                          placeholder="What's on your mind?"
+                        />
+                        <div className="flex gap-2">
+                          <button
+                            onClick={saveEditPost}
+                            disabled={savingEdit || !editContent.trim()}
+                            className="rounded-lg bg-indigo-600 px-3 py-1 text-xs font-medium text-white hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-50"
+                          >
+                            {savingEdit ? 'Saving...' : 'Save'}
+                          </button>
+                          <button
+                            onClick={cancelEditPost}
+                            disabled={savingEdit}
+                            className="rounded-lg border border-slate-300 px-3 py-1 text-xs font-medium text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
+                          >
+                            Cancel
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      <p className="mt-2 whitespace-pre-wrap text-sm text-slate-600">{post.content}</p>
+                    )}
                   </div>
                   <div className="flex items-center gap-3">
-                    {canDeletePost ? (
-                      <button
-                        onClick={() => handleDeletePost(post.id)}
-                        disabled={deletingPostId === post.id}
-                        className="text-sm text-red-600 hover:text-red-700 disabled:cursor-not-allowed disabled:opacity-50"
-                      >
-                        {deletingPostId === post.id ? 'Deleting…' : 'Delete'}
-                      </button>
+                    {canDeletePost && editingPostId !== post.id ? (
+                      <>
+                        <button
+                          onClick={() => handleEditPost(post)}
+                          className="text-sm text-indigo-600 hover:text-indigo-700"
+                        >
+                          Edit
+                        </button>
+                        <button
+                          onClick={() => handleDeletePost(post.id)}
+                          disabled={deletingPostId === post.id}
+                          className="text-sm text-red-600 hover:text-red-700 disabled:cursor-not-allowed disabled:opacity-50"
+                        >
+                          {deletingPostId === post.id ? 'Deleting…' : 'Delete'}
+                        </button>
+                      </>
                     ) : null}
                     <span
                       className="flex h-10 w-10 items-center justify-center rounded-full text-sm font-semibold text-white"
