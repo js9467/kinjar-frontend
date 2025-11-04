@@ -299,6 +299,7 @@ export default function UploadComponent({
                 const createdPost = await api.createPost({
                   content: postContent.trim(),
                   familyId: resolvedFamilyId.toString(),
+                  authorId: api.currentUser?.id || 'current-user',
                 });
                 onUploadSuccess?.(createdPost);
                 setPostContent('');
