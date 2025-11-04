@@ -49,9 +49,9 @@ export function FamilyDashboard({ familySlug }: FamilyDashboardProps) {
   // Admin interface state
   const [showAdminInterface, setShowAdminInterface] = useState(false);
 
-  // Determine family context
+  // Determine family context - memoize to prevent infinite loops
   const subdomainInfo = useMemo(() => getSubdomainInfo(), []);
-  const effectiveFamilySlug = familySlug || subdomainInfo.familySlug;
+  const effectiveFamilySlug = useMemo(() => familySlug || subdomainInfo.familySlug, [familySlug, subdomainInfo.familySlug]);
 
   const loadFamilyData = useCallback(async () => {
     if (!effectiveFamilySlug) {
@@ -571,7 +571,9 @@ export function FamilyDashboard({ familySlug }: FamilyDashboardProps) {
           <div className="lg:col-span-2 space-y-6">
             {/* Post Creator */}
             <PostCreator
-              familyId={effectiveFamilySlug || family?.slug || family?.id || 'unknown'}
+              familyId={effectiveFamilySlug || 'unknown'}
+              familySlug={effectiveFamilySlug}
+              initialMembers={family?.members || []}
               onPostCreated={handlePostCreated}
               onError={setError}
             />

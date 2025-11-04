@@ -58,6 +58,11 @@ export function PostCreator({ familyId, familySlug, initialMembers = [], onPostC
 
   // Load family members and set up post as options
   const loadMembers = useCallback(async () => {
+    if (loadingMembers) {
+      console.log('[PostCreator] Already loading members, skipping...');
+      return; // Prevent concurrent loading
+    }
+    
     try {
       setLoadingMembers(true);
       
@@ -96,10 +101,10 @@ export function PostCreator({ familyId, familySlug, initialMembers = [], onPostC
       }
 
       // 3. Fetch from API if still no members
-      if (familyMembers.length === 0) {
-        const slugToFetch = familySlug || familyId;
+      if (familyMembers.length === 0 && familySlug) {
         try {
-          const fetchedFamily = await api.getFamilyBySlug(slugToFetch);
+          console.log('[PostCreator] Fetching family members from API for:', familySlug);
+          const fetchedFamily = await api.getFamilyBySlug(familySlug);
           familyMembers = fetchedFamily.members || [];
         } catch (error) {
           console.warn('[PostCreator] Failed to load family members:', error);
@@ -147,13 +152,13 @@ export function PostCreator({ familyId, familySlug, initialMembers = [], onPostC
     } finally {
       setLoadingMembers(false);
     }
-  }, [familyId, familySlug, initialMembers, families, user, onError]);
+  }, [familyId, familySlug, user?.id]); // Removed changing dependencies
 
   useEffect(() => {
     if (isAuthenticated) {
       loadMembers();
     }
-  }, [isAuthenticated, loadMembers]);
+  }, [isAuthenticated, familyId, familySlug, user?.id]); // Direct dependencies instead of loadMembers
 
   const handleFileSelect = (files: FileList | null) => {
     if (fileInputRef.current) {
