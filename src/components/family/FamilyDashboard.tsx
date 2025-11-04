@@ -10,6 +10,7 @@ import { CommentSection, PostReactions } from '@/components/family/CommentSectio
 import { ConfirmModal } from '@/components/ui/ConfirmModal';
 import { ChangePasswordModal } from '@/components/ui/ChangePasswordModal';
 import { EnhancedFamilyAdmin } from '@/components/admin/EnhancedFamilyAdmin';
+import { FamilyConnectionsManager } from '@/components/FamilyConnectionsManager';
 import Image from 'next/image';
 import Link from 'next/link';
 
@@ -892,6 +893,14 @@ export function FamilyDashboard({ familySlug }: FamilyDashboardProps) {
                   </div>
                 ))}
               </div>
+            </div>
+
+            {/* Family Connections Manager */}
+            <div className="bg-white rounded-lg border border-gray-200 p-6">
+              <h2 className="text-lg font-semibold text-gray-900 mb-4">Family Connections</h2>
+              <FamilyConnectionsManager 
+                tenantSlug={effectiveFamilySlug || family.slug}
+              />
             </div>
 
             {/* Connected Families */}
