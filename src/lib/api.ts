@@ -527,39 +527,67 @@ class KinjarAPI {
   }
 
   async editPost(postId: string, content: string): Promise<FamilyPost> {
-    const response = await this.request(`/api/posts/${postId}`, {
-      method: 'PATCH',
-      body: JSON.stringify({ content }),
-    });
+    try {
+      const response = await this.request(`/api/posts/${postId}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ content }),
+      });
 
-    console.log('[API] Edit post response:', response);
+      console.log('[API] Edit post response:', response);
 
-    // Backend returns { ok: true, post: {...} }
-    const postData = response.post;
-    if (!postData) {
-      throw new Error('Invalid response format from server');
+      // Backend returns { ok: true, post: {...} }
+      const postData = response.post;
+      if (!postData) {
+        throw new Error('Invalid response format from server');
+      }
+
+      // Transform backend response to frontend format
+      return {
+        id: postData.id,
+        content: postData.content,
+        authorId: postData.author_id,
+        authorName: postData.author_name,
+        authorAvatarColor: postData.author_avatar_color || '#3B82F6',
+        createdAt: postData.created_at,
+        familyId: postData.tenant_id,
+        media: postData.media_url ? {
+          url: postData.media_url,
+          type: this.determineMediaType(postData.media_type, postData.media_url),
+          alt: postData.media_alt || 'User uploaded media'
+        } as MediaAttachment : undefined,
+        visibility: postData.visibility || 'family',
+        status: postData.status || 'approved',
+        reactions: 0, // TODO: Get from backend
+        comments: [], // TODO: Get from backend
+        tags: [] // TODO: Get from backend
+      };
+    } catch (error: any) {
+      console.log('[API] Edit post failed, checking if edit actually succeeded...', error);
+      
+      // If we get a 500 error but the edit might have succeeded,
+      // fetch the post to see if the content was actually updated
+      if (error.message.includes('500')) {
+        try {
+          // Get the current family slug for fetching posts
+          const subdomainInfo = getSubdomainInfo();
+          if (subdomainInfo.familySlug) {
+            // Fetch the current posts to see if the edit succeeded
+            const posts = await this.getFamilyPosts(subdomainInfo.familySlug);
+            const updatedPost = posts.find(p => p.id === postId);
+            
+            if (updatedPost && updatedPost.content === content) {
+              console.log('[API] Edit actually succeeded despite 500 error, returning updated post');
+              return updatedPost;
+            }
+          }
+        } catch (fetchError) {
+          console.log('[API] Failed to verify if edit succeeded:', fetchError);
+        }
+      }
+      
+      // Re-throw the original error if we couldn't verify success
+      throw error;
     }
-
-    // Transform backend response to frontend format
-    return {
-      id: postData.id,
-      content: postData.content,
-      authorId: postData.author_id,
-      authorName: postData.author_name,
-      authorAvatarColor: postData.author_avatar_color || '#3B82F6',
-      createdAt: postData.created_at,
-      familyId: postData.tenant_id,
-      media: postData.media_url ? {
-        url: postData.media_url,
-        type: this.determineMediaType(postData.media_type, postData.media_url),
-        alt: postData.media_alt || 'User uploaded media'
-      } as MediaAttachment : undefined,
-      visibility: postData.visibility || 'family',
-      status: postData.status || 'approved',
-      reactions: 0, // TODO: Get from backend
-      comments: [], // TODO: Get from backend
-      tags: [] // TODO: Get from backend
-    };
   }
 
   // Root Admin Functions
