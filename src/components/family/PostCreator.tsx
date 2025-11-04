@@ -82,12 +82,15 @@ export function PostCreator({ familyId, familySlug, initialMembers = [], onPostC
   const ensureSelectedMember = useCallback((candidates: FamilyMemberProfile[]) => {
     setSelectedMemberId((prev) => {
       if (prev && candidates.some((member) => member.id === prev)) {
+        console.log('[PostCreator] Keeping previous selection:', prev);
         return prev;
       }
       const selfMember = user
         ? candidates.find((member) => member.userId === user.id || member.id === user.id)
         : undefined;
-      return selfMember?.id || candidates[0]?.id || '';
+      const newSelection = selfMember?.id || candidates[0]?.id || '';
+      console.log('[PostCreator] Setting default member:', newSelection, 'from candidates:', candidates.map(c => c.id));
+      return newSelection;
     });
   }, [user]);
 
@@ -236,6 +239,8 @@ export function PostCreator({ familyId, familySlug, initialMembers = [], onPostC
         .filter(tag => tag.length > 0);
       try {
         console.log('[PostCreator] Creating post with familyId:', familyId);
+        console.log('[PostCreator] Selected member ID:', selectedMemberId);
+        console.log('[PostCreator] Available members:', members.map(m => ({ id: m.id, name: m.name, userId: m.userId })));
         const createdPost = await api.createPost({
           content: content.trim() || (media ? `Shared a ${media.type}` : ''),
           familyId,
