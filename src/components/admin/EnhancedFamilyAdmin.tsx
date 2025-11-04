@@ -68,9 +68,12 @@ export function EnhancedFamilyAdmin({ familyId, familySlug }: EnhancedFamilyAdmi
       setLoading(true);
       // Pass the family slug to ensure we get posts for the correct family
       const posts = await api.getPendingPosts(familySlug);
-      setPendingPosts(posts);
+      // Ensure posts is always an array
+      setPendingPosts(Array.isArray(posts) ? posts : []);
     } catch (error) {
       console.error('Failed to load pending posts:', error);
+      // Set empty array on error to prevent map error
+      setPendingPosts([]);
     } finally {
       setLoading(false);
     }

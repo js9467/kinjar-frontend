@@ -851,7 +851,8 @@ class KinjarAPI {
 
   // Post Approval System
   async getPendingPosts(tenantSlug?: string): Promise<FamilyPost[]> {
-    return this.request('/api/posts/pending', {}, tenantSlug);
+    const response = await this.request('/api/posts/pending', {}, tenantSlug);
+    return response.posts || [];
   }
 
   async approvePost(postId: string, action: 'approve' | 'reject', reason = ''): Promise<{ newStatus: string }> {
