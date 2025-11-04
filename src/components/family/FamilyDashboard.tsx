@@ -8,6 +8,7 @@ import { useAppState } from '@/lib/app-state';
 import { PostCreator } from '@/components/family/PostCreator';
 import { CommentSection, PostReactions } from '@/components/family/CommentSection';
 import { ConfirmModal } from '@/components/ui/ConfirmModal';
+import { ChangePasswordModal } from '@/components/ui/ChangePasswordModal';
 import { EnhancedFamilyAdmin } from '@/components/admin/EnhancedFamilyAdmin';
 import Image from 'next/image';
 import Link from 'next/link';
@@ -28,6 +29,7 @@ export function FamilyDashboard({ familySlug }: FamilyDashboardProps) {
   const [deletingPostId, setDeletingPostId] = useState<string | null>(null);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [postToDelete, setPostToDelete] = useState<string | null>(null);
+  const [showChangePasswordModal, setShowChangePasswordModal] = useState(false);
   
   // Add a backup for posts to prevent data loss
   const [postsBackup, setPostsBackup] = useState<FamilyPost[]>([]);
@@ -499,6 +501,13 @@ export function FamilyDashboard({ familySlug }: FamilyDashboardProps) {
                 </div>
               </div>
               <div className="flex items-center gap-2">
+                {/* Change Password button */}
+                <button
+                  onClick={() => setShowChangePasswordModal(true)}
+                  className="px-4 py-2 text-sm font-medium text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
+                >
+                  Change Password
+                </button>
                 {/* Admin button for family managers */}
                 {(canManageFamily(family?.id) || canManageFamily(family?.slug)) && (
                   <button
@@ -859,6 +868,11 @@ export function FamilyDashboard({ familySlug }: FamilyDashboardProps) {
         confirmText="Delete"
         cancelText="Cancel"
         isLoading={deletingPostId === postToDelete}
+      />
+
+      <ChangePasswordModal
+        isOpen={showChangePasswordModal}
+        onClose={() => setShowChangePasswordModal(false)}
       />
     </div>
   );

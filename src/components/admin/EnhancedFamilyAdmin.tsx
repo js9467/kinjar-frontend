@@ -16,7 +16,22 @@ export function EnhancedFamilyAdmin({ familyId, familySlug }: EnhancedFamilyAdmi
   const [activeTab, setActiveTab] = useState<'posts' | 'members' | 'pending'>('posts');
   const [pendingPosts, setPendingPosts] = useState<FamilyPost[]>([]);
   const [members, setMembers] = useState<FamilyMemberProfile[]>([]);
+  const [pendingMembers, setPendingMembers] = useState<FamilyMemberProfile[]>([]);
   const [loading, setLoading] = useState(false);
+
+  // Utility function to mask child email addresses
+  const maskChildEmail = (email: string, role: string): string => {
+    const childRoles = ['CHILD_0_5', 'CHILD_5_10', 'CHILD_10_14', 'CHILD_14_16'];
+    if (childRoles.includes(role)) {
+      // Mask the email for children: example@domain.com -> ex***@***.com
+      const [localPart, domain] = email.split('@');
+      if (localPart.length <= 2) {
+        return `${localPart[0]}***@***.${domain.split('.').pop()}`;
+      }
+      return `${localPart.substring(0, 2)}***@***.${domain.split('.').pop()}`;
+    }
+    return email;
+  };
 
   useEffect(() => {
     // Set default author to first member when members are loaded
@@ -82,12 +97,15 @@ export function EnhancedFamilyAdmin({ familyId, familySlug }: EnhancedFamilyAdmi
   const loadMembers = async () => {
     try {
       setLoading(true);
-      // Fetch family profile, which includes members
+      // Fetch family profile, which includes members and pending members
       const family = await api.getFamilyBySlug(familySlug);
       setMembers(family.members || []);
+      setPendingMembers(family.pendingMembers || []);
+      console.log('Loaded members:', family.members?.length, 'pending:', family.pendingMembers?.length);
     } catch (error) {
       console.error('Failed to load members:', error);
       setMembers([]);
+      setPendingMembers([]);
     } finally {
       setLoading(false);
     }
@@ -361,13 +379,14 @@ export function EnhancedFamilyAdmin({ familyId, familySlug }: EnhancedFamilyAdmi
 
               {/* Members List */}
               <div>
-                <h3 className="text-lg font-medium text-gray-900 mb-4">Current Members</h3>
-                {members.length === 0 ? (
+                <h3 className="text-lg font-medium text-gray-900 mb-4">Family Members</h3>
+                {members.length === 0 && pendingMembers.length === 0 ? (
                   <div className="text-center py-8 text-gray-500">
                     No members found. Start by inviting someone!
                   </div>
                 ) : (
                   <div className="space-y-3">
+                    {/* Current Members */}
                     {members.map((member) => (
                       <div key={member.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
                         <div className="flex items-center gap-4">
@@ -405,7 +424,7 @@ export function EnhancedFamilyAdmin({ familyId, familySlug }: EnhancedFamilyAdmi
                       </div>
                           <div>
                             <h4 className="font-medium text-gray-900">{member.name}</h4>
-                            <p className="text-sm text-gray-600">{member.email}</p>
+                            <p className="text-sm text-gray-600">{maskChildEmail(member.email, member.role)}</p>
                             <p className="text-sm text-gray-500">Role: {member.role}</p>
                             <div className="mt-2">
                               <label className="block text-xs text-gray-500 mb-1">Quote</label>
@@ -473,6 +492,36 @@ export function EnhancedFamilyAdmin({ familyId, familySlug }: EnhancedFamilyAdmi
                           >
                             Remove
                           </button>
+                        </div>
+                      </div>
+                    ))}
+
+                    {/* Pending Members */}
+                    {pendingMembers.map((pendingMember) => (
+                      <div key={`pending-${pendingMember.id || pendingMember.email}`} className="flex items-center justify-between p-4 bg-amber-50 border border-amber-200 rounded-lg">
+                        <div className="flex items-center gap-4">
+                          <div>
+                            <div className="w-12 h-12 rounded-full bg-amber-300 flex items-center justify-center">
+                              <svg className="w-6 h-6 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                              </svg>
+                            </div>
+                            <p className="text-xs text-amber-600 mt-1 text-center">Pending</p>
+                          </div>
+                          <div>
+                            <div className="flex items-center gap-2">
+                              <h4 className="font-medium text-gray-900">{pendingMember.name}</h4>
+                              <span className="px-2 py-1 bg-amber-100 text-amber-800 text-xs font-medium rounded-full">
+                                Invitation Sent
+                              </span>
+                            </div>
+                            <p className="text-sm text-gray-600">{maskChildEmail(pendingMember.email, pendingMember.role)}</p>
+                            <p className="text-sm text-gray-500">Role: {pendingMember.role}</p>
+                            <p className="text-xs text-amber-600 mt-1">Awaiting registration</p>
+                          </div>
+                        </div>
+                        <div className="flex space-x-2">
+                          <span className="text-sm text-amber-600 font-medium">Invited</span>
                         </div>
                       </div>
                     ))}
