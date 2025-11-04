@@ -3,12 +3,14 @@
 import { useEffect, useState } from 'react';
 import { getSubdomainInfo } from '@/lib/api';
 import { FamilyDashboard } from '@/components/family/FamilyDashboard';
-import { PublicFeed } from '@/components/PublicFeed';
+import { ConnectedFamiliesFeed } from '@/components/ConnectedFamiliesFeed';
+import { useAuth } from '@/lib/auth';
 import Link from 'next/link';
 
 export default function HomePage() {
   const [subdomainInfo, setSubdomainInfo] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const { user } = useAuth();
 
   useEffect(() => {
     const info = getSubdomainInfo();
@@ -21,7 +23,7 @@ export default function HomePage() {
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600">Loading family...</p>
+          <p className="mt-4 text-gray-600">Loading...</p>
         </div>
       </div>
     );
@@ -29,10 +31,87 @@ export default function HomePage() {
 
   // If we're on a family subdomain (like familyname.kinjar.com), show the family dashboard
   if (subdomainInfo?.isSubdomain && subdomainInfo?.familySlug) {
+    // Check if logged-in user has access to this family
+    if (user && user.memberships) {
+      const hasAccess = user.memberships.some(membership => membership.familySlug === subdomainInfo.familySlug);
+      if (!hasAccess) {
+        // User is logged in but not a member of this family - show access denied
+        return (
+          <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+            <div className="bg-white p-8 rounded-lg shadow-md max-w-md w-full mx-4">
+              <div className="text-center">
+                <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-red-100 mb-4">
+                  <svg className="h-6 w-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.732-.833-2.5 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                  </svg>
+                </div>
+                <h2 className="text-xl font-semibold text-gray-900 mb-2">Access Restricted</h2>
+                <p className="text-gray-600 mb-6">
+                  You are not a member of the {subdomainInfo.familySlug} family. You can only view families you belong to.
+                </p>
+                <div className="space-y-3">
+                  <Link
+                    href={`/families/${user.memberships[0].familySlug}`}
+                    className="block w-full bg-blue-600 text-white py-2 px-4 rounded-lg font-medium hover:bg-blue-700 transition-colors"
+                  >
+                    Go to My Family ({user.memberships[0].familyName})
+                  </Link>
+                  <Link
+                    href="/"
+                    className="block w-full bg-gray-100 text-gray-700 py-2 px-4 rounded-lg font-medium hover:bg-gray-200 transition-colors"
+                  >
+                    Return to Home
+                  </Link>
+                </div>
+              </div>
+            </div>
+          </div>
+        );
+      }
+    }
+    
     return <FamilyDashboard familySlug={subdomainInfo.familySlug} />;
   }
 
-  // Main kinjar.com landing page
+  // If user is logged in and has family memberships, show their main feed
+  if (user && user.memberships && user.memberships.length > 0) {
+    // Use the first family membership as the primary one
+    const primaryFamily = user.memberships[0];
+    
+    return (
+      <div className="min-h-screen bg-gray-50">
+        {/* Header */}
+        <div className="bg-white border-b border-gray-200">
+          <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <h1 className="text-2xl font-bold text-gray-900">Family Feed</h1>
+                <p className="text-gray-600">Updates from your family and connected families</p>
+                {user.memberships.length > 1 && (
+                  <p className="text-sm text-blue-600 mt-1">
+                    Showing: {primaryFamily.familyName} (you have {user.memberships.length} families)
+                  </p>
+                )}
+              </div>
+              <Link
+                href={`/families/${primaryFamily.familySlug}`}
+                className="bg-blue-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-blue-700 transition-colors"
+              >
+                Visit My Family
+              </Link>
+            </div>
+          </div>
+        </div>
+
+        {/* Connected Families Feed */}
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <ConnectedFamiliesFeed tenantSlug={primaryFamily.familySlug} limit={20} />
+        </div>
+      </div>
+    );
+  }
+
+  // Main kinjar.com landing page for non-logged-in users
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Hero Section */}
@@ -50,10 +129,10 @@ export default function HomePage() {
 
             <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center">
               <Link
-                href="/families"
+                href="/auth/login"
                 className="bg-blue-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-blue-700 transition-colors w-full sm:w-auto"
               >
-                Explore Families
+                Sign In
               </Link>
               <Link
                 href="/auth/register"
@@ -66,18 +145,48 @@ export default function HomePage() {
         </div>
       </div>
 
-      {/* Public Feed Section */}
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-10 sm:py-12">
-        <div className="text-center mb-6 sm:mb-8">
-          <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-3 sm:mb-4">
-            Recent Family Updates
+      {/* Features Section */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
+        <div className="text-center mb-12">
+          <h2 className="text-3xl font-bold text-gray-900 mb-4">
+            Safe Family Social Networking
           </h2>
-          <p className="text-sm sm:text-base text-gray-600">
-            See what families are sharing publicly on Kinjar
+          <p className="text-lg text-gray-600 max-w-2xl mx-auto">
+            Connect families with controlled privacy, where kids can safely interact with trusted family friends.
           </p>
         </div>
 
-        <PublicFeed />
+        <div className="grid md:grid-cols-3 gap-8">
+          <div className="text-center">
+            <div className="bg-blue-100 rounded-lg p-4 w-16 h-16 mx-auto mb-4 flex items-center justify-center">
+              <svg className="w-8 h-8 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+              </svg>
+            </div>
+            <h3 className="text-xl font-semibold text-gray-900 mb-2">Family Connections</h3>
+            <p className="text-gray-600">Connect with other families you trust. Share memories safely with known family friends.</p>
+          </div>
+
+          <div className="text-center">
+            <div className="bg-green-100 rounded-lg p-4 w-16 h-16 mx-auto mb-4 flex items-center justify-center">
+              <svg className="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+              </svg>
+            </div>
+            <h3 className="text-xl font-semibold text-gray-900 mb-2">Safe for Kids</h3>
+            <p className="text-gray-600">Controlled environment where children can interact safely with pre-approved family connections.</p>
+          </div>
+
+          <div className="text-center">
+            <div className="bg-purple-100 rounded-lg p-4 w-16 h-16 mx-auto mb-4 flex items-center justify-center">
+              <svg className="w-8 h-8 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+              </svg>
+            </div>
+            <h3 className="text-xl font-semibold text-gray-900 mb-2">Private & Secure</h3>
+            <p className="text-gray-600">Your family's content stays within your trusted network. No public posts, no strangers.</p>
+          </div>
+        </div>
       </div>
 
       {/* Call to Action */}
@@ -87,7 +196,7 @@ export default function HomePage() {
             Ready to Connect Your Family?
           </h2>
           <p className="text-base sm:text-xl text-blue-100">
-            Join thousands of families already using Kinjar to stay connected
+            Join families using Kinjar to stay safely connected
           </p>
           <Link
             href="/auth/register"

@@ -67,6 +67,17 @@ export function FamilyDashboard({ familySlug }: FamilyDashboardProps) {
       setLoading(true);
       setError(null);
       
+      // Check if user has access to this family
+      if (user && user.memberships) {
+        const hasAccess = user.memberships.some(membership => membership.familySlug === effectiveFamilySlug);
+        if (!hasAccess) {
+          // User is logged in but not a member of this family
+          setError(`Access denied: You are not a member of the ${effectiveFamilySlug} family.`);
+          setLoading(false);
+          return;
+        }
+      }
+      
       // Try to load from API first
       try {
         const familyData = await api.getFamilyBySlug(effectiveFamilySlug);
@@ -918,6 +929,47 @@ export function FamilyDashboard({ familySlug }: FamilyDashboardProps) {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
               </svg>
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* Access Denied Modal */}
+      {error && error.includes('Access denied') && user && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-lg p-6 max-w-md w-full">
+            <div className="text-center">
+              <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-red-100 mb-4">
+                <svg className="h-6 w-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.732-.833-2.5 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                </svg>
+              </div>
+              <h3 className="text-lg font-medium text-gray-900 mb-2">Access Restricted</h3>
+              <p className="text-gray-600 mb-6">
+                You are not a member of the {effectiveFamilySlug} family. You can only view families you belong to or that are connected to your family.
+              </p>
+              <div className="space-y-3">
+                {user.memberships && user.memberships.length > 0 && (
+                  <Link
+                    href={`/families/${user.memberships[0].familySlug}`}
+                    className="block w-full bg-blue-600 text-white py-2 px-4 rounded-lg font-medium hover:bg-blue-700 transition-colors"
+                  >
+                    Go to My Family ({user.memberships[0].familyName})
+                  </Link>
+                )}
+                <Link
+                  href="/"
+                  className="block w-full bg-gray-100 text-gray-700 py-2 px-4 rounded-lg font-medium hover:bg-gray-200 transition-colors"
+                >
+                  Return to Home
+                </Link>
+                <button
+                  onClick={() => setError(null)}
+                  className="text-gray-500 hover:text-gray-700 text-sm"
+                >
+                  Dismiss
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}

@@ -897,6 +897,138 @@ class KinjarAPI {
     });
   }
 
+  // Family Creation Invitations
+  async sendFamilyCreationInvitation(data: {
+    email: string;
+    name: string;
+    message?: string;
+  }, tenantSlug: string): Promise<{
+    invitation: any;
+    message: string;
+    expiresAt: string;
+  }> {
+    return this.request('/api/families/invite-new-family', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }, tenantSlug);
+  }
+
+  async getFamilyCreationInvitationDetails(token: string): Promise<{
+    invitation: {
+      id: string;
+      email: string;
+      invitedName: string;
+      message?: string;
+      requestingFamily: {
+        name: string;
+        slug: string;
+      };
+      invitedBy: {
+        email: string;
+        name: string;
+      };
+      expiresAt: string;
+      createdAt: string;
+    };
+  }> {
+    return this.request(`/api/families/invitation/${token}`);
+  }
+
+  async createFamilyWithInvitation(data: {
+    invitationToken: string;
+    familyName: string;
+    subdomain: string;
+    description?: string;
+    adminName: string;
+    adminEmail: string;
+    password: string;
+    isPublic?: boolean;
+  }): Promise<{
+    user: AuthUser;
+    family: {
+      id: string;
+      name: string;
+      slug: string;
+      role: string;
+      memberCount: number;
+      createdAt: string;
+      connectedTo: string;
+    };
+    message: string;
+  }> {
+    return this.request('/families/create-with-invitation', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  // Family Search and Connections
+  async searchFamilies(query: string = '', limit = 20, offset = 0, tenantSlug?: string): Promise<{
+    families: Array<{
+      id: string;
+      slug: string;
+      name: string;
+      description?: string;
+      familyPhoto?: string;
+      themeColor: string;
+      memberCount: number;
+      createdAt: string;
+      connectionStatus: 'none' | 'pending' | 'accepted' | 'declined';
+    }>;
+  }> {
+    const params = new URLSearchParams({
+      q: query,
+      limit: limit.toString(),
+      offset: offset.toString()
+    });
+    
+    return this.request(`/api/families/search?${params}`, {}, tenantSlug);
+  }
+
+  async requestFamilyConnection(targetFamilySlug: string, message?: string, tenantSlug?: string): Promise<{
+    connection: any;
+    requestingFamily: any;
+    targetFamily: any;
+  }> {
+    return this.request('/api/families/connect', {
+      method: 'POST',
+      body: JSON.stringify({
+        target_family: targetFamilySlug,
+        message: message || ''
+      }),
+    }, tenantSlug);
+  }
+
+  async getFamilyConnections(tenantSlug: string): Promise<{
+    connections: Array<{
+      id: string;
+      direction: 'incoming' | 'outgoing';
+      otherFamilySlug: string;
+      otherFamilyName: string;
+      status: 'pending' | 'accepted' | 'declined';
+      requestMessage?: string;
+      responseMessage?: string;
+      requesterName: string;
+      responderName?: string;
+      createdAt: string;
+      respondedAt?: string;
+    }>;
+  }> {
+    return this.request('/api/families/connections', {}, tenantSlug);
+  }
+
+  async respondToFamilyConnection(connectionId: string, action: 'accept' | 'decline', message?: string): Promise<{
+    connection: any;
+  }> {
+    return this.request(`/api/families/connections/${connectionId}/respond`, {
+      method: 'POST',
+      body: JSON.stringify({
+        action,
+        message: message || ''
+      }),
+    });
+  }
+
   async uploadAvatar(file: File): Promise<{ avatarUrl: string }> {
     const formData = new FormData();
     formData.append('avatar', file);
@@ -959,6 +1091,94 @@ class KinjarAPI {
       method: 'PATCH',
       body: JSON.stringify({ action, reason }),
     });
+  }
+
+  // Connected Families Feed
+  async getConnectedFamiliesFeed(tenantSlug: string, limit = 20, offset = 0): Promise<FamilyPost[]> {
+    const response = await this.request(`/api/posts?tenant=${tenantSlug}&include_connected=true&limit=${limit}&offset=${offset}`);
+    const posts = response.posts || [];
+    
+    // Load comments for each post and check for "posted as" info
+    const postsWithComments = await Promise.all(
+      posts.map(async (post: any) => {
+        // Check localStorage for "posted as" information
+        let postedAsInfo = null;
+        if (typeof window !== 'undefined') {
+          try {
+            const key = `postedAs_${post.id}`;
+            const stored = localStorage.getItem(key);
+            if (stored) {
+              postedAsInfo = JSON.parse(stored);
+              console.log(`[API] Found posted-as info for connected feed post ${post.id}:`, postedAsInfo);
+            }
+          } catch (error) {
+            console.warn(`[API] Failed to load posted-as info for connected feed post ${post.id}:`, error);
+          }
+        }
+
+        try {
+          const comments = await this.getPostComments(post.id);
+          
+          // Transform backend post to frontend format
+          const transformedPost: FamilyPost = {
+            id: post.id,
+            familyId: post.tenant_id,
+            familySlug: post.family_slug,
+            familyName: post.family_name,
+            familyThemeColor: '#2563eb', // Default blue
+            authorId: post.author_id,
+            authorName: postedAsInfo?.name || post.author_name || 'User',
+            authorAvatarColor: post.author_avatar || '#3B82F6',
+            createdAt: post.published_at || post.created_at,
+            content: post.content,
+            title: post.title,
+            media: (post.media_filename || post.media_url) ? {
+              type: this.determineMediaType(post.media_content_type, post.media_filename || post.media_url),
+              url: post.media_url || `/api/media/${post.media_id}`,
+              alt: post.title
+            } : undefined,
+            visibility: 'connections', // All posts in connected feed are visible to connections
+            status: post.status || 'published',
+            tags: post.tags || [],
+            comments,
+            reactions: post.reactions || 0
+          };
+          
+          return transformedPost;
+        } catch (error) {
+          console.warn(`Failed to load comments for connected feed post ${post.id}:`, error);
+          
+          // Transform without comments
+          const transformedPost: FamilyPost = {
+            id: post.id,
+            familyId: post.tenant_id,
+            familySlug: post.family_slug,
+            familyName: post.family_name,
+            familyThemeColor: '#2563eb',
+            authorId: post.author_id,
+            authorName: postedAsInfo?.name || post.author_name || 'User',
+            authorAvatarColor: post.author_avatar || '#3B82F6',
+            createdAt: post.published_at || post.created_at,
+            content: post.content,
+            title: post.title,
+            media: (post.media_filename || post.media_url) ? {
+              type: this.determineMediaType(post.media_content_type, post.media_filename || post.media_url),
+              url: post.media_url || `/api/media/${post.media_id}`,
+              alt: post.title
+            } : undefined,
+            visibility: 'connections',
+            status: post.status || 'published',
+            tags: post.tags || [],
+            comments: [],
+            reactions: post.reactions || 0
+          };
+          
+          return transformedPost;
+        }
+      })
+    );
+    
+    return postsWithComments;
   }
 
   // Public Feed
