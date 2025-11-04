@@ -106,6 +106,25 @@ export function CommentSection({ post, onCommentAdded, onError }: CommentSection
     setEditContent('');
   };
 
+  const handleDeleteComment = async (comment: PostComment) => {
+    if (!confirm('Are you sure you want to delete this comment?')) {
+      return;
+    }
+
+    try {
+      await api.deleteComment(comment.id);
+      
+      // Remove comment from local state
+      setComments(prev => prev.filter(c => c.id !== comment.id));
+      
+      console.log('[CommentSection] Comment deleted successfully');
+    } catch (error) {
+      console.error('[CommentSection] Failed to delete comment:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Failed to delete comment';
+      onError?.(errorMessage);
+    }
+  };
+
   // Check if user can edit a comment (same logic as backend)
   const canEditComment = (comment: PostComment): boolean => {
     if (!user) return false;
@@ -118,6 +137,28 @@ export function CommentSection({ post, onCommentAdded, onError }: CommentSection
     // In a more complete implementation, we'd check if the comment author is a child
     const userRole = user.memberships?.find(m => m.familySlug === post.familySlug)?.role;
     return userRole === 'ADMIN' || userRole === 'ADULT';
+  };
+
+  // Check if user can delete a comment
+  const canDeleteComment = (comment: PostComment): boolean => {
+    if (!user) return false;
+    
+    const userRole = user.memberships?.find(m => m.familySlug === post.familySlug)?.role;
+    
+    // ADMINs can delete any comment
+    if (userRole === 'ADMIN') return true;
+    
+    // Adults can delete their own comments or child comments from their family
+    if (userRole === 'ADULT') {
+      // Can delete own comments
+      if (comment.authorName === user.name) return true;
+      
+      // Can delete child comments (this logic would need more sophisticated checking in a real app)
+      // For now, we'll be conservative and only allow deleting own comments unless admin
+      return false;
+    }
+    
+    return false;
   };
 
   return (
@@ -157,7 +198,7 @@ export function CommentSection({ post, onCommentAdded, onError }: CommentSection
               </div>
               <div className="flex-1 min-w-0">
                 <div className="bg-white rounded-lg p-3 shadow-sm">
-                  <div className="flex items-center justify-between mb-1">
+                    <div className="flex items-center justify-between mb-1">
                     <div className="flex items-center gap-2">
                       <span className="font-semibold text-gray-900 text-sm">{comment.authorName}</span>
                       <span className="text-xs text-gray-500">
@@ -168,13 +209,25 @@ export function CommentSection({ post, onCommentAdded, onError }: CommentSection
                         })}
                       </span>
                     </div>
-                    {canEditComment(comment) && editingCommentId !== comment.id && (
-                      <button
-                        onClick={() => handleEditComment(comment)}
-                        className="text-xs text-gray-500 hover:text-gray-700"
-                      >
-                        Edit
-                      </button>
+                    {(canEditComment(comment) || canDeleteComment(comment)) && editingCommentId !== comment.id && (
+                      <div className="flex items-center gap-2">
+                        {canEditComment(comment) && (
+                          <button
+                            onClick={() => handleEditComment(comment)}
+                            className="text-xs text-gray-500 hover:text-gray-700"
+                          >
+                            Edit
+                          </button>
+                        )}
+                        {canDeleteComment(comment) && (
+                          <button
+                            onClick={() => handleDeleteComment(comment)}
+                            className="text-xs text-red-500 hover:text-red-700"
+                          >
+                            Delete
+                          </button>
+                        )}
+                      </div>
                     )}
                   </div>
                   

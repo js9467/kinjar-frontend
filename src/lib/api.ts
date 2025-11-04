@@ -621,6 +621,19 @@ class KinjarAPI {
     return formattedComment;
   }
 
+  async deleteComment(commentId: string): Promise<void> {
+    console.log(`[API] Deleting comment ${commentId}`);
+    const response = await this.request(`/api/comments/${commentId}`, {
+      method: 'DELETE',
+    });
+    
+    console.log(`[API] Delete comment response:`, response);
+    
+    if (!response.ok) {
+      throw new Error(`Failed to delete comment: ${response.error || 'Unknown error'}`);
+    }
+  }
+
   async getPostComments(postId: string): Promise<{ id: string; authorName: string; authorAvatarColor: string; content: string; createdAt: string }[]> {
     try {
       console.log(`[API] Loading comments for post ${postId}`);

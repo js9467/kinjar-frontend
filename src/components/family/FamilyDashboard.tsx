@@ -645,8 +645,38 @@ export function FamilyDashboard({ familySlug }: FamilyDashboardProps) {
                   const ownsPost =
                     post.authorId === user?.id ||
                     user?.memberships?.some((membership) => membership.memberId === post.authorId);
-                  const canDeletePost =
-                    canManageFamily(family.id) || canManageFamily(family.slug) || ownsPost;
+                  
+                  // Get user's role in this family
+                  const userRole = user?.memberships?.find(m => m.familySlug === family.slug)?.role;
+                  
+                  // Edit permission: authors can edit their own posts, adults/admins can edit child posts
+                  const canEditPost = (() => {
+                    if (!user || !userRole) return false;
+                    
+                    // User can edit their own posts
+                    if (ownsPost) return true;
+                    
+                    // Adults/admins can edit child posts (simplified logic - in real app would check if author is child)
+                    // For now, we'll be conservative and only allow editing own posts unless admin
+                    if (userRole === 'ADMIN') return true;
+                    
+                    return false;
+                  })();
+                  
+                  // Delete permission: admins can delete any post, adults can delete own posts and child posts
+                  const canDeletePost = (() => {
+                    if (!user || !userRole) return false;
+                    
+                    // ADMINs can delete any post
+                    if (userRole === 'ADMIN') return true;
+                    
+                    // Adults can delete their own posts
+                    if (userRole === 'ADULT' && ownsPost) return true;
+                    
+                    // Adults can delete child posts (simplified logic)
+                    // For now, we'll be conservative and only allow deleting own posts unless admin
+                    return false;
+                  })();
 
                   return (
                     <article key={post.id} className="bg-white rounded-lg border border-gray-200 shadow-sm">
@@ -683,21 +713,25 @@ export function FamilyDashboard({ familySlug }: FamilyDashboardProps) {
                               </div>
                             </div>
                           </div>
-                          {canDeletePost && editingPostId !== post.id ? (
+                          {(canEditPost || canDeletePost) && editingPostId !== post.id ? (
                             <div className="flex gap-2">
-                              <button
-                                onClick={() => handleEditPost(post)}
-                                className="text-sm text-indigo-600 hover:text-indigo-700"
-                              >
-                                Edit
-                              </button>
-                              <button
-                                onClick={() => handleDeletePost(post.id)}
-                                disabled={deletingPostId === post.id}
-                                className="text-sm text-red-600 hover:text-red-700 disabled:cursor-not-allowed disabled:opacity-50"
-                              >
-                                {deletingPostId === post.id ? 'Deleting…' : 'Delete'}
-                              </button>
+                              {canEditPost && (
+                                <button
+                                  onClick={() => handleEditPost(post)}
+                                  className="text-sm text-indigo-600 hover:text-indigo-700"
+                                >
+                                  Edit
+                                </button>
+                              )}
+                              {canDeletePost && (
+                                <button
+                                  onClick={() => handleDeletePost(post.id)}
+                                  disabled={deletingPostId === post.id}
+                                  className="text-sm text-red-600 hover:text-red-700 disabled:cursor-not-allowed disabled:opacity-50"
+                                >
+                                  {deletingPostId === post.id ? 'Deleting…' : 'Delete'}
+                                </button>
+                              )}
                             </div>
                           ) : null}
                         </div>
