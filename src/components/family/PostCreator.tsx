@@ -22,6 +22,12 @@ const normalizeEligibleMembers = (list: FamilyMemberProfile[] = []): FamilyMembe
       return;
     }
 
+    // Only include members who have user accounts (userId exists)
+    if (!member.userId) {
+      console.log(`[PostCreator] Excluding member ${member.name} - no user account`);
+      return;
+    }
+
     const primaryKey = (member.userId || member.id || '').trim();
     if (primaryKey && seenPrimary.has(primaryKey)) {
       return;
@@ -96,7 +102,7 @@ export function PostCreator({ familyId, familySlug, initialMembers = [], onPostC
         ? candidates.find((member) => member.userId === user.id || member.id === user.id)
         : undefined;
       const newSelection = selfMember?.id || candidates[0]?.id || '';
-      console.log('[PostCreator] Setting default member:', newSelection, 'from candidates:', candidates.map(c => c.id));
+      console.log('[PostCreator] Setting default member:', newSelection, 'from candidates:', candidates.map(c => ({ id: c.id, userId: c.userId, name: c.name })));
       
       // Persist the selection to localStorage
       if (typeof window !== 'undefined' && newSelection) {
@@ -214,8 +220,8 @@ export function PostCreator({ familyId, familySlug, initialMembers = [], onPostC
       return;
     }
     // Check membership/connection
-    if (!members.some(m => m.id === selectedMemberId)) {
-      onError?.('You must be a member or connection to post.');
+    if (!members.some(m => m.id === selectedMemberId && m.userId)) {
+      onError?.('You must select a member with a user account to post.');
       return;
     }
     if (!content.trim() && !mediaPreview) {
@@ -252,12 +258,13 @@ export function PostCreator({ familyId, familySlug, initialMembers = [], onPostC
       
       console.log('[PostCreator] Creating post with familyId:', familyId);
       console.log('[PostCreator] Selected member ID:', selectedMemberId);
+      console.log('[PostCreator] Selected member userId:', members.find(m => m.id === selectedMemberId)?.userId);
       console.log('[PostCreator] Available members:', members.map(m => ({ id: m.id, name: m.name, userId: m.userId })));
       
       const createdPost = await api.createPost({
         content: content.trim() || (media ? `Shared a ${media.type}` : ''),
         familyId,
-        authorId: selectedMemberId,
+        authorId: members.find(m => m.id === selectedMemberId)?.userId || selectedMemberId,
         media,
         visibility,
         tags: postTags

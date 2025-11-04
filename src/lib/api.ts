@@ -481,10 +481,22 @@ class KinjarAPI {
   }
 
   async addComment(postId: string, content: string): Promise<{ id: string; authorName: string; authorAvatarColor: string; content: string; createdAt: string }> {
-    return this.request(`/posts/${postId}/comments`, {
+    const response = await this.request(`/api/posts/${postId}/comments`, {
       method: 'POST',
       body: JSON.stringify({ content }),
     });
+    
+    // Backend returns { ok: true, comment: {...} }, we need just the comment
+    const comment = response.comment || response;
+    
+    // Backend comment might not have author details, so fill in from current user
+    return {
+      id: comment.id,
+      content: comment.content,
+      createdAt: comment.created_at || new Date().toISOString(),
+      authorName: this.currentUser?.name || 'User',
+      authorAvatarColor: this.currentUser?.avatarColor || '#3B82F6'
+    };
   }
 
   async addReaction(postId: string, reaction: string): Promise<void> {
