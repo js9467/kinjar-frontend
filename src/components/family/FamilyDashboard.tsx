@@ -279,15 +279,25 @@ export function FamilyDashboard({ familySlug }: FamilyDashboardProps) {
   }, [posts.length, postsBackup.length, persistedPosts.length, loading]);
 
   const handlePostCreated = (newPost: FamilyPost) => {
-    setPosts(prev => [newPost, ...prev]);
+    const updatedPosts = [newPost, ...posts];
+    setPosts(updatedPosts);
+    
+    // Persist to localStorage
+    const sortedPosts = updatedPosts.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+    localStorage.setItem(`familyPosts_${effectiveFamilySlug}`, JSON.stringify(sortedPosts));
   };
 
   const handleCommentAdded = (postId: string, comment: any) => {
-    setPosts(prev => prev.map(post => 
+    const updatedPosts = posts.map(post => 
       post.id === postId 
         ? { ...post, comments: [...(post.comments || []), comment] }
         : post
-    ));
+    );
+    setPosts(updatedPosts);
+    
+    // Persist to localStorage
+    const sortedPosts = updatedPosts.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+    localStorage.setItem(`familyPosts_${effectiveFamilySlug}`, JSON.stringify(sortedPosts));
   };
 
   const handleReaction = (postId: string, reaction: string) => {
