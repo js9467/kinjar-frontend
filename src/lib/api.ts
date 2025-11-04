@@ -110,6 +110,27 @@ class KinjarAPI {
     }
   }
 
+  private determineMediaType(contentType?: string, filename?: string): 'image' | 'video' {
+    // Check content type first
+    if (contentType) {
+      if (contentType.startsWith('image/')) return 'image';
+      if (contentType.startsWith('video/')) return 'video';
+    }
+    
+    // Fallback to filename extension
+    if (filename) {
+      const extension = filename.toLowerCase().split('.').pop();
+      const videoExtensions = ['mp4', 'mov', 'avi', 'mkv', 'webm', 'ogv', 'm4v', '3gp'];
+      const imageExtensions = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp', 'svg', 'heic', 'heif'];
+      
+      if (videoExtensions.includes(extension || '')) return 'video';
+      if (imageExtensions.includes(extension || '')) return 'image';
+    }
+    
+    // Default to image if we can't determine
+    return 'image';
+  }
+
   private saveToken(token: string) {
     this.token = token;
     if (typeof window !== 'undefined') {
@@ -293,7 +314,13 @@ class KinjarAPI {
       currentUser = await this.getCurrentUser();
     } catch (error) {
       // Fallback if we can't get user info
-      currentUser = { name: 'User', avatarColor: '#3B82F6' };
+      currentUser = { 
+        id: 'unknown-user',
+        name: 'User', 
+        avatarColor: '#3B82F6',
+        email: '',
+        role: 'member'
+      };
     }
 
     // Transform frontend data to backend format
@@ -377,7 +404,7 @@ class KinjarAPI {
       createdAt: backendPost.published_at || backendPost.created_at,
       content: backendPost.content,
       media: (backendPost.media_filename || backendPost.media_url || backendPost.media_external_url) ? {
-        type: backendPost.media_content_type?.startsWith('image/') ? 'image' : 'video',
+        type: this.determineMediaType(backendPost.media_content_type, backendPost.media_filename || backendPost.media_url || backendPost.media_external_url),
         url: backendPost.media_url || backendPost.media_external_url || `/api/media/${backendPost.media_id}`,
         alt: backendPost.title
       } : undefined,

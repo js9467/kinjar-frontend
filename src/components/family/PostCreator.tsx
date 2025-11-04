@@ -12,6 +12,19 @@ interface PostCreatorProps {
   className?: string;
 }
 
+const determineFileType = (file: File): 'image' | 'video' => {
+  // Check MIME type first
+  if (file.type.startsWith('image/')) return 'image';
+  if (file.type.startsWith('video/')) return 'video';
+  
+  // Fallback to file extension for files with unclear MIME types (like iPhone videos)
+  const extension = file.name.toLowerCase().split('.').pop();
+  const videoExtensions = ['mp4', 'mov', 'avi', 'mkv', 'webm', 'ogv', 'm4v', '3gp'];
+  
+  if (videoExtensions.includes(extension || '')) return 'video';
+  return 'image'; // Default to image
+};
+
 export function PostCreator({ familyId, onPostCreated, onError, className = '' }: PostCreatorProps) {
   const { user } = useAuth();
   const [content, setContent] = useState('');
@@ -50,7 +63,7 @@ export function PostCreator({ familyId, onPostCreated, onError, className = '' }
 
     // Create preview
     const url = URL.createObjectURL(file);
-    const type = file.type.startsWith('image/') ? 'image' : 'video';
+    const type = determineFileType(file);
     setMediaPreview({ file, url, type });
   };
 

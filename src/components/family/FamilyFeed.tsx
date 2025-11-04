@@ -176,8 +176,14 @@ export function FamilyFeed({ familyIds, highlightFamilyId, title = 'Family stori
                       />
                     </div>
                   ) : (
-                    <video controls className="w-full rounded-2xl">
+                    <video 
+                      controls 
+                      className="w-full rounded-2xl"
+                      preload="metadata"
+                    >
                       <source src={post.media.url} type="video/mp4" />
+                      <source src={post.media.url} type="video/quicktime" />
+                      Your browser does not support the video tag.
                     </video>
                   )}
                 </div>
