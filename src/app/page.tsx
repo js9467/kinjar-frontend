@@ -158,14 +158,63 @@ export default function HomePage() {
       <div className="bg-gradient-to-br from-blue-50 via-white to-purple-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-16">
           <div className="text-center space-y-6">
-            <h1 className="text-3xl sm:text-5xl md:text-6xl font-bold text-gray-900">
+            {/* Kinjar Logo and Name */}
+            <div className="flex items-center justify-center gap-4 mb-6">
+              {/* Honey Jar SVG */}
+              <div className="relative">
+                <svg 
+                  width="60" 
+                  height="60" 
+                  viewBox="0 0 100 100" 
+                  className="text-amber-500"
+                  fill="currentColor"
+                >
+                  {/* Jar body */}
+                  <path d="M25 35 L25 80 Q25 85 30 85 L70 85 Q75 85 75 80 L75 35 Z" 
+                        fill="#f59e0b" opacity="0.9"/>
+                  {/* Jar lid */}
+                  <ellipse cx="50" cy="35" rx="25" ry="8" fill="#d97706"/>
+                  {/* Lid top */}
+                  <ellipse cx="50" cy="32" rx="25" ry="8" fill="#f59e0b"/>
+                  {/* Lid handle */}
+                  <ellipse cx="50" cy="25" rx="8" ry="4" fill="#92400e"/>
+                  {/* Jar contents (honey) */}
+                  <path d="M27 40 L27 78 Q27 82 30 82 L70 82 Q73 82 73 78 L73 40 Z" 
+                        fill="#fbbf24" opacity="0.7"/>
+                  {/* Label area */}
+                  <rect x="35" y="50" width="30" height="20" rx="3" fill="white" opacity="0.9"/>
+                  {/* Hearts on label representing family */}
+                  <text x="50" y="62" textAnchor="middle" fontSize="12" fill="#dc2626">♥</text>
+                </svg>
+              </div>
+              
+              <div className="text-left">
+                <h1 className="text-4xl sm:text-6xl font-bold text-gray-900 leading-tight">
+                  Kinjar
+                </h1>
+                <p className="text-lg text-amber-600 font-medium italic">
+                  Your family's sweet container
+                </p>
+              </div>
+            </div>
+            
+            <h2 className="text-2xl sm:text-4xl md:text-5xl font-bold text-gray-900">
               Connect Your
               <span className="bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent"> Family</span>
-            </h1>
-            <p className="text-base sm:text-lg text-gray-600 max-w-3xl mx-auto">
-              A private, secure social platform designed for families to share memories,
-              stay connected, and build lasting bonds across generations.
-            </p>
+            </h2>
+            
+            {/* Slogan explanation */}
+            <div className="max-w-2xl mx-auto">
+              <p className="text-lg text-gray-700 font-medium mb-2">
+                <span className="text-amber-600 font-semibold">Kin</span> (family) + 
+                <span className="text-amber-600 font-semibold"> Jar</span> (container) = 
+                <span className="text-blue-600 font-semibold"> Kinjar</span>
+              </p>
+              <p className="text-base sm:text-lg text-gray-600">
+                A private, secure social platform designed for families to share memories,
+                stay connected, and build lasting bonds across generations.
+              </p>
+            </div>
 
             <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center">
               <Link
