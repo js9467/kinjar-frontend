@@ -1,9 +1,10 @@
 'use client';
 
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { api } from '@/lib/api';
 import { useAuth } from '@/lib/auth';
-import { FamilyPost, MediaAttachment, PostVisibility } from '@/lib/types';
+import { useAppState } from '@/lib/app-state';
+import { FamilyPost, MediaAttachment, PostVisibility, FamilyMemberProfile } from '@/lib/types';
 
 interface PostCreatorProps {
   familyId: string;
@@ -26,7 +27,27 @@ const determineFileType = (file: File): 'image' | 'video' => {
 };
 
 export function PostCreator({ familyId, onPostCreated, onError, className = '' }: PostCreatorProps) {
-  const { user } = useAuth();
+  const { user, isAuthenticated } = useAuth();
+  const { families } = useAppState();
+  // Find current family and members
+  const [members, setMembers] = useState<FamilyMemberProfile[]>([]);
+  const [selectedMemberId, setSelectedMemberId] = useState<string>('');
+
+  useEffect(() => {
+    const family = families.find(f => f.id === familyId);
+    if (family) {
+      // Only allow posting as self or children (members)
+  // Filter for adults and children roles
+  const childRoles = ['CHILD_0_5', 'CHILD_5_10', 'CHILD_10_14', 'CHILD_14_16', 'CHILD_16_ADULT'];
+  const memberList = family.members?.filter(m => m.role === 'ADULT' || childRoles.includes(m.role)) || [];
+      setMembers(memberList);
+      // Default to self if present
+      if (user) {
+        const selfMember = memberList.find(m => m.userId === user.id);
+        setSelectedMemberId(selfMember?.id || memberList[0]?.id || '');
+      }
+    }
+  }, [families, familyId, user]);
   const [content, setContent] = useState('');
   const [visibility, setVisibility] = useState<PostVisibility>('family');
   const [tags, setTags] = useState<string>('');
@@ -76,7 +97,16 @@ export function PostCreator({ familyId, onPostCreated, onError, className = '' }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+    // Check authentication
+    if (!isAuthenticated || !user) {
+      onError?.('You must be logged in to post.');
+      return;
+    }
+    // Check membership/connection
+    if (!members.some(m => m.id === selectedMemberId)) {
+      onError?.('You must be a member or connection to post.');
+      return;
+    }
     if (!content.trim() && !mediaPreview) {
       onError?.('Please add some content or media to your post');
       return;
@@ -87,14 +117,12 @@ export function PostCreator({ familyId, onPostCreated, onError, className = '' }
 
     try {
       let media: MediaAttachment | undefined;
-
       // Upload media if present
       if (mediaPreview) {
         setUploadProgress(25);
         try {
           const uploadResponse = await api.uploadMedia(mediaPreview.file);
           setUploadProgress(75);
-          
           media = {
             type: mediaPreview.type,
             url: uploadResponse.url,
@@ -110,36 +138,30 @@ export function PostCreator({ familyId, onPostCreated, onError, className = '' }
           };
         }
       }
-
       // Create post
       const postTags = tags
         .split(',')
         .map(tag => tag.trim())
         .filter(tag => tag.length > 0);
-
       try {
         console.log('[PostCreator] Creating post with familyId:', familyId);
         const createdPost = await api.createPost({
           content: content.trim() || (media ? `Shared a ${media.type}` : ''),
           familyId,
-          authorId: user?.id || 'current-user',
+          authorId: selectedMemberId,
           media,
           visibility,
           tags: postTags
         });
-        
         setUploadProgress(100);
         onPostCreated?.(createdPost);
       } catch (apiError) {
         // If API fails, create mock post for demo
         console.log('API failed, creating mock post for demo');
-        console.log('[PostCreator] Current user from auth:', user);
-        
-        // Use current user from auth context for mock post
-        const mockAuthorId = user?.id || 'current-user';
-        const mockAuthorName = user?.name || 'User';
-        const mockAuthorColor = user?.avatarColor || '#3B82F6';
-        
+        const mockMember = members.find(m => m.id === selectedMemberId);
+        const mockAuthorId = mockMember?.id || user.id;
+        const mockAuthorName = mockMember?.name || user.name;
+        const mockAuthorColor = mockMember?.avatarColor || user.avatarColor || '#3B82F6';
         const mockPost = {
           id: `mock-post-${Date.now()}`,
           familyId,
@@ -155,16 +177,13 @@ export function PostCreator({ familyId, onPostCreated, onError, className = '' }
           comments: [],
           tags: postTags
         };
-        
         onPostCreated?.(mockPost);
       }
-
       // Reset form
       setContent('');
       setTags('');
       setVisibility('family');
       clearMedia();
-
     } catch (error) {
       console.error('Post creation failed:', error);
       onError?.(error instanceof Error ? error.message : 'Failed to create post');
@@ -315,9 +334,22 @@ export function PostCreator({ familyId, onPostCreated, onError, className = '' }
           <p className="text-xs text-gray-500 mt-1">Example: birthday, vacation, milestone</p>
         </div>
 
-        {/* Visibility and submit */}
+        {/* Member selector, visibility, and submit */}
         <div className="flex items-center justify-between gap-4">
-          <div className="flex items-center gap-2">
+          <div className="flex flex-col gap-2">
+            <label className="text-sm font-medium text-gray-700">Post as:</label>
+            <select
+              value={selectedMemberId}
+              onChange={e => setSelectedMemberId(e.target.value)}
+              className="border border-gray-300 rounded-lg px-3 py-1 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              disabled={uploading || members.length === 0}
+            >
+              {members.map(m => (
+                <option key={m.id} value={m.id}>{m.name} ({m.role})</option>
+              ))}
+            </select>
+          </div>
+          <div className="flex flex-col gap-2">
             <label className="text-sm font-medium text-gray-700">Who can see this:</label>
             <select
               value={visibility}
@@ -330,10 +362,9 @@ export function PostCreator({ familyId, onPostCreated, onError, className = '' }
               <option value="public">Public</option>
             </select>
           </div>
-
           <button
             type="submit"
-            disabled={uploading || (!content.trim() && !mediaPreview)}
+            disabled={uploading || (!content.trim() && !mediaPreview) || !isAuthenticated || members.length === 0}
             className="bg-blue-600 text-white px-6 py-2 rounded-lg font-medium hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
           >
             {uploading && (
