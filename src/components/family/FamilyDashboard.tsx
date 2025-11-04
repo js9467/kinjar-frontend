@@ -25,6 +25,11 @@ export function FamilyDashboard({ familySlug }: FamilyDashboardProps) {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [postToDelete, setPostToDelete] = useState<string | null>(null);
   
+  // Edit functionality
+  const [editingPostId, setEditingPostId] = useState<string | null>(null);
+  const [editContent, setEditContent] = useState('');
+  const [savingEdit, setSavingEdit] = useState(false);
+  
   // Login form state
   const [loginEmail, setLoginEmail] = useState('');
   const [loginPassword, setLoginPassword] = useState('');
@@ -247,6 +252,38 @@ export function FamilyDashboard({ familySlug }: FamilyDashboardProps) {
   const cancelDeletePost = () => {
     setShowDeleteModal(false);
     setPostToDelete(null);
+  };
+
+  const handleEditPost = (post: FamilyPost) => {
+    setEditingPostId(post.id);
+    setEditContent(post.content);
+  };
+
+  const saveEditPost = async () => {
+    if (!editingPostId || !editContent.trim()) return;
+
+    try {
+      setSavingEdit(true);
+      const updatedPost = await api.editPost(editingPostId, editContent.trim());
+      
+      // Update the posts list with the edited post
+      setPosts(prev => prev.map(post => 
+        post.id === editingPostId ? updatedPost : post
+      ));
+      
+      setEditingPostId(null);
+      setEditContent('');
+    } catch (err) {
+      console.error('Failed to edit post:', err);
+      setError(err instanceof Error ? err.message : 'Failed to edit post');
+    } finally {
+      setSavingEdit(false);
+    }
+  };
+
+  const cancelEditPost = () => {
+    setEditingPostId(null);
+    setEditContent('');
   };
 
   const filteredPosts = posts.filter(post => {
@@ -562,22 +599,60 @@ export function FamilyDashboard({ familySlug }: FamilyDashboardProps) {
                               </div>
                             </div>
                           </div>
-                          {canDeletePost ? (
-                            <button
-                              onClick={() => handleDeletePost(post.id)}
-                              disabled={deletingPostId === post.id}
-                              className="text-sm text-red-600 hover:text-red-700 disabled:cursor-not-allowed disabled:opacity-50"
-                            >
-                              {deletingPostId === post.id ? 'Deleting…' : 'Delete'}
-                            </button>
+                          {canDeletePost && editingPostId !== post.id ? (
+                            <div className="flex gap-2">
+                              <button
+                                onClick={() => handleEditPost(post)}
+                                className="text-sm text-indigo-600 hover:text-indigo-700"
+                              >
+                                Edit
+                              </button>
+                              <button
+                                onClick={() => handleDeletePost(post.id)}
+                                disabled={deletingPostId === post.id}
+                                className="text-sm text-red-600 hover:text-red-700 disabled:cursor-not-allowed disabled:opacity-50"
+                              >
+                                {deletingPostId === post.id ? 'Deleting…' : 'Delete'}
+                              </button>
+                            </div>
                           ) : null}
                         </div>
                       </div>
 
                       {/* Post Content */}
                       <div className="px-6">
-                        {post.content && (
-                          <p className="text-gray-900 whitespace-pre-wrap mb-4">{post.content}</p>
+                        {editingPostId === post.id ? (
+                          <div className="mb-4 space-y-2">
+                            <textarea
+                              value={editContent}
+                              onChange={(e) => setEditContent(e.target.value)}
+                              className="w-full rounded-lg border border-slate-300 p-3 text-sm resize-none focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                              rows={4}
+                              placeholder="What's on your mind?"
+                            />
+                            <div className="flex gap-2">
+                              <button
+                                onClick={saveEditPost}
+                                disabled={savingEdit || !editContent.trim()}
+                                className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-50"
+                              >
+                                {savingEdit ? 'Saving...' : 'Save'}
+                              </button>
+                              <button
+                                onClick={cancelEditPost}
+                                disabled={savingEdit}
+                                className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
+                              >
+                                Cancel
+                              </button>
+                            </div>
+                          </div>
+                        ) : (
+                          <>
+                            {post.content && (
+                              <p className="text-gray-900 whitespace-pre-wrap mb-4">{post.content}</p>
+                            )}
+                          </>
                         )}
                       
                         {/* Tags */}
