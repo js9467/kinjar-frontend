@@ -38,7 +38,8 @@ export interface FamilyMemberProfile {
   avatarUrl?: string;
   birthdate?: string;
   age?: number;
-  bio?: string;
+  bio?: string; // Adding bio field for display and editing
+  quote?: string; // Adding quote field for display and editing
   permissions?: RolePermissions;
   joinedAt: string;
   birthYear?: number;

@@ -354,10 +354,44 @@ export function EnhancedFamilyAdmin({ familyId, familySlug }: EnhancedFamilyAdmi
                   <div className="space-y-3">
                     {members.map((member) => (
                       <div key={member.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
-                        <div>
-                          <h4 className="font-medium text-gray-900">{member.name}</h4>
-                          <p className="text-sm text-gray-600">{member.email}</p>
-                          <p className="text-sm text-gray-500">Role: {member.role}</p>
+                        <div className="flex items-center gap-4">
+                          <div>
+                            <img
+                              src={member.avatarUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(member.name)}&background=3B82F6&color=fff`}
+                              alt={member.name}
+                              className="w-12 h-12 rounded-full object-cover border"
+                            />
+                            <input
+                              type="file"
+                              accept="image/*"
+                              style={{ display: 'block', marginTop: '0.5rem' }}
+                              onChange={async (e) => {
+                                const file = e.target.files?.[0];
+                                if (file) {
+                                  // TODO: Implement avatar upload API call
+                                  alert('Avatar upload not yet implemented.');
+                                }
+                              }}
+                            />
+                          </div>
+                          <div>
+                            <h4 className="font-medium text-gray-900">{member.name}</h4>
+                            <p className="text-sm text-gray-600">{member.email}</p>
+                            <p className="text-sm text-gray-500">Role: {member.role}</p>
+                            <div className="mt-2">
+                              <label className="block text-xs text-gray-500 mb-1">Quote</label>
+                              <input
+                                type="text"
+                                value={member.quote || ''}
+                                placeholder="Add a personal quote..."
+                                className="w-48 rounded border px-2 py-1 text-sm"
+                                onChange={async (e) => {
+                                  // TODO: Implement quote update API call
+                                  alert('Quote editing not yet implemented.');
+                                }}
+                              />
+                            </div>
+                          </div>
                         </div>
                         <div className="flex space-x-2">
                           <button className="text-blue-600 hover:text-blue-700 text-sm font-medium">
