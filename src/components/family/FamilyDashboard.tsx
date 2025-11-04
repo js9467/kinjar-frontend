@@ -4,6 +4,7 @@ import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { FamilyPost, FamilyProfile } from '@/lib/types';
 import { api, getSubdomainInfo } from '@/lib/api';
 import { useAuth } from '@/lib/auth';
+import { useAppState } from '@/lib/app-state';
 import { PostCreator } from '@/components/family/PostCreator';
 import { CommentSection, PostReactions } from '@/components/family/CommentSection';
 import { ConfirmModal } from '@/components/ui/ConfirmModal';
@@ -16,7 +17,9 @@ interface FamilyDashboardProps {
 }
 
 export function FamilyDashboard({ familySlug }: FamilyDashboardProps) {
-  const { user, loading: authLoading, isAuthenticated, canManageFamily } = useAuth();
+    console.log('[FamilyDashboard] ===== COMPONENT LOADED - VERSION 2.0 =====');
+  const { user, isAuthenticated, canManageFamily } = useAuth();
+  const { families } = useAppState();
   const [family, setFamily] = useState<FamilyProfile | null>(null);
   const [posts, setPosts] = useState<FamilyPost[]>([]);
   const [loading, setLoading] = useState(true);
@@ -318,8 +321,8 @@ export function FamilyDashboard({ familySlug }: FamilyDashboardProps) {
     return post.visibility === filter;
   });
 
-  // Show auth loading
-  if (authLoading) {
+  // Show loading
+  if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
