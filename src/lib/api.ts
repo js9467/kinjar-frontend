@@ -483,30 +483,47 @@ class KinjarAPI {
     const backendPosts = response.posts || response || [];
     console.log(`[API] Raw backend posts received: ${backendPosts.length}`);
     
-    const frontendPosts: FamilyPost[] = backendPosts.map((backendPost: any) => ({
-      id: backendPost.id,
-      familyId: backendPost.tenant_id || familySlugOrId,
-      authorId: backendPost.author_id,
-      authorName: backendPost.author_name || 'User', // Use author name if available
-      authorAvatarColor: backendPost.author_avatar || '#3B82F6', // Default color
-      createdAt: backendPost.published_at || backendPost.created_at,
-      content: backendPost.content,
-      media: (backendPost.media_filename || backendPost.media_url || backendPost.media_external_url) ? {
-        type: this.determineMediaType(
-          backendPost.media_content_type, 
-          backendPost.media_filename || backendPost.media_url || backendPost.media_external_url
-        ),
-        url: backendPost.media_url || backendPost.media_external_url || `/api/media/${backendPost.media_id}`,
-        alt: backendPost.title
-      } : undefined,
-      visibility: backendPost.is_public ? 'public' : 'family',
-      status: 'approved', // Backend posts are auto-approved
-      reactions: 0, // TODO: Get from backend
-      comments: [], // Comments start empty, will be added via UI interactions
-      tags: [] // TODO: Get from backend
-    }));
+    const frontendPosts: FamilyPost[] = [];
+    
+    // Process each post and load its comments
+    for (const backendPost of backendPosts) {
+      const post: FamilyPost = {
+        id: backendPost.id,
+        familyId: backendPost.tenant_id || familySlugOrId,
+        authorId: backendPost.author_id,
+        authorName: backendPost.author_name || 'User', // Use author name if available
+        authorAvatarColor: backendPost.author_avatar || '#3B82F6', // Default color
+        createdAt: backendPost.published_at || backendPost.created_at,
+        content: backendPost.content,
+        media: (backendPost.media_filename || backendPost.media_url || backendPost.media_external_url) ? {
+          type: this.determineMediaType(
+            backendPost.media_content_type, 
+            backendPost.media_filename || backendPost.media_url || backendPost.media_external_url
+          ),
+          url: backendPost.media_url || backendPost.media_external_url || `/api/media/${backendPost.media_id}`,
+          alt: backendPost.title
+        } : undefined,
+        visibility: backendPost.is_public ? 'public' : 'family',
+        status: 'approved', // Backend posts are auto-approved
+        reactions: 0, // TODO: Get from backend
+        comments: [], // Load comments separately
+        tags: [] // TODO: Get from backend
+      };
+      
+      // Load comments for this post
+      try {
+        const comments = await this.getPostComments(post.id);
+        post.comments = comments;
+        console.log(`[API] Loaded ${comments.length} comments for post ${post.id}`);
+      } catch (error) {
+        console.warn(`[API] Failed to load comments for post ${post.id}:`, error);
+        post.comments = [];
+      }
+      
+      frontendPosts.push(post);
+    }
 
-    console.log(`[API] Transformed ${frontendPosts.length} posts from backend`);
+    console.log(`[API] Transformed ${frontendPosts.length} posts from backend with comments`);
     return frontendPosts;
   }
 
@@ -537,10 +554,25 @@ class KinjarAPI {
 
   async getPostComments(postId: string): Promise<{ id: string; authorName: string; authorAvatarColor: string; content: string; createdAt: string }[]> {
     try {
-      // Note: This endpoint doesn't exist in the backend yet, so this will fail
-      // For now, return empty array and comments will be added via addComment
-      console.log(`[API] Would load comments for post ${postId}, but endpoint doesn't exist yet`);
-      return [];
+      console.log(`[API] Loading comments for post ${postId}`);
+      const response = await this.request(`/api/posts/${postId}/comments`);
+      
+      console.log(`[API] Comments response:`, response);
+      
+      // Backend returns { ok: true, comments: [...] }
+      const backendComments = response.comments || [];
+      
+      // Transform backend comments to frontend format
+      const formattedComments = backendComments.map((comment: any) => ({
+        id: comment.id,
+        content: comment.content,
+        createdAt: comment.created_at || new Date().toISOString(),
+        authorName: comment.author_name || comment.author_email || 'User',
+        authorAvatarColor: comment.author_avatar || '#3B82F6'
+      }));
+      
+      console.log(`[API] Formatted comments:`, formattedComments);
+      return formattedComments;
     } catch (error) {
       console.warn(`[API] Failed to load comments for post ${postId}:`, error);
       return [];
