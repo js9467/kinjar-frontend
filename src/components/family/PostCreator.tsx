@@ -1,13 +1,58 @@
 'use client';
 
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { api } from '@/lib/api';
 import { useAuth } from '@/lib/auth';
 import { useAppState } from '@/lib/app-state';
 import { FamilyPost, MediaAttachment, PostVisibility, FamilyMemberProfile } from '@/lib/types';
 
+const CHILD_ROLES = ['CHILD_0_5', 'CHILD_5_10', 'CHILD_10_14', 'CHILD_14_16', 'CHILD_16_ADULT'];
+const ALLOWED_ROLES = new Set(['OWNER', 'ADMIN', 'ADULT', ...CHILD_ROLES]);
+const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+const isUuid = (value: string) => UUID_REGEX.test(value.trim());
+
+const normalizeEligibleMembers = (list: FamilyMemberProfile[] = []): FamilyMemberProfile[] => {
+  const uniqueMembers: FamilyMemberProfile[] = [];
+  const seenPrimary = new Set<string>();
+  const seenSecondary = new Set<string>();
+
+  list.forEach((member) => {
+    if (!ALLOWED_ROLES.has(member.role)) {
+      return;
+    }
+
+    const primaryKey = (member.userId || member.id || '').trim();
+    if (primaryKey && seenPrimary.has(primaryKey)) {
+      return;
+    }
+
+    const secondaryKeyBase = (member.name || '').trim().toLowerCase();
+    const secondaryKey = secondaryKeyBase || member.birthdate
+      ? `${secondaryKeyBase}|${member.birthdate || ''}`
+      : '';
+
+    if (secondaryKey && seenSecondary.has(secondaryKey)) {
+      return;
+    }
+
+    if (primaryKey) {
+      seenPrimary.add(primaryKey);
+    }
+    if (secondaryKey) {
+      seenSecondary.add(secondaryKey);
+    }
+
+    uniqueMembers.push(member);
+  });
+
+  return uniqueMembers;
+};
+
 interface PostCreatorProps {
   familyId: string;
+  familySlug?: string;
+  initialMembers?: FamilyMemberProfile[];
   onPostCreated?: (post: FamilyPost) => void;
   onError?: (error: string) => void;
   className?: string;
@@ -26,28 +71,72 @@ const determineFileType = (file: File): 'image' | 'video' => {
   return 'image'; // Default to image
 };
 
-export function PostCreator({ familyId, onPostCreated, onError, className = '' }: PostCreatorProps) {
+export function PostCreator({ familyId, familySlug, initialMembers = [], onPostCreated, onError, className = '' }: PostCreatorProps) {
   const { user, isAuthenticated } = useAuth();
   const { families } = useAppState();
-  // Find current family and members
-  const [members, setMembers] = useState<FamilyMemberProfile[]>([]);
-  const [selectedMemberId, setSelectedMemberId] = useState<string>('');
 
-  useEffect(() => {
-    const family = families.find(f => f.id === familyId);
-    if (family) {
-      // Only allow posting as self or children (members)
-  // Filter for adults and children roles
-  const childRoles = ['CHILD_0_5', 'CHILD_5_10', 'CHILD_10_14', 'CHILD_14_16', 'CHILD_16_ADULT'];
-  const memberList = family.members?.filter(m => m.role === 'ADULT' || childRoles.includes(m.role)) || [];
-      setMembers(memberList);
-      // Default to self if present
-      if (user) {
-        const selfMember = memberList.find(m => m.userId === user.id);
-        setSelectedMemberId(selfMember?.id || memberList[0]?.id || '');
+  const [members, setMembers] = useState<FamilyMemberProfile[]>(() => normalizeEligibleMembers(initialMembers));
+  const [selectedMemberId, setSelectedMemberId] = useState<string>('');
+  const [loadingMembers, setLoadingMembers] = useState(false);
+
+  const ensureSelectedMember = useCallback((candidates: FamilyMemberProfile[]) => {
+    setSelectedMemberId((prev) => {
+      if (prev && candidates.some((member) => member.id === prev)) {
+        return prev;
+      }
+      const selfMember = user
+        ? candidates.find((member) => member.userId === user.id || member.id === user.id)
+        : undefined;
+      return selfMember?.id || candidates[0]?.id || '';
+    });
+  }, [user]);
+
+  const loadMembers = useCallback(async () => {
+    let candidateMembers = initialMembers.length > 0 ? initialMembers : [];
+
+    if (candidateMembers.length === 0) {
+      const contextFamily = families.find((family) =>
+        family.id === familyId ||
+        family.slug === familyId ||
+        (!!familySlug && (family.slug === familySlug || family.id === familySlug))
+      );
+      if (contextFamily?.members?.length) {
+        candidateMembers = contextFamily.members;
+      }
+
+      if (candidateMembers.length === 0) {
+        const slugToFetch = familySlug || contextFamily?.slug || (!isUuid(familyId) ? familyId : undefined);
+        if (slugToFetch) {
+          try {
+            setLoadingMembers(true);
+            const fetchedFamily = await api.getFamilyBySlug(slugToFetch);
+            candidateMembers = fetchedFamily.members || [];
+          } catch (error) {
+            console.error('[PostCreator] Failed to load family members', error);
+            onError?.('Unable to load family members for posting.');
+          } finally {
+            setLoadingMembers(false);
+          }
+        }
       }
     }
-  }, [families, familyId, user]);
+
+    const normalizedMembers = normalizeEligibleMembers(candidateMembers);
+    setMembers(normalizedMembers);
+    ensureSelectedMember(normalizedMembers);
+  }, [initialMembers, families, familyId, familySlug, onError, ensureSelectedMember]);
+
+  useEffect(() => {
+    loadMembers();
+  }, [loadMembers]);
+
+  useEffect(() => {
+    if (initialMembers.length > 0) {
+      const normalizedInitial = normalizeEligibleMembers(initialMembers);
+      setMembers(normalizedInitial);
+      ensureSelectedMember(normalizedInitial);
+    }
+  }, [initialMembers, ensureSelectedMember]);
   const [content, setContent] = useState('');
   const [visibility, setVisibility] = useState<PostVisibility>('family');
   const [tags, setTags] = useState<string>('');
