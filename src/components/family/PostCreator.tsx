@@ -2,6 +2,7 @@
 
 import React, { useState, useRef } from 'react';
 import { api } from '@/lib/api';
+import { useAuth } from '@/lib/auth';
 import { FamilyPost, MediaAttachment, PostVisibility } from '@/lib/types';
 
 interface PostCreatorProps {
@@ -12,6 +13,7 @@ interface PostCreatorProps {
 }
 
 export function PostCreator({ familyId, onPostCreated, onError, className = '' }: PostCreatorProps) {
+  const { user } = useAuth();
   const [content, setContent] = useState('');
   const [visibility, setVisibility] = useState<PostVisibility>('family');
   const [tags, setTags] = useState<string>('');
@@ -103,6 +105,7 @@ export function PostCreator({ familyId, onPostCreated, onError, className = '' }
         .filter(tag => tag.length > 0);
 
       try {
+        console.log('[PostCreator] Creating post with familyId:', familyId);
         const createdPost = await api.createPost({
           content: content.trim() || (media ? `Shared a ${media.type}` : ''),
           familyId,
@@ -116,20 +119,12 @@ export function PostCreator({ familyId, onPostCreated, onError, className = '' }
       } catch (apiError) {
         // If API fails, create mock post for demo
         console.log('API failed, creating mock post for demo');
+        console.log('[PostCreator] Current user from auth:', user);
         
-        // Try to get current user for mock post
-        let mockAuthorId = 'current-user';
-        let mockAuthorName = 'Demo User';
-        let mockAuthorColor = '#3B82F6';
-        
-        try {
-          const currentUser = await api.getCurrentUser();
-          mockAuthorId = currentUser.id;
-          mockAuthorName = currentUser.name;
-          mockAuthorColor = currentUser.avatarColor;
-        } catch (userError) {
-          console.log('Could not get current user for mock post');
-        }
+        // Use current user from auth context for mock post
+        const mockAuthorId = user?.id || 'current-user';
+        const mockAuthorName = user?.name || 'User';
+        const mockAuthorColor = user?.avatarColor || '#3B82F6';
         
         const mockPost = {
           id: `mock-post-${Date.now()}`,
