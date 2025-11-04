@@ -163,6 +163,50 @@ export function PublicFeed() {
               </div>
             )}
 
+            {/* Comments section */}
+            {post.comments && post.comments.length > 0 && (
+              <div className="pt-4 border-t border-gray-100">
+                <h4 className="text-sm font-medium text-gray-900 mb-3">
+                  {post.comments.length} comment{post.comments.length === 1 ? '' : 's'}
+                </h4>
+                <div className="space-y-3">
+                  {post.comments.slice(0, 3).map((comment) => (
+                    <div key={comment.id} className="flex items-start gap-3">
+                      <div 
+                        className="flex-shrink-0 w-6 h-6 rounded-full flex items-center justify-center text-white text-xs font-semibold"
+                        style={{ backgroundColor: comment.authorAvatarColor }}
+                      >
+                        {comment.authorName
+                          .split(' ')
+                          .map(part => part[0])
+                          .join('')
+                          .slice(0, 2)}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="bg-gray-50 rounded-lg p-2">
+                          <div className="flex items-center gap-2 mb-1">
+                            <span className="font-medium text-gray-900 text-sm">{comment.authorName}</span>
+                            <span className="text-xs text-gray-500">
+                              {formatDate(comment.createdAt)}
+                            </span>
+                          </div>
+                          <p className="text-gray-700 text-sm">{comment.content}</p>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                  {post.comments.length > 3 && (
+                    <Link
+                      href={`/families/${post.familySlug}`}
+                      className="text-sm text-blue-600 hover:text-blue-700 font-medium"
+                    >
+                      View all {post.comments.length} comments →
+                    </Link>
+                  )}
+                </div>
+              </div>
+            )}
+
             {/* Post Actions */}
             <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between pt-4 border-t border-gray-100">
               <div className="flex flex-wrap items-center gap-4">

@@ -58,12 +58,7 @@ export function PostCreator({ familyId, familySlug, initialMembers = [], onPostC
 
   // Load family members and set up post as options
   const loadMembers = useCallback(async () => {
-    if (loadingMembers) {
-      console.log('[PostCreator] Already loading members, skipping...');
-      return; // Prevent concurrent loading
-    }
-    
-    console.log('[PostCreator] Loading members for familyId:', familyId, 'user:', user?.name);
+    console.log('[PostCreator] Loading members for familyId:', familyId, 'user:', user?.name, 'loadingMembers:', loadingMembers);
     
     try {
       setLoadingMembers(true);
@@ -172,7 +167,29 @@ export function PostCreator({ familyId, familySlug, initialMembers = [], onPostC
     if (isAuthenticated && user) {
       loadMembers();
     }
-  }, [isAuthenticated, user?.id, familyId, familySlug, loadMembers]);
+    
+    // Fallback timeout to prevent infinite loading
+    const timeout = setTimeout(() => {
+      if (loadingMembers) {
+        console.warn('[PostCreator] Member loading timeout, forcing completion with current user only');
+        if (user) {
+          setMembers([{
+            id: user.id,
+            userId: user.id,
+            name: user.name || 'Me',
+            email: user.email,
+            role: 'ADULT' as any,
+            avatarColor: user.avatarColor || '#3B82F6',
+            joinedAt: new Date().toISOString()
+          }]);
+          setSelectedMemberId(user.id);
+        }
+        setLoadingMembers(false);
+      }
+    }, 10000); // 10 second timeout
+    
+    return () => clearTimeout(timeout);
+  }, [isAuthenticated, user?.id, familyId, familySlug, loadMembers, loadingMembers]);
 
   const handleFileSelect = (files: FileList | null) => {
     if (fileInputRef.current) {
