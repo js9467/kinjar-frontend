@@ -204,12 +204,17 @@ export function FamilyDashboard({ familySlug }: FamilyDashboardProps) {
   };
 
   const handleCommentAdded = (postId: string, comment: any) => {
+    console.log(`[FamilyDashboard] Adding comment to post ${postId}:`, comment);
     // Just update React state - the comment was already saved to database via API
-    setPosts(prev => prev.map(post => 
-      post.id === postId 
-        ? { ...post, comments: [...(post.comments || []), comment] }
-        : post
-    ));
+    setPosts(prev => {
+      const updated = prev.map(post => 
+        post.id === postId 
+          ? { ...post, comments: [...(post.comments || []), comment] }
+          : post
+      );
+      console.log(`[FamilyDashboard] Updated posts with new comment:`, updated.find(p => p.id === postId)?.comments);
+      return updated;
+    });
   };
 
   const handleReaction = (postId: string, reaction: string) => {

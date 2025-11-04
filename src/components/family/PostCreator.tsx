@@ -12,7 +12,7 @@ const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12
 
 const isUuid = (value: string) => UUID_REGEX.test(value.trim());
 
-const normalizeEligibleMembers = (list: FamilyMemberProfile[] = []): FamilyMemberProfile[] => {
+const normalizeEligibleMembers = (list: FamilyMemberProfile[] = [], currentUser?: any): FamilyMemberProfile[] => {
   const uniqueMembers: FamilyMemberProfile[] = [];
   const seenPrimary = new Set<string>();
   const seenSecondary = new Set<string>();
@@ -22,13 +22,15 @@ const normalizeEligibleMembers = (list: FamilyMemberProfile[] = []): FamilyMembe
       return;
     }
 
-    // Only include members who have user accounts (userId exists)
-    if (!member.userId) {
-      console.log(`[PostCreator] Excluding member ${member.name} - no user account`);
+    // Prefer userId if available, otherwise use member id
+    // For members without userId, they might still be postable if they correspond to the current user
+    const effectiveUserId = member.userId || member.id;
+    if (!effectiveUserId) {
+      console.log(`[PostCreator] Excluding member ${member.name} - no ID available`);
       return;
     }
 
-    const primaryKey = (member.userId || member.id || '').trim();
+    const primaryKey = effectiveUserId.trim();
     if (primaryKey && seenPrimary.has(primaryKey)) {
       return;
     }
@@ -51,6 +53,20 @@ const normalizeEligibleMembers = (list: FamilyMemberProfile[] = []): FamilyMembe
 
     uniqueMembers.push(member);
   });
+
+  // If no eligible members found, add the current user as a fallback
+  if (uniqueMembers.length === 0 && currentUser) {
+    console.log('[PostCreator] No eligible members found, adding current user as fallback');
+    uniqueMembers.push({
+      id: currentUser.id,
+      userId: currentUser.id,
+      name: currentUser.name || 'Current User',
+      email: currentUser.email,
+      role: 'ADULT' as any,
+      avatarColor: currentUser.avatarColor || '#3B82F6',
+      joinedAt: new Date().toISOString()
+    });
+  }
 
   return uniqueMembers;
 };
@@ -81,7 +97,7 @@ export function PostCreator({ familyId, familySlug, initialMembers = [], onPostC
   const { user, isAuthenticated } = useAuth();
   const { families } = useAppState();
 
-  const [members, setMembers] = useState<FamilyMemberProfile[]>(() => normalizeEligibleMembers(initialMembers));
+  const [members, setMembers] = useState<FamilyMemberProfile[]>(() => normalizeEligibleMembers(initialMembers, user));
   const [selectedMemberId, setSelectedMemberId] = useState<string>(() => {
     // Try to get persisted selection from localStorage
     if (typeof window !== 'undefined') {
@@ -143,7 +159,7 @@ export function PostCreator({ familyId, familySlug, initialMembers = [], onPostC
       }
     }
 
-    const normalizedMembers = normalizeEligibleMembers(candidateMembers);
+    const normalizedMembers = normalizeEligibleMembers(candidateMembers, user);
     setMembers(normalizedMembers);
     ensureSelectedMember(normalizedMembers);
   }, [initialMembers, families, familyId, familySlug, onError, ensureSelectedMember, loadingMembers]);
@@ -156,7 +172,7 @@ export function PostCreator({ familyId, familySlug, initialMembers = [], onPostC
 
   useEffect(() => {
     if (initialMembers.length > 0) {
-      const normalizedInitial = normalizeEligibleMembers(initialMembers);
+      const normalizedInitial = normalizeEligibleMembers(initialMembers, user);
       setMembers(normalizedInitial);
       ensureSelectedMember(normalizedInitial);
     }
@@ -220,8 +236,9 @@ export function PostCreator({ familyId, familySlug, initialMembers = [], onPostC
       return;
     }
     // Check membership/connection
-    if (!members.some(m => m.id === selectedMemberId && m.userId)) {
-      onError?.('You must select a member with a user account to post.');
+    const selectedMember = members.find(m => m.id === selectedMemberId);
+    if (!selectedMember) {
+      onError?.('Please select a valid family member to post as.');
       return;
     }
     if (!content.trim() && !mediaPreview) {
@@ -258,13 +275,18 @@ export function PostCreator({ familyId, familySlug, initialMembers = [], onPostC
       
       console.log('[PostCreator] Creating post with familyId:', familyId);
       console.log('[PostCreator] Selected member ID:', selectedMemberId);
-      console.log('[PostCreator] Selected member userId:', members.find(m => m.id === selectedMemberId)?.userId);
+      
+      const selectedMember = members.find(m => m.id === selectedMemberId);
+      const effectiveUserId = selectedMember?.userId || selectedMember?.id || selectedMemberId;
+      
+      console.log('[PostCreator] Selected member userId:', selectedMember?.userId);
+      console.log('[PostCreator] Effective user ID for post:', effectiveUserId);
       console.log('[PostCreator] Available members:', members.map(m => ({ id: m.id, name: m.name, userId: m.userId })));
       
       const createdPost = await api.createPost({
         content: content.trim() || (media ? `Shared a ${media.type}` : ''),
         familyId,
-        authorId: members.find(m => m.id === selectedMemberId)?.userId || selectedMemberId,
+        authorId: effectiveUserId,
         media,
         visibility,
         tags: postTags
