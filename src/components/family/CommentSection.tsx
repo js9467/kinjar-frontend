@@ -17,6 +17,9 @@ export function CommentSection({ post, onCommentAdded, onError }: CommentSection
   const [submitting, setSubmitting] = useState(false);
   const [comments, setComments] = useState<PostComment[]>(post.comments || []);
   const [showComments, setShowComments] = useState((post.comments || []).length > 0);
+  const [editingCommentId, setEditingCommentId] = useState<string | null>(null);
+  const [editContent, setEditContent] = useState('');
+  const [savingEdit, setSavingEdit] = useState(false);
 
   // Update comments when post.comments changes
   useEffect(() => {
@@ -62,6 +65,61 @@ export function CommentSection({ post, onCommentAdded, onError }: CommentSection
     }
   };
 
+  const handleEditComment = (comment: PostComment) => {
+    setEditingCommentId(comment.id);
+    setEditContent(comment.content);
+  };
+
+  const handleSaveEdit = async () => {
+    if (!editContent.trim() || !editingCommentId) return;
+
+    setSavingEdit(true);
+    try {
+      console.log('[CommentSection] Editing comment:', editingCommentId);
+      
+      // Edit comment via API
+      const updatedComment = await api.editComment(editingCommentId, editContent.trim());
+      console.log('[CommentSection] Comment edited successfully:', updatedComment);
+      
+      // Update local comments
+      setComments(prev => prev.map(comment => 
+        comment.id === editingCommentId 
+          ? { ...comment, content: updatedComment.content }
+          : comment
+      ));
+      
+      // Reset edit state
+      setEditingCommentId(null);
+      setEditContent('');
+      
+    } catch (error) {
+      console.error('[CommentSection] Failed to edit comment:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Failed to edit comment';
+      onError?.(errorMessage);
+    } finally {
+      setSavingEdit(false);
+    }
+  };
+
+  const handleCancelEdit = () => {
+    setEditingCommentId(null);
+    setEditContent('');
+  };
+
+  // Check if user can edit a comment (same logic as backend)
+  const canEditComment = (comment: PostComment): boolean => {
+    if (!user) return false;
+    
+    // User can edit their own comments
+    if (comment.authorName === user.name) return true;
+    
+    // Adults/admins can edit child comments
+    // For now, we'll allow editing if the user is an adult (this should match the backend logic)
+    // In a more complete implementation, we'd check if the comment author is a child
+    const userRole = user.memberships?.find(m => m.familySlug === post.familySlug)?.role;
+    return userRole === 'ADMIN' || userRole === 'ADULT';
+  };
+
   return (
     <div className="space-y-4">
       {/* Comment toggle button */}
@@ -99,17 +157,56 @@ export function CommentSection({ post, onCommentAdded, onError }: CommentSection
               </div>
               <div className="flex-1 min-w-0">
                 <div className="bg-white rounded-lg p-3 shadow-sm">
-                  <div className="flex items-center gap-2 mb-1">
-                    <span className="font-semibold text-gray-900 text-sm">{comment.authorName}</span>
-                    <span className="text-xs text-gray-500">
-                      {new Date(comment.createdAt).toLocaleDateString()} at{' '}
-                      {new Date(comment.createdAt).toLocaleTimeString([], { 
-                        hour: '2-digit', 
-                        minute: '2-digit' 
-                      })}
-                    </span>
+                  <div className="flex items-center justify-between mb-1">
+                    <div className="flex items-center gap-2">
+                      <span className="font-semibold text-gray-900 text-sm">{comment.authorName}</span>
+                      <span className="text-xs text-gray-500">
+                        {new Date(comment.createdAt).toLocaleDateString()} at{' '}
+                        {new Date(comment.createdAt).toLocaleTimeString([], { 
+                          hour: '2-digit', 
+                          minute: '2-digit' 
+                        })}
+                      </span>
+                    </div>
+                    {canEditComment(comment) && editingCommentId !== comment.id && (
+                      <button
+                        onClick={() => handleEditComment(comment)}
+                        className="text-xs text-gray-500 hover:text-gray-700"
+                      >
+                        Edit
+                      </button>
+                    )}
                   </div>
-                  <p className="text-gray-700 text-sm whitespace-pre-wrap">{comment.content}</p>
+                  
+                  {editingCommentId === comment.id ? (
+                    <div className="space-y-2">
+                      <textarea
+                        value={editContent}
+                        onChange={(e) => setEditContent(e.target.value)}
+                        className="w-full p-2 text-sm border border-gray-300 rounded resize-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        rows={3}
+                        disabled={savingEdit}
+                      />
+                      <div className="flex gap-2">
+                        <button
+                          onClick={handleSaveEdit}
+                          disabled={savingEdit || !editContent.trim()}
+                          className="px-3 py-1 bg-blue-600 text-white text-xs font-medium rounded hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          {savingEdit ? 'Saving...' : 'Save'}
+                        </button>
+                        <button
+                          onClick={handleCancelEdit}
+                          disabled={savingEdit}
+                          className="px-3 py-1 text-gray-700 text-xs font-medium hover:text-gray-900 disabled:opacity-50"
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <p className="text-gray-700 text-sm whitespace-pre-wrap">{comment.content}</p>
+                  )}
                 </div>
               </div>
             </div>

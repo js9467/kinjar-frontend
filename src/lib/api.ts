@@ -596,6 +596,31 @@ class KinjarAPI {
     return formattedComment;
   }
 
+  async editComment(commentId: string, content: string): Promise<{ id: string; authorName: string; authorAvatarColor: string; content: string; createdAt: string }> {
+    console.log(`[API] Editing comment ${commentId} with content:`, content);
+    const response = await this.request(`/api/comments/${commentId}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ content }),
+    });
+    
+    console.log(`[API] Edit comment response:`, response);
+    
+    // Backend returns { ok: true, comment: {...} }, we need just the comment
+    const comment = response.comment || response;
+    
+    // Backend comment might not have author details, so fill in from current user
+    const formattedComment = {
+      id: comment.id,
+      content: comment.content,
+      createdAt: comment.created_at || comment.createdAt,
+      authorName: this.currentUser?.name || 'User',
+      authorAvatarColor: this.currentUser?.avatarColor || '#3B82F6'
+    };
+    
+    console.log(`[API] Formatted edited comment:`, formattedComment);
+    return formattedComment;
+  }
+
   async getPostComments(postId: string): Promise<{ id: string; authorName: string; authorAvatarColor: string; content: string; createdAt: string }[]> {
     try {
       console.log(`[API] Loading comments for post ${postId}`);
