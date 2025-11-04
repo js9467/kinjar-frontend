@@ -63,6 +63,8 @@ export function PostCreator({ familyId, familySlug, initialMembers = [], onPostC
       return; // Prevent concurrent loading
     }
     
+    console.log('[PostCreator] Loading members for familyId:', familyId, 'user:', user?.name);
+    
     try {
       setLoadingMembers(true);
       
@@ -70,6 +72,7 @@ export function PostCreator({ familyId, familySlug, initialMembers = [], onPostC
       const postAsOptions: FamilyMemberProfile[] = [];
       
       if (user) {
+        console.log('[PostCreator] Adding current user to post options:', user.name);
         postAsOptions.push({
           id: user.id,
           userId: user.id,
@@ -86,6 +89,7 @@ export function PostCreator({ familyId, familySlug, initialMembers = [], onPostC
 
       // 1. From initialMembers prop
       if (initialMembers.length > 0) {
+        console.log('[PostCreator] Using initialMembers:', initialMembers.length);
         familyMembers = initialMembers;
       }
       // 2. From app state families
@@ -96,6 +100,7 @@ export function PostCreator({ familyId, familySlug, initialMembers = [], onPostC
           (!!familySlug && (family.slug === familySlug || family.id === familySlug))
         );
         if (contextFamily?.members?.length) {
+          console.log('[PostCreator] Using family from app state:', contextFamily.members.length);
           familyMembers = contextFamily.members;
         }
       }
@@ -106,6 +111,7 @@ export function PostCreator({ familyId, familySlug, initialMembers = [], onPostC
           console.log('[PostCreator] Fetching family members from API for:', familySlug);
           const fetchedFamily = await api.getFamilyBySlug(familySlug);
           familyMembers = fetchedFamily.members || [];
+          console.log('[PostCreator] Fetched members from API:', familyMembers.length);
         } catch (error) {
           console.warn('[PostCreator] Failed to load family members:', error);
         }
@@ -122,6 +128,7 @@ export function PostCreator({ familyId, familySlug, initialMembers = [], onPostC
         if (member.birthdate) {
           const age = calculateAge(member.birthdate);
           if (age < 14) {
+            console.log('[PostCreator] Adding child member (by age):', member.name, 'age:', age);
             postAsOptions.push({
               ...member,
               name: member.name || member.email?.split('@')[0] || 'Family Member',
@@ -131,6 +138,7 @@ export function PostCreator({ familyId, familySlug, initialMembers = [], onPostC
         }
         // If no birthdate but role suggests child, include them
         else if (member.role && ['CHILD_0_5', 'CHILD_5_10', 'CHILD_10_14'].includes(member.role)) {
+          console.log('[PostCreator] Adding child member (by role):', member.name, 'role:', member.role);
           postAsOptions.push({
             ...member,
             name: member.name || member.email?.split('@')[0] || 'Family Member'
@@ -138,12 +146,17 @@ export function PostCreator({ familyId, familySlug, initialMembers = [], onPostC
         }
       }
 
+      console.log('[PostCreator] Final post options:', postAsOptions.length);
       setMembers(postAsOptions);
       
       // Set default selection to current user
       if (postAsOptions.length > 0) {
         const defaultMember = postAsOptions.find(m => user && (m.userId === user.id || m.id === user.id)) || postAsOptions[0];
+        console.log('[PostCreator] Setting default member:', defaultMember.name, 'id:', defaultMember.id);
         setSelectedMemberId(defaultMember.id);
+      } else {
+        console.warn('[PostCreator] No post options available');
+        setSelectedMemberId('');
       }
 
     } catch (error) {
@@ -152,13 +165,14 @@ export function PostCreator({ familyId, familySlug, initialMembers = [], onPostC
     } finally {
       setLoadingMembers(false);
     }
-  }, [familyId, familySlug, user?.id]); // Removed changing dependencies
+  }, [familyId, familySlug, user?.id, initialMembers, families]);
 
   useEffect(() => {
-    if (isAuthenticated) {
+    console.log('[PostCreator] useEffect triggered - isAuthenticated:', isAuthenticated, 'user:', user?.name, 'familyId:', familyId);
+    if (isAuthenticated && user) {
       loadMembers();
     }
-  }, [isAuthenticated, familyId, familySlug, user?.id]); // Direct dependencies instead of loadMembers
+  }, [isAuthenticated, user?.id, familyId, familySlug, loadMembers]);
 
   const handleFileSelect = (files: FileList | null) => {
     if (fileInputRef.current) {
@@ -518,6 +532,15 @@ export function PostCreator({ familyId, familySlug, initialMembers = [], onPostC
             type="submit"
             disabled={uploading || (!content.trim() && !mediaPreview) || !isAuthenticated || !selectedMemberId}
             className="bg-blue-600 text-white px-6 py-3 rounded-lg font-medium hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 w-full md:w-auto"
+            onClick={() => {
+              console.log('[PostCreator] Submit button clicked - Debug info:');
+              console.log('  uploading:', uploading);
+              console.log('  content.trim():', content.trim());
+              console.log('  mediaPreview:', !!mediaPreview);
+              console.log('  isAuthenticated:', isAuthenticated);
+              console.log('  selectedMemberId:', selectedMemberId);
+              console.log('  members.length:', members.length);
+            }}
           >
             {uploading && (
               <svg className="w-4 h-4 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">

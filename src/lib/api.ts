@@ -567,11 +567,11 @@ class KinjarAPI {
         id: comment.id,
         content: comment.content,
         createdAt: comment.created_at || new Date().toISOString(),
-        authorName: comment.author_name || comment.author_email || 'User',
+        authorName: comment.author_name || 'User',
         authorAvatarColor: comment.author_avatar || '#3B82F6'
       }));
       
-      console.log(`[API] Formatted comments:`, formattedComments);
+      console.log(`[API] Loaded ${formattedComments.length} comments for post ${postId}`);
       return formattedComments;
     } catch (error) {
       console.warn(`[API] Failed to load comments for post ${postId}:`, error);
@@ -742,7 +742,22 @@ class KinjarAPI {
   // Public Feed
   async getPublicFeed(limit = 20, offset = 0): Promise<FamilyPost[]> {
     const response = await this.request(`/api/public-feed?limit=${limit}&offset=${offset}`);
-    return response.posts || [];
+    const posts = response.posts || [];
+    
+    // Load comments for each post
+    const postsWithComments = await Promise.all(
+      posts.map(async (post: FamilyPost) => {
+        try {
+          const comments = await this.getPostComments(post.id);
+          return { ...post, comments };
+        } catch (error) {
+          console.warn(`Failed to load comments for public post ${post.id}:`, error);
+          return { ...post, comments: [] };
+        }
+      })
+    );
+    
+    return postsWithComments;
   }
 }
 
