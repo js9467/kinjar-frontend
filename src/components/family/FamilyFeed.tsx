@@ -57,7 +57,11 @@ export function FamilyFeed({ familyIds, highlightFamilyId, title = 'Family stori
       setDeletingPostId(postToDelete);
       
       // Optimistic update - hide post immediately
-      setDeletedPosts(prev => new Set([...prev, postToDelete]));
+      setDeletedPosts(prev => {
+        const newSet = new Set(prev);
+        newSet.add(postToDelete);
+        return newSet;
+      });
       
       // Try to delete from backend
       await api.deletePost(postToDelete);
