@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { PostComment, FamilyPost } from '@/lib/types';
 import { api } from '@/lib/api';
 import { useAuth } from '@/lib/auth';
@@ -15,7 +15,15 @@ export function CommentSection({ post, onCommentAdded, onError }: CommentSection
   const { user } = useAuth();
   const [newComment, setNewComment] = useState('');
   const [submitting, setSubmitting] = useState(false);
-  const [showComments, setShowComments] = useState(post.comments.length > 0);
+  const [comments, setComments] = useState<PostComment[]>(post.comments || []);
+  const [showComments, setShowComments] = useState((post.comments || []).length > 0);
+
+  // Update comments when post.comments changes
+  useEffect(() => {
+    console.log('[CommentSection] Post comments updated:', post.id, post.comments?.length || 0);
+    setComments(post.comments || []);
+    setShowComments((post.comments || []).length > 0);
+  }, [post.comments, post.id]);
 
   const handleSubmitComment = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -35,12 +43,15 @@ export function CommentSection({ post, onCommentAdded, onError }: CommentSection
       const comment = await api.addComment(post.id, newComment.trim());
       console.log('[CommentSection] Comment added successfully:', comment);
       
+      // Update local comments immediately
+      setComments(prev => [...prev, comment]);
+      setShowComments(true);
+      
       // Call the callback to update the parent component
       onCommentAdded?.(comment);
       
       // Reset form
       setNewComment('');
-      setShowComments(true);
       
     } catch (error) {
       console.error('[CommentSection] Failed to add comment:', error);
@@ -54,7 +65,7 @@ export function CommentSection({ post, onCommentAdded, onError }: CommentSection
   return (
     <div className="space-y-4">
       {/* Comment toggle button */}
-      {post.comments.length > 0 && (
+      {comments.length > 0 && (
         <button
           onClick={() => setShowComments(!showComments)}
           className="text-sm text-gray-600 hover:text-gray-800 font-medium flex items-center gap-1"
@@ -67,14 +78,14 @@ export function CommentSection({ post, onCommentAdded, onError }: CommentSection
           >
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" />
           </svg>
-          {showComments ? 'Hide' : 'Show'} {post.comments.length} comment{post.comments.length === 1 ? '' : 's'}
+          {showComments ? 'Hide' : 'Show'} {comments.length} comment{comments.length === 1 ? '' : 's'}
         </button>
       )}
 
       {/* Comments list */}
-      {showComments && post.comments.length > 0 && (
+      {showComments && comments.length > 0 && (
         <div className="space-y-3 bg-gray-50 rounded-lg p-4">
-          {post.comments.map((comment) => (
+          {comments.map((comment) => (
             <div key={comment.id} className="flex items-start gap-3">
               <div 
                 className="flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center text-white text-sm font-semibold"
