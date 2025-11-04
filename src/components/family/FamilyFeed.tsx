@@ -139,7 +139,7 @@ export function FamilyFeed({ familyIds, highlightFamilyId, title = 'Family stori
                   <p className="text-xs font-semibold uppercase tracking-wide text-indigo-600">
                     {family.name} · {post.visibility === 'public' ? 'Public' : post.visibility === 'connections' ? 'Connections' : 'Family only'}
                   </p>
-                  <h5 className="mt-2 text-lg font-semibold text-slate-900">{post.authorName}</h5>
+                  <h5 className="mt-2 text-lg font-semibold text-slate-900">{post.authorName || 'User'}</h5>
                   <p className="mt-2 whitespace-pre-wrap text-sm text-slate-600">{post.content}</p>
                 </div>
                 <div className="flex items-center gap-3">
@@ -156,7 +156,7 @@ export function FamilyFeed({ familyIds, highlightFamilyId, title = 'Family stori
                     className="flex h-10 w-10 items-center justify-center rounded-full text-sm font-semibold text-white"
                     style={{ backgroundColor: post.authorAvatarColor }}
                   >
-                    {post.authorName
+                    {(post.authorName || 'User')
                       .split(' ')
                       .map((part) => part[0])
                       .join('')}
@@ -199,13 +199,13 @@ export function FamilyFeed({ familyIds, highlightFamilyId, title = 'Family stori
                         className="mt-1 inline-flex h-6 w-6 items-center justify-center rounded-full text-[10px] font-semibold text-white"
                         style={{ backgroundColor: comment.authorAvatarColor }}
                       >
-                        {comment.authorName
+                        {(comment.authorName || 'User')
                           .split(' ')
                           .map((part) => part[0])
                           .join('')}
                       </span>
                       <div>
-                        <p className="font-semibold text-slate-700">{comment.authorName}</p>
+                        <p className="font-semibold text-slate-700">{comment.authorName || 'User'}</p>
                         <p>{comment.content}</p>
                         <p className="text-xs text-slate-400">{new Date(comment.createdAt).toLocaleString()}</p>
                       </div>

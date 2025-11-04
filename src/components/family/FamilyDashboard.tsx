@@ -448,7 +448,7 @@ export function FamilyDashboard({ familySlug }: FamilyDashboardProps) {
                   className="inline-flex h-10 w-10 items-center justify-center rounded-full text-sm font-semibold text-white"
                   style={{ backgroundColor: user.avatarColor }}
                 >
-                  {user.name
+                  {(user.name || 'User')
                     .split(' ')
                     .map((part) => part[0])
                     .join('')}
@@ -530,14 +530,14 @@ export function FamilyDashboard({ familySlug }: FamilyDashboardProps) {
                             className="w-10 h-10 rounded-full flex items-center justify-center text-white font-semibold"
                             style={{ backgroundColor: post.authorAvatarColor }}
                           >
-                            {post.authorName
+                            {(post.authorName || 'User')
                               .split(' ')
                               .map(part => part[0])
                               .join('')
                               .slice(0, 2)}
                           </div>
                           <div>
-                            <h3 className="font-semibold text-gray-900">{post.authorName}</h3>
+                            <h3 className="font-semibold text-gray-900">{post.authorName || 'User'}</h3>
                             <div className="flex items-center gap-2 text-sm text-gray-500">
                               <span>{new Date(post.createdAt).toLocaleDateString()}</span>
                               <span>•</span>
@@ -667,7 +667,7 @@ export function FamilyDashboard({ familySlug }: FamilyDashboardProps) {
                       className="w-8 h-8 rounded-full flex items-center justify-center text-white text-sm font-semibold"
                       style={{ backgroundColor: member.avatarColor }}
                     >
-                      {member.name
+                      {(member.name || 'User')
                         .split(' ')
                         .map(part => part[0])
                         .join('')
