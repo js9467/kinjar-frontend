@@ -24,6 +24,12 @@ export function FamilyDashboard({ familySlug }: FamilyDashboardProps) {
   const [deletingPostId, setDeletingPostId] = useState<string | null>(null);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [postToDelete, setPostToDelete] = useState<string | null>(null);
+  
+  // Login form state
+  const [loginEmail, setLoginEmail] = useState('');
+  const [loginPassword, setLoginPassword] = useState('');
+  const [loginLoading, setLoginLoading] = useState(false);
+  const [loginError, setLoginError] = useState('');
 
   // Determine family context
   const subdomainInfo = getSubdomainInfo();
@@ -262,10 +268,31 @@ export function FamilyDashboard({ familySlug }: FamilyDashboardProps) {
 
   // Show login prompt if not authenticated
   if (!isAuthenticated) {
+    const handleLogin = async (e: React.FormEvent) => {
+      e.preventDefault();
+      if (!loginEmail || !loginPassword) return;
+      
+      try {
+        setLoginLoading(true);
+        setLoginError('');
+        
+        const { user: loggedInUser } = await api.login(loginEmail, loginPassword);
+        console.log('Login successful:', loggedInUser);
+        
+        // Reload the page to refresh the authentication state
+        window.location.reload();
+      } catch (err) {
+        console.error('Login failed:', err);
+        setLoginError(err instanceof Error ? err.message : 'Login failed');
+      } finally {
+        setLoginLoading(false);
+      }
+    };
+
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
-        <div className="max-w-md w-full bg-white rounded-lg shadow-lg p-8 text-center">
-          <div className="mb-6">
+        <div className="max-w-md w-full bg-white rounded-lg shadow-lg p-8">
+          <div className="mb-6 text-center">
             <h1 className="text-3xl font-bold text-gray-900 mb-2">
               Welcome to {effectiveFamilySlug ? `${effectiveFamilySlug.charAt(0).toUpperCase() + effectiveFamilySlug.slice(1)} Family` : 'Kinjar'}
             </h1>
@@ -274,23 +301,62 @@ export function FamilyDashboard({ familySlug }: FamilyDashboardProps) {
             </p>
           </div>
 
-          <div className="space-y-4">
-            <Link
-              href="/auth/login"
-              className="w-full bg-blue-600 text-white py-3 px-4 rounded-lg font-medium hover:bg-blue-700 transition-colors inline-block"
-            >
-              Sign In
-            </Link>
+          <form onSubmit={handleLogin} className="space-y-4">
+            <div>
+              <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
+                Email
+              </label>
+              <input
+                type="email"
+                id="email"
+                value={loginEmail}
+                onChange={(e) => setLoginEmail(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                placeholder="Enter your email"
+                required
+              />
+            </div>
             
+            <div>
+              <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">
+                Password
+              </label>
+              <input
+                type="password"
+                id="password"
+                value={loginPassword}
+                onChange={(e) => setLoginPassword(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                placeholder="Enter your password"
+                required
+              />
+            </div>
+
+            {loginError && (
+              <div className="text-red-600 text-sm bg-red-50 border border-red-200 rounded p-2">
+                {loginError}
+              </div>
+            )}
+
+            <button
+              type="submit"
+              disabled={loginLoading || !loginEmail || !loginPassword}
+              className="w-full bg-blue-600 text-white py-3 px-4 rounded-lg font-medium hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {loginLoading ? 'Signing In...' : 'Sign In'}
+            </button>
+          </form>
+
+          <div className="mt-6 text-center">
             <Link
               href="/auth/register"
-              className="w-full border border-blue-600 text-blue-600 py-3 px-4 rounded-lg font-medium hover:bg-blue-50 transition-colors inline-block"
+              className="text-blue-600 hover:text-blue-700 text-sm font-medium"
             >
-              Create Account
+              Don't have an account? Create one
             </Link>
           </div>
 
-          <div className="mt-6">
+          <div className="mt-4 text-center">
             <Link href="/" className="text-gray-500 hover:text-gray-700 text-sm">
               ← Back to Home
             </Link>
@@ -371,6 +437,40 @@ export function FamilyDashboard({ familySlug }: FamilyDashboardProps) {
           </div>
         </div>
       </div>
+
+      {/* User Info Header */}
+      {user && (
+        <div className="bg-white border-b border-gray-200 shadow-sm">
+          <div className="max-w-4xl mx-auto px-4 py-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <span
+                  className="inline-flex h-10 w-10 items-center justify-center rounded-full text-sm font-semibold text-white"
+                  style={{ backgroundColor: user.avatarColor }}
+                >
+                  {user.name
+                    .split(' ')
+                    .map((part) => part[0])
+                    .join('')}
+                </span>
+                <div>
+                  <p className="text-sm font-semibold text-gray-900">{user.name}</p>
+                  <p className="text-xs text-gray-500">{user.email}</p>
+                </div>
+              </div>
+              <button
+                onClick={() => {
+                  api.logout();
+                  window.location.reload();
+                }}
+                className="px-4 py-2 text-sm font-medium text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
+              >
+                Sign Out
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Main Content */}
       <div className="max-w-4xl mx-auto px-4 py-8">

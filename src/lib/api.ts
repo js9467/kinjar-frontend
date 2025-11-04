@@ -287,6 +287,15 @@ class KinjarAPI {
     visibility?: 'family' | 'connections' | 'public';
     tags?: string[];
   }): Promise<FamilyPost> {
+    // Get current user for author info
+    let currentUser;
+    try {
+      currentUser = await this.getCurrentUser();
+    } catch (error) {
+      // Fallback if we can't get user info
+      currentUser = { name: 'User', avatarColor: '#3B82F6' };
+    }
+
     // Transform frontend data to backend format
     const backendData: any = {
       content: postData.content,
@@ -327,8 +336,8 @@ class KinjarAPI {
       id: backendPost.id,
       familyId: backendPost.tenant_id,
       authorId: backendPost.author_id,
-      authorName: 'User', // TODO: Get from user profile
-      authorAvatarColor: '#3B82F6', // Default color
+      authorName: currentUser.name || 'User',
+      authorAvatarColor: currentUser.avatarColor || '#3B82F6',
       createdAt: backendPost.published_at || backendPost.created_at,
       content: backendPost.content,
       media: postData.media, // Use original media from frontend
