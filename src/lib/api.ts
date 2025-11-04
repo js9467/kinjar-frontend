@@ -630,7 +630,9 @@ class KinjarAPI {
 
   // Root Admin Functions
   async getAllFamilies(): Promise<FamilyProfile[]> {
-    return this.request('/admin/families');
+    const response = await this.request('/admin/families');
+    // Handle nested response structure
+    return response.families || response || [];
   }
 
   async getAllUsers(): Promise<AuthUser[]> {

@@ -6,71 +6,6 @@ import { useAuth } from '@/lib/auth';
 import { useAppState } from '@/lib/app-state';
 import { FamilyPost, MediaAttachment, PostVisibility, FamilyMemberProfile } from '@/lib/types';
 
-const CHILD_ROLES = ['CHILD_0_5', 'CHILD_5_10', 'CHILD_10_14', 'CHILD_14_16', 'CHILD_16_ADULT'];
-const ALLOWED_ROLES = new Set(['OWNER', 'ADMIN', 'ADULT', ...CHILD_ROLES]);
-const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-
-const isUuid = (value: string) => UUID_REGEX.test(value.trim());
-
-const normalizeEligibleMembers = (list: FamilyMemberProfile[] = [], currentUser?: any): FamilyMemberProfile[] => {
-  const uniqueMembers: FamilyMemberProfile[] = [];
-  const seenPrimary = new Set<string>();
-  const seenSecondary = new Set<string>();
-
-  list.forEach((member) => {
-    if (!ALLOWED_ROLES.has(member.role)) {
-      return;
-    }
-
-    // Prefer userId if available, otherwise use member id
-    // For members without userId, they might still be postable if they correspond to the current user
-    const effectiveUserId = member.userId || member.id;
-    if (!effectiveUserId) {
-      console.log(`[PostCreator] Excluding member ${member.name} - no ID available`);
-      return;
-    }
-
-    const primaryKey = effectiveUserId.trim();
-    if (primaryKey && seenPrimary.has(primaryKey)) {
-      return;
-    }
-
-    const secondaryKeyBase = (member.name || '').trim().toLowerCase();
-    const secondaryKey = secondaryKeyBase || member.birthdate
-      ? `${secondaryKeyBase}|${member.birthdate || ''}`
-      : '';
-
-    if (secondaryKey && seenSecondary.has(secondaryKey)) {
-      return;
-    }
-
-    if (primaryKey) {
-      seenPrimary.add(primaryKey);
-    }
-    if (secondaryKey) {
-      seenSecondary.add(secondaryKey);
-    }
-
-    uniqueMembers.push(member);
-  });
-
-  // If no eligible members found, add the current user as a fallback
-  if (uniqueMembers.length === 0 && currentUser) {
-    console.log('[PostCreator] No eligible members found, adding current user as fallback');
-    uniqueMembers.push({
-      id: currentUser.id,
-      userId: currentUser.id,
-      name: currentUser.name || 'Current User',
-      email: currentUser.email,
-      role: 'ADULT' as any,
-      avatarColor: currentUser.avatarColor || '#3B82F6',
-      joinedAt: new Date().toISOString()
-    });
-  }
-
-  return uniqueMembers;
-};
-
 interface PostCreatorProps {
   familyId: string;
   familySlug?: string;
@@ -81,102 +16,37 @@ interface PostCreatorProps {
 }
 
 const determineFileType = (file: File): 'image' | 'video' => {
-  // Check MIME type first
   if (file.type.startsWith('image/')) return 'image';
   if (file.type.startsWith('video/')) return 'video';
   
-  // Fallback to file extension for files with unclear MIME types (like iPhone videos)
   const extension = file.name.toLowerCase().split('.').pop();
   const videoExtensions = ['mp4', 'mov', 'avi', 'mkv', 'webm', 'ogv', 'm4v', '3gp'];
   
   if (videoExtensions.includes(extension || '')) return 'video';
-  return 'image'; // Default to image
+  return 'image';
+};
+
+// Function to calculate age from birthdate
+const calculateAge = (birthdate: string): number => {
+  const today = new Date();
+  const birth = new Date(birthdate);
+  let age = today.getFullYear() - birth.getFullYear();
+  const monthDiff = today.getMonth() - birth.getMonth();
+  
+  if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birth.getDate())) {
+    age--;
+  }
+  
+  return age;
 };
 
 export function PostCreator({ familyId, familySlug, initialMembers = [], onPostCreated, onError, className = '' }: PostCreatorProps) {
   const { user, isAuthenticated } = useAuth();
   const { families } = useAppState();
 
-  const [members, setMembers] = useState<FamilyMemberProfile[]>(() => normalizeEligibleMembers(initialMembers, user));
-  const [selectedMemberId, setSelectedMemberId] = useState<string>(() => {
-    // Try to get persisted selection from localStorage
-    if (typeof window !== 'undefined') {
-      const persistedSelection = localStorage.getItem(`selectedMember_${familyId}`);
-      return persistedSelection || '';
-    }
-    return '';
-  });
-  const [loadingMembers, setLoadingMembers] = useState(false);
-
-  const ensureSelectedMember = useCallback((candidates: FamilyMemberProfile[]) => {
-    setSelectedMemberId((prev) => {
-      if (prev && candidates.some((member) => member.id === prev)) {
-        console.log('[PostCreator] Keeping previous selection:', prev);
-        return prev;
-      }
-      const selfMember = user
-        ? candidates.find((member) => member.userId === user.id || member.id === user.id)
-        : undefined;
-      const newSelection = selfMember?.id || candidates[0]?.id || '';
-      console.log('[PostCreator] Setting default member:', newSelection, 'from candidates:', candidates.map(c => ({ id: c.id, userId: c.userId, name: c.name })));
-      
-      // Persist the selection to localStorage
-      if (typeof window !== 'undefined' && newSelection) {
-        localStorage.setItem(`selectedMember_${familyId}`, newSelection);
-      }
-      
-      return newSelection;
-    });
-  }, [user, familyId]);
-
-  const loadMembers = useCallback(async () => {
-    let candidateMembers = initialMembers.length > 0 ? initialMembers : [];
-
-    if (candidateMembers.length === 0) {
-      const contextFamily = families.find((family) =>
-        family.id === familyId ||
-        family.slug === familyId ||
-        (!!familySlug && (family.slug === familySlug || family.id === familySlug))
-      );
-      if (contextFamily?.members?.length) {
-        candidateMembers = contextFamily.members;
-      }
-
-      if (candidateMembers.length === 0) {
-        const slugToFetch = familySlug || contextFamily?.slug || (!isUuid(familyId) ? familyId : undefined);
-        if (slugToFetch && !loadingMembers) {
-          try {
-            setLoadingMembers(true);
-            const fetchedFamily = await api.getFamilyBySlug(slugToFetch);
-            candidateMembers = fetchedFamily.members || [];
-          } catch (error) {
-            console.error('[PostCreator] Failed to load family members', error);
-            onError?.('Unable to load family members for posting.');
-          } finally {
-            setLoadingMembers(false);
-          }
-        }
-      }
-    }
-
-    const normalizedMembers = normalizeEligibleMembers(candidateMembers, user);
-    setMembers(normalizedMembers);
-    ensureSelectedMember(normalizedMembers);
-  }, [initialMembers, families, familyId, familySlug, onError, ensureSelectedMember, loadingMembers]);
-
-  useEffect(() => {
-    if (members.length === 0) {
-      loadMembers();
-    }
-  }, []);
-
-  useEffect(() => {
-    if (initialMembers.length > 0) {
-      const normalizedInitial = normalizeEligibleMembers(initialMembers, user);
-      setMembers(normalizedInitial);
-      ensureSelectedMember(normalizedInitial);
-    }
-  }, [initialMembers, ensureSelectedMember]);
+  const [members, setMembers] = useState<FamilyMemberProfile[]>([]);
+  const [selectedMemberId, setSelectedMemberId] = useState<string>('');
+  const [loadingMembers, setLoadingMembers] = useState(true);
   const [content, setContent] = useState('');
   const [visibility, setVisibility] = useState<PostVisibility>('family');
   const [tags, setTags] = useState<string>('');
@@ -185,6 +55,105 @@ export function PostCreator({ familyId, familySlug, initialMembers = [], onPostC
   const [dragOver, setDragOver] = useState(false);
   const [mediaPreview, setMediaPreview] = useState<{ file: File; url: string; type: 'image' | 'video' } | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Load family members and set up post as options
+  const loadMembers = useCallback(async () => {
+    try {
+      setLoadingMembers(true);
+      
+      // Start with current user - they can always post as themselves
+      const postAsOptions: FamilyMemberProfile[] = [];
+      
+      if (user) {
+        postAsOptions.push({
+          id: user.id,
+          userId: user.id,
+          name: user.name || 'Me',
+          email: user.email,
+          role: 'ADULT' as any,
+          avatarColor: user.avatarColor || '#3B82F6',
+          joinedAt: new Date().toISOString()
+        });
+      }
+
+      // Try to get family members from various sources
+      let familyMembers: FamilyMemberProfile[] = [];
+
+      // 1. From initialMembers prop
+      if (initialMembers.length > 0) {
+        familyMembers = initialMembers;
+      }
+      // 2. From app state families
+      else {
+        const contextFamily = families.find((family) =>
+          family.id === familyId ||
+          family.slug === familyId ||
+          (!!familySlug && (family.slug === familySlug || family.id === familySlug))
+        );
+        if (contextFamily?.members?.length) {
+          familyMembers = contextFamily.members;
+        }
+      }
+
+      // 3. Fetch from API if still no members
+      if (familyMembers.length === 0) {
+        const slugToFetch = familySlug || familyId;
+        try {
+          const fetchedFamily = await api.getFamilyBySlug(slugToFetch);
+          familyMembers = fetchedFamily.members || [];
+        } catch (error) {
+          console.warn('[PostCreator] Failed to load family members:', error);
+        }
+      }
+
+      // Process family members - adults can post as children under 14
+      for (const member of familyMembers) {
+        // Skip if member is current user (already added)
+        if (user && (member.userId === user.id || member.id === user.id)) {
+          continue;
+        }
+
+        // Adults can post as children under 14
+        if (member.birthdate) {
+          const age = calculateAge(member.birthdate);
+          if (age < 14) {
+            postAsOptions.push({
+              ...member,
+              name: member.name || member.email?.split('@')[0] || 'Family Member',
+              role: member.role || 'CHILD_0_5'
+            });
+          }
+        }
+        // If no birthdate but role suggests child, include them
+        else if (member.role && ['CHILD_0_5', 'CHILD_5_10', 'CHILD_10_14'].includes(member.role)) {
+          postAsOptions.push({
+            ...member,
+            name: member.name || member.email?.split('@')[0] || 'Family Member'
+          });
+        }
+      }
+
+      setMembers(postAsOptions);
+      
+      // Set default selection to current user
+      if (postAsOptions.length > 0) {
+        const defaultMember = postAsOptions.find(m => user && (m.userId === user.id || m.id === user.id)) || postAsOptions[0];
+        setSelectedMemberId(defaultMember.id);
+      }
+
+    } catch (error) {
+      console.error('[PostCreator] Error loading members:', error);
+      onError?.('Unable to load family members for posting.');
+    } finally {
+      setLoadingMembers(false);
+    }
+  }, [familyId, familySlug, initialMembers, families, user, onError]);
+
+  useEffect(() => {
+    if (isAuthenticated) {
+      loadMembers();
+    }
+  }, [isAuthenticated, loadMembers]);
 
   const handleFileSelect = (files: FileList | null) => {
     if (fileInputRef.current) {
@@ -199,8 +168,8 @@ export function PostCreator({ familyId, familySlug, initialMembers = [], onPostC
     const isSupportedType =
       file.type.startsWith('image/') ||
       file.type.startsWith('video/') ||
-      // Some browsers (notably iOS Safari) provide more specific or empty MIME types for media captures
       ['image/heic', 'image/heif', 'video/quicktime', ''].includes(file.type);
+    
     if (!isSupportedType) {
       onError?.(
         'Please select a valid image or video file (JPEG, PNG, GIF, WebP, HEIC, MP4, MOV, and similar formats)'
@@ -230,17 +199,17 @@ export function PostCreator({ familyId, familySlug, initialMembers = [], onPostC
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // Check authentication
+    
     if (!isAuthenticated || !user) {
       onError?.('You must be logged in to post.');
       return;
     }
-    // Check membership/connection
-    const selectedMember = members.find(m => m.id === selectedMemberId);
-    if (!selectedMember) {
-      onError?.('Please select a valid family member to post as.');
+    
+    if (!selectedMemberId) {
+      onError?.('Please select who you\'re posting as.');
       return;
     }
+    
     if (!content.trim() && !mediaPreview) {
       onError?.('Please add some content or media to your post');
       return;
@@ -251,6 +220,7 @@ export function PostCreator({ familyId, familySlug, initialMembers = [], onPostC
 
     try {
       let media: MediaAttachment | undefined;
+      
       // Upload media if present
       if (mediaPreview) {
         setUploadProgress(25);
@@ -267,21 +237,21 @@ export function PostCreator({ familyId, familySlug, initialMembers = [], onPostC
           throw new Error('Failed to upload media. Please try again.');
         }
       }
+
       // Create post
       const postTags = tags
         .split(',')
         .map(tag => tag.trim())
         .filter(tag => tag.length > 0);
       
-      console.log('[PostCreator] Creating post with familyId:', familyId);
-      console.log('[PostCreator] Selected member ID:', selectedMemberId);
-      
       const selectedMember = members.find(m => m.id === selectedMemberId);
       const effectiveUserId = selectedMember?.userId || selectedMember?.id || selectedMemberId;
       
-      console.log('[PostCreator] Selected member userId:', selectedMember?.userId);
-      console.log('[PostCreator] Effective user ID for post:', effectiveUserId);
-      console.log('[PostCreator] Available members:', members.map(m => ({ id: m.id, name: m.name, userId: m.userId })));
+      console.log('[PostCreator] Creating post with:');
+      console.log('  Family ID:', familyId);
+      console.log('  Author ID:', effectiveUserId);
+      console.log('  Author Name:', selectedMember?.name);
+      console.log('  Visibility:', visibility);
       
       const createdPost = await api.createPost({
         content: content.trim() || (media ? `Shared a ${media.type}` : ''),
@@ -294,11 +264,13 @@ export function PostCreator({ familyId, familySlug, initialMembers = [], onPostC
       
       setUploadProgress(100);
       onPostCreated?.(createdPost);
+      
       // Reset form
       setContent('');
       setTags('');
       setVisibility('family');
       clearMedia();
+      
     } catch (error) {
       console.error('Post creation failed:', error);
       onError?.(error instanceof Error ? error.message : 'Failed to create post');
@@ -347,6 +319,29 @@ export function PostCreator({ familyId, familySlug, initialMembers = [], onPostC
       fileInputRef.current.click();
     }
   };
+
+  // Show loading state while loading members
+  if (loadingMembers) {
+    return (
+      <div className={`bg-white rounded-xl border border-gray-200 shadow-sm ${className}`}>
+        <div className="p-6 text-center text-gray-500">
+          <div className="animate-spin w-6 h-6 border-2 border-blue-600 border-t-transparent rounded-full mx-auto mb-2"></div>
+          Loading...
+        </div>
+      </div>
+    );
+  }
+
+  // Show authentication required if not logged in
+  if (!isAuthenticated) {
+    return (
+      <div className={`bg-white rounded-xl border border-gray-200 shadow-sm ${className}`}>
+        <div className="p-6 text-center text-gray-500">
+          Please log in to create posts.
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className={`bg-white rounded-xl border border-gray-200 shadow-sm ${className}`}>
@@ -480,22 +475,26 @@ export function PostCreator({ familyId, familySlug, initialMembers = [], onPostC
             <label className="text-sm font-medium text-gray-700">Post as:</label>
             <select
               value={selectedMemberId}
-              onChange={e => {
-                const newValue = e.target.value;
-                setSelectedMemberId(newValue);
-                // Persist selection to localStorage
-                if (typeof window !== 'undefined' && newValue) {
-                  localStorage.setItem(`selectedMember_${familyId}`, newValue);
-                }
-              }}
+              onChange={e => setSelectedMemberId(e.target.value)}
               className="border border-gray-300 rounded-lg px-3 py-1 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               disabled={uploading || members.length === 0}
             >
               {members.map(m => (
-                <option key={m.id} value={m.id}>{m.name}</option>
+                <option key={m.id} value={m.id}>
+                  {m.name} {user && (m.userId === user.id || m.id === user.id) ? '(Me)' : ''}
+                </option>
               ))}
+              {members.length === 0 && (
+                <option value="">Loading members...</option>
+              )}
             </select>
+            {members.length > 1 && (
+              <p className="text-xs text-gray-500">
+                Adults can post on behalf of children under 14
+              </p>
+            )}
           </div>
+          
           <div className="flex flex-col gap-2 w-full md:w-auto">
             <label className="text-sm font-medium text-gray-700">Who can see this:</label>
             <select
@@ -509,9 +508,10 @@ export function PostCreator({ familyId, familySlug, initialMembers = [], onPostC
               <option value="public">Public</option>
             </select>
           </div>
+          
           <button
             type="submit"
-            disabled={uploading || (!content.trim() && !mediaPreview) || !isAuthenticated || members.length === 0}
+            disabled={uploading || (!content.trim() && !mediaPreview) || !isAuthenticated || !selectedMemberId}
             className="bg-blue-600 text-white px-6 py-3 rounded-lg font-medium hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 w-full md:w-auto"
           >
             {uploading && (

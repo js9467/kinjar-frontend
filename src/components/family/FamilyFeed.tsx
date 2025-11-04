@@ -134,16 +134,25 @@ export function FamilyFeed({ familyIds, highlightFamilyId, title = 'Family stori
   };
 
   const handleCommentAdded = (postId: string, comment: PostComment) => {
+    console.log('[FamilyFeed] Adding comment to post:', postId, comment);
+    
     setLocalPosts(prev => {
       const originalPost = posts.find(({ post }) => post.id === postId)?.post;
-      if (!originalPost) return prev;
+      if (!originalPost) {
+        console.warn('[FamilyFeed] Post not found for comment:', postId);
+        return prev;
+      }
+      
+      const updatedPost = {
+        ...originalPost,
+        comments: [...originalPost.comments, comment]
+      };
+      
+      console.log('[FamilyFeed] Updated post with new comment:', updatedPost);
       
       return {
         ...prev,
-        [postId]: {
-          ...originalPost,
-          comments: [...originalPost.comments, comment]
-        }
+        [postId]: updatedPost
       };
     });
   };

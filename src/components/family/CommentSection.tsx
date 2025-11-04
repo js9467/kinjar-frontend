@@ -21,18 +21,31 @@ export function CommentSection({ post, onCommentAdded, onError }: CommentSection
     e.preventDefault();
     
     if (!newComment.trim()) return;
+    if (!user) {
+      onError?.('You must be logged in to comment');
+      return;
+    }
 
     setSubmitting(true);
     try {
-      // Add comment via API - no fallbacks
+      console.log('[CommentSection] Adding comment to post:', post.id);
+      console.log('[CommentSection] Comment content:', newComment.trim());
+      
+      // Add comment via API
       const comment = await api.addComment(post.id, newComment.trim());
+      console.log('[CommentSection] Comment added successfully:', comment);
+      
+      // Call the callback to update the parent component
       onCommentAdded?.(comment);
+      
+      // Reset form
       setNewComment('');
       setShowComments(true);
+      
     } catch (error) {
-      console.error('Failed to add comment:', error);
-      // Show error to user instead of fallback
-      alert('Failed to add comment. Please check your connection and try again.');
+      console.error('[CommentSection] Failed to add comment:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Failed to add comment';
+      onError?.(errorMessage);
     } finally {
       setSubmitting(false);
     }
