@@ -210,7 +210,7 @@ class KinjarAPI {
     });
 
     this.saveToken(response.token);
-    return response;
+    return { user: response.user, token: response.token };
   }
 
   async register(userData: { name: string; email: string; password: string }): Promise<{ ok: boolean; user?: any; error?: string }> {
@@ -232,26 +232,45 @@ class KinjarAPI {
 
   async getCurrentUser(): Promise<AuthUser> {
     try {
-      return await this.request('/auth/me');
+      const response = await this.request('/auth/me');
+      console.log('[API] Successfully got current user:', response.user);
+      return response.user;
     } catch (error) {
-      // If authentication fails, provide a mock user for development
-      return {
-        id: 'mock-user-id',
-        name: 'Jay Slaughterbeck',
-        email: 'slaughterbeck@gmail.com',
-        avatarColor: '#3B82F6',
-        globalRole: 'FAMILY_ADMIN',
-        memberships: [{
-          familyId: 'slaughterbeck',
-          familySlug: 'slaughterbeck',
-          familyName: 'Slaughterbeck Family',
-          memberId: 'mock-member-id',
-          role: 'ADMIN',
-          joinedAt: new Date().toISOString()
-        }],
-        createdAt: new Date().toISOString(),
-        lastLoginAt: new Date().toISOString()
-      };
+      console.warn('[API] Authentication failed:', error);
+      
+      // If token is expired or invalid, clear it
+      if (this.token) {
+        console.log('[API] Clearing invalid token');
+        this.removeToken();
+      }
+      
+      // Only use mock user in specific development scenarios
+      const isDevelopment = process.env.NODE_ENV === 'development';
+      const isLocalhost = typeof window !== 'undefined' && window.location.hostname === 'localhost';
+      
+      if (isDevelopment && isLocalhost && process.env.NEXT_PUBLIC_USE_MOCK_USER === 'true') {
+        console.log('[API] Using mock user for development');
+        return {
+          id: 'mock-user-id',
+          name: 'Jay Slaughterbeck',
+          email: 'slaughterbeck@gmail.com',
+          avatarColor: '#3B82F6',
+          globalRole: 'FAMILY_ADMIN',
+          memberships: [{
+            familyId: 'slaughterbeck',
+            familySlug: 'slaughterbeck',
+            familyName: 'Slaughterbeck Family',
+            memberId: 'mock-member-id',
+            role: 'ADMIN',
+            joinedAt: new Date().toISOString()
+          }],
+          createdAt: new Date().toISOString(),
+          lastLoginAt: new Date().toISOString()
+        };
+      }
+      
+      // Re-throw the error so the auth context can handle it properly
+      throw error;
     }
   }
 
