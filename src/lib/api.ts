@@ -532,8 +532,13 @@ class KinjarAPI {
       body: JSON.stringify({ content }),
     });
 
+    console.log('[API] Edit post response:', response);
+
     // Backend returns { ok: true, post: {...} }
     const postData = response.post;
+    if (!postData) {
+      throw new Error('Invalid response format from server');
+    }
 
     // Transform backend response to frontend format
     return {
