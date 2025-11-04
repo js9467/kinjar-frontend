@@ -295,7 +295,21 @@ class KinjarAPI {
   }
 
   async getFamilyBySlug(slug: string): Promise<FamilyProfile> {
-    return this.request(`/families/${slug}`);
+    const response = await this.request(`/families/${slug}`);
+    // Unwrap family object if present
+    if (response.family) {
+      return {
+        ...response.family,
+        posts: response.posts || [],
+        members: response.members || [],
+        connections: response.connections || [],
+        connectedFamilies: response.connectedFamilies || [],
+        admins: response.admins || [],
+        highlights: response.highlights || [],
+        pendingMembers: response.pendingMembers || [],
+      };
+    }
+    return response;
   }
 
   async getCurrentFamily(): Promise<FamilyProfile> {
