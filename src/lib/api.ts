@@ -616,7 +616,8 @@ class KinjarAPI {
 
   // Public Feed
   async getPublicFeed(limit = 20, offset = 0): Promise<FamilyPost[]> {
-    return this.request(`/api/public-feed?limit=${limit}&offset=${offset}`);
+    const response = await this.request(`/api/public-feed?limit=${limit}&offset=${offset}`);
+    return response.posts || [];
   }
 }
 

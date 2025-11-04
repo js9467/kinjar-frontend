@@ -7,6 +7,7 @@ import { useAuth } from '@/lib/auth';
 import { PostCreator } from '@/components/family/PostCreator';
 import { CommentSection, PostReactions } from '@/components/family/CommentSection';
 import { ConfirmModal } from '@/components/ui/ConfirmModal';
+import { EnhancedFamilyAdmin } from '@/components/admin/EnhancedFamilyAdmin';
 import Image from 'next/image';
 import Link from 'next/link';
 
@@ -35,6 +36,9 @@ export function FamilyDashboard({ familySlug }: FamilyDashboardProps) {
   const [loginPassword, setLoginPassword] = useState('');
   const [loginLoading, setLoginLoading] = useState(false);
   const [loginError, setLoginError] = useState('');
+
+  // Admin interface state
+  const [showAdminInterface, setShowAdminInterface] = useState(false);
 
   // Determine family context
   const subdomainInfo = getSubdomainInfo();
@@ -495,15 +499,30 @@ export function FamilyDashboard({ familySlug }: FamilyDashboardProps) {
                   <p className="text-xs text-gray-500">{user.email}</p>
                 </div>
               </div>
-              <button
-                onClick={() => {
-                  api.logout();
-                  window.location.reload();
-                }}
-                className="px-4 py-2 text-sm font-medium text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
-              >
-                Sign Out
-              </button>
+              <div className="flex items-center gap-2">
+                {/* Admin button for family managers */}
+                {(canManageFamily(family?.id) || canManageFamily(family?.slug)) && (
+                  <button
+                    onClick={() => setShowAdminInterface(!showAdminInterface)}
+                    className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
+                      showAdminInterface
+                        ? 'bg-blue-600 text-white hover:bg-blue-700'
+                        : 'bg-blue-100 text-blue-700 hover:bg-blue-200'
+                    }`}
+                  >
+                    {showAdminInterface ? 'Hide Admin' : 'Manage Family'}
+                  </button>
+                )}
+                <button
+                  onClick={() => {
+                    api.logout();
+                    window.location.reload();
+                  }}
+                  className="px-4 py-2 text-sm font-medium text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
+                >
+                  Sign Out
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -511,6 +530,16 @@ export function FamilyDashboard({ familySlug }: FamilyDashboardProps) {
 
       {/* Main Content */}
       <div className="max-w-4xl mx-auto px-4 py-8">
+        {/* Enhanced Family Admin Interface */}
+        {showAdminInterface && family && (
+          <div className="mb-8">
+            <EnhancedFamilyAdmin 
+              familyId={family.id} 
+              familySlug={effectiveFamilySlug || family.slug} 
+            />
+          </div>
+        )}
+
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Main Feed */}
           <div className="lg:col-span-2 space-y-6">
