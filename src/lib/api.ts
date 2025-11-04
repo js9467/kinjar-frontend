@@ -532,22 +532,25 @@ class KinjarAPI {
       body: JSON.stringify({ content }),
     });
 
+    // Backend returns { ok: true, post: {...} }
+    const postData = response.post;
+
     // Transform backend response to frontend format
     return {
-      id: response.id,
-      content: response.content,
-      authorId: response.author_id,
-      authorName: response.author_name,
-      authorAvatarColor: response.author_avatar_color || '#3B82F6',
-      createdAt: response.created_at,
-      familyId: response.tenant_id,
-      media: response.media_url ? {
-        url: response.media_url,
-        type: this.determineMediaType(response.media_type, response.media_url),
-        alt: response.media_alt || 'User uploaded media'
+      id: postData.id,
+      content: postData.content,
+      authorId: postData.author_id,
+      authorName: postData.author_name,
+      authorAvatarColor: postData.author_avatar_color || '#3B82F6',
+      createdAt: postData.created_at,
+      familyId: postData.tenant_id,
+      media: postData.media_url ? {
+        url: postData.media_url,
+        type: this.determineMediaType(postData.media_type, postData.media_url),
+        alt: postData.media_alt || 'User uploaded media'
       } as MediaAttachment : undefined,
-      visibility: response.visibility || 'family',
-      status: response.status || 'approved',
+      visibility: postData.visibility || 'family',
+      status: postData.status || 'approved',
       reactions: 0, // TODO: Get from backend
       comments: [], // TODO: Get from backend
       tags: [] // TODO: Get from backend
