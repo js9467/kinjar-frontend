@@ -231,7 +231,7 @@ export function FamilyAdminDashboard({ familyId, onBack }: FamilyAdminDashboardP
                 <button
                   type="submit"
                   className="rounded-full bg-indigo-600 px-5 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-700"
-                  disabled={!memberName || !memberEmail}
+                  disabled={!memberName || (isInvite && !memberEmail)}
                 >
                   {isInvite ? 'Send invite' : 'Add member'}
                 </button>
