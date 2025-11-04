@@ -6,6 +6,7 @@ import { api, getSubdomainInfo } from '@/lib/api';
 import { useAuth } from '@/lib/auth';
 import { PostCreator } from '@/components/family/PostCreator';
 import { CommentSection, PostReactions } from '@/components/family/CommentSection';
+import { ConfirmModal } from '@/components/ui/ConfirmModal';
 import Image from 'next/image';
 import Link from 'next/link';
 
@@ -21,6 +22,8 @@ export function FamilyDashboard({ familySlug }: FamilyDashboardProps) {
   const [error, setError] = useState<string | null>(null);
   const [filter, setFilter] = useState<'all' | 'public' | 'family' | 'connections'>('all');
   const [deletingPostId, setDeletingPostId] = useState<string | null>(null);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [postToDelete, setPostToDelete] = useState<string | null>(null);
 
   // Determine family context
   const subdomainInfo = getSubdomainInfo();
@@ -199,21 +202,45 @@ export function FamilyDashboard({ familySlug }: FamilyDashboardProps) {
   };
 
   const handleDeletePost = async (postId: string) => {
-    const confirmed = typeof window !== 'undefined' ? window.confirm('Delete this post?') : true;
-    if (!confirmed) {
-      return;
-    }
+    setPostToDelete(postId);
+    setShowDeleteModal(true);
+  };
+
+  const confirmDeletePost = async () => {
+    if (!postToDelete) return;
+
+    // Store the current posts list for potential rollback
+    const originalPostsList = [...posts];
 
     try {
-      setDeletingPostId(postId);
-      await api.deletePost(postId);
-      setPosts(prev => prev.filter(post => post.id !== postId));
+      setDeletingPostId(postToDelete);
+      
+      // Optimistic update - remove post immediately
+      setPosts(prev => prev.filter(post => post.id !== postToDelete));
+      
+      // Try to delete from backend
+      await api.deletePost(postToDelete);
+      
+      setShowDeleteModal(false);
+      setPostToDelete(null);
     } catch (err) {
       console.error('Failed to delete post:', err);
+      
+      // Rollback - restore the original posts if deletion failed
+      const deletedPost = originalPostsList.find(post => post.id === postToDelete);
+      if (deletedPost) {
+        setPosts(prev => [...prev, deletedPost].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()));
+      }
+      
       setError(err instanceof Error ? err.message : 'Failed to delete post');
     } finally {
       setDeletingPostId(null);
     }
+  };
+
+  const cancelDeletePost = () => {
+    setShowDeleteModal(false);
+    setPostToDelete(null);
   };
 
   const filteredPosts = posts.filter(post => {
@@ -593,6 +620,17 @@ export function FamilyDashboard({ familySlug }: FamilyDashboardProps) {
           </div>
         </div>
       )}
+
+      <ConfirmModal
+        isOpen={showDeleteModal}
+        onConfirm={confirmDeletePost}
+        onCancel={cancelDeletePost}
+        title="Delete Post"
+        message="Are you sure you want to delete this post? This action cannot be undone."
+        confirmText="Delete"
+        cancelText="Cancel"
+        isLoading={deletingPostId === postToDelete}
+      />
     </div>
   );
 }

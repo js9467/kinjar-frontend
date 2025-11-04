@@ -4,6 +4,9 @@ import Image from 'next/image';
 import { useMemo, useState } from 'react';
 
 import { useAppState } from '@/lib/app-state';
+import { useAuth } from '@/lib/auth';
+import { api } from '@/lib/api';
+import { ConfirmModal } from '@/components/ui/ConfirmModal';
 
 interface FamilyFeedProps {
   familyIds: string[];
@@ -12,8 +15,12 @@ interface FamilyFeedProps {
 }
 
 export function FamilyFeed({ familyIds, highlightFamilyId, title = 'Family stories' }: FamilyFeedProps) {
-  const { families } = useAppState();
+  const { families, setPosts } = useAppState();
+  const { user, canManageFamily } = useAuth();
   const [filter, setFilter] = useState<'all' | 'public' | 'family'>('all');
+  const [deletingPostId, setDeletingPostId] = useState<string | null>(null);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [postToDelete, setPostToDelete] = useState<string | null>(null);
 
   const posts = useMemo(() => {
     const relevantFamilies = families.filter((family) => familyIds.includes(family.id));
@@ -35,6 +42,57 @@ export function FamilyFeed({ familyIds, highlightFamilyId, title = 'Family stori
     }
     return posts.filter((item) => item.post.visibility !== 'public');
   }, [filter, posts]);
+
+  const handleDeletePost = async (postId: string) => {
+    setPostToDelete(postId);
+    setShowDeleteModal(true);
+  };
+
+  const confirmDeletePost = async () => {
+    if (!postToDelete) return;
+
+    // Store the current posts list for potential rollback
+    const originalPostsList = filteredPosts.map(item => item.post);
+
+    try {
+      setDeletingPostId(postToDelete);
+      
+      // Optimistic update - remove post immediately
+      if (setPosts) {
+        setPosts(prev => prev.filter(post => post.id !== postToDelete));
+      }
+      
+      // Try to delete from backend
+      await api.deletePost(postToDelete);
+      
+      setShowDeleteModal(false);
+      setPostToDelete(null);
+    } catch (err) {
+      console.error('Failed to delete post:', err);
+      
+      // Rollback - restore the original posts if deletion failed
+      if (setPosts) {
+        setPosts(prev => {
+          // Find the deleted post from the original list
+          const deletedPost = originalPostsList.find(post => post.id === postToDelete);
+          if (deletedPost) {
+            // Add the post back to the list
+            return [...prev, deletedPost].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+          }
+          return prev;
+        });
+      }
+      
+      alert(err instanceof Error ? err.message : 'Failed to delete post');
+    } finally {
+      setDeletingPostId(null);
+    }
+  };
+
+  const cancelDeletePost = () => {
+    setShowDeleteModal(false);
+    setPostToDelete(null);
+  };
 
   return (
     <div className="space-y-6">
@@ -89,15 +147,26 @@ export function FamilyFeed({ familyIds, highlightFamilyId, title = 'Family stori
                   <h5 className="mt-2 text-lg font-semibold text-slate-900">{post.authorName}</h5>
                   <p className="mt-2 whitespace-pre-wrap text-sm text-slate-600">{post.content}</p>
                 </div>
-                <span
-                  className="flex h-10 w-10 items-center justify-center rounded-full text-sm font-semibold text-white"
-                  style={{ backgroundColor: post.authorAvatarColor }}
-                >
-                  {post.authorName
-                    .split(' ')
-                    .map((part) => part[0])
-                    .join('')}
-                </span>
+                <div className="flex items-center gap-3">
+                  {(canManageFamily(family.id) || post.authorId === user?.id) && (
+                    <button
+                      onClick={() => handleDeletePost(post.id)}
+                      disabled={deletingPostId === post.id}
+                      className="text-sm text-red-600 hover:text-red-700 disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                      {deletingPostId === post.id ? 'Deleting…' : 'Delete'}
+                    </button>
+                  )}
+                  <span
+                    className="flex h-10 w-10 items-center justify-center rounded-full text-sm font-semibold text-white"
+                    style={{ backgroundColor: post.authorAvatarColor }}
+                  >
+                    {post.authorName
+                      .split(' ')
+                      .map((part) => part[0])
+                      .join('')}
+                  </span>
+                </div>
               </div>
               {post.media ? (
                 <div className="mt-4 overflow-hidden rounded-2xl">
@@ -153,6 +222,17 @@ export function FamilyFeed({ familyIds, highlightFamilyId, title = 'Family stori
           ))
         )}
       </div>
+      
+      <ConfirmModal
+        isOpen={showDeleteModal}
+        onConfirm={confirmDeletePost}
+        onCancel={cancelDeletePost}
+        title="Delete Post"
+        message="Are you sure you want to delete this post? This action cannot be undone."
+        confirmText="Delete"
+        cancelText="Cancel"
+        isLoading={deletingPostId === postToDelete}
+      />
     </div>
   );
 }
