@@ -90,6 +90,7 @@ export function getSubdomainInfo(): SubdomainInfo {
 class KinjarAPI {
   private baseURL: string;
   private token: string | null = null;
+  private currentUser: AuthUser | null = null;
 
   constructor() {
     this.baseURL = API_BASE_URL;
@@ -144,6 +145,10 @@ class KinjarAPI {
     if (typeof window !== 'undefined') {
       localStorage.removeItem('kinjar-auth-token');
     }
+  }
+
+  setCurrentUser(user: AuthUser | null) {
+    this.currentUser = user;
   }
 
   private async request(endpoint: string, options: RequestInit = {}) {
@@ -210,6 +215,7 @@ class KinjarAPI {
     });
 
     this.saveToken(response.token);
+    this.setCurrentUser(response.user);
     return { user: response.user, token: response.token };
   }
 
@@ -227,6 +233,7 @@ class KinjarAPI {
       await this.request('/auth/logout', { method: 'POST' });
     } finally {
       this.removeToken();
+      this.setCurrentUser(null);
     }
   }
 
@@ -234,7 +241,9 @@ class KinjarAPI {
     try {
       const response = await this.request('/auth/me');
       console.log('[API] Successfully got current user:', response.user);
-      return response.user;
+      const user = response.user;
+      this.setCurrentUser(user);
+      return user;
     } catch (error) {
       console.warn('[API] Authentication failed:', error);
       
@@ -243,6 +252,9 @@ class KinjarAPI {
         console.log('[API] Clearing invalid token');
         this.removeToken();
       }
+      
+      // Clear current user state
+      this.setCurrentUser(null);
       
       // Only use mock user in specific development scenarios
       const isDevelopment = process.env.NODE_ENV === 'development';
@@ -282,6 +294,7 @@ class KinjarAPI {
     });
 
     this.saveToken(response.token);
+    this.setCurrentUser(response.user);
     return response;
   }
 
@@ -390,12 +403,15 @@ class KinjarAPI {
     // Transform backend response to frontend format
     const backendPost = response.post;
     
+    const fallbackAuthor = this.currentUser;
+
     const frontendPost: FamilyPost = {
       id: backendPost.id,
-      familyId: backendPost.tenant_id,
-      authorId: backendPost.author_id,
-      authorName: backendPost.author_name || 'User',
-      authorAvatarColor: backendPost.author_avatar || '#3B82F6',
+      familyId: backendPost.tenant_id || postData.familyId,
+      authorId: backendPost.author_id || fallbackAuthor?.id || 'current-user',
+      authorName: backendPost.author_name || fallbackAuthor?.name || 'User',
+      authorAvatarColor:
+        backendPost.author_avatar || fallbackAuthor?.avatarColor || '#3B82F6',
       createdAt: backendPost.published_at || backendPost.created_at,
       content: backendPost.content,
       media: postData.media, // Use original media from frontend

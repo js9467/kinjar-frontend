@@ -74,9 +74,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       try {
         const currentUser = await api.getCurrentUser();
         setUser(currentUser);
+        api.setCurrentUser(currentUser);
       } catch (error) {
         // User not authenticated or token expired - this is normal
         setUser(null);
+        api.setCurrentUser(null);
       } finally {
         setLoading(false);
         setInitialized(true);
@@ -91,6 +93,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     try {
       const { user: loggedInUser } = await api.login(email, password);
       setUser(loggedInUser);
+      api.setCurrentUser(loggedInUser);
       return loggedInUser;
     } finally {
       setLoading(false);
@@ -100,11 +103,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const logout = async () => {
     await api.logout();
     setUser(null);
+    api.setCurrentUser(null);
   };
 
   const createFamily = async (familyData: CreateFamilyRequest) => {
     const { user: updatedUser } = await api.createFamily(familyData);
     setUser(updatedUser);
+    api.setCurrentUser(updatedUser);
   };
 
   const canManageFamily = (familyId?: string) => {
@@ -113,10 +118,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
     if (familyId) {
       return user.memberships.some(
-        (m: FamilyMembership) => m.familyId === familyId && m.role === 'ADMIN'
+        (m: FamilyMembership) =>
+          (m.familyId === familyId || m.familySlug === familyId) && m.role === 'ADMIN'
       );
     }
-    
+
     // If no familyId provided, check if user can manage any family
     return user.memberships.some((m: FamilyMembership) => m.role === 'ADMIN');
   };
@@ -140,7 +146,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     
     if (!targetFamilyId) return false;
     
-    const membership = user.memberships.find((m: FamilyMembership) => m.familyId === targetFamilyId);
+    const membership = user.memberships.find(
+      (m: FamilyMembership) => m.familyId === targetFamilyId || m.familySlug === targetFamilyId
+    );
     return membership?.role === role;
   };
 
