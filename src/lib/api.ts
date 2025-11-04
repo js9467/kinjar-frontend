@@ -401,6 +401,11 @@ class KinjarAPI {
   media?: MediaAttachment;
   visibility?: 'family' | 'connections' | 'public';
   tags?: string[];
+  postedAsMember?: {
+    id: string;
+    name: string;
+    role: string;
+  };
   }): Promise<FamilyPost> {
     // Transform frontend data to backend format
     const backendData: any = {
@@ -408,8 +413,12 @@ class KinjarAPI {
       title: postData.content.length > 50 ? postData.content.substring(0, 47) + '...' : postData.content,
       visibility: postData.visibility || 'family',
       tenant_id: postData.familyId, // Explicitly set tenant_id
-      author_id: postData.authorId // Pass authorId for 'post as' feature
+      author_id: postData.authorId // Use logged-in user's ID
     };
+
+    // Store the posted-as member info for frontend display
+    // (Backend doesn't handle this yet, so we'll manage it on frontend)
+    const postedAsMember = postData.postedAsMember;
 
     // Handle media transformation
     if (postData.media) {
@@ -451,9 +460,9 @@ class KinjarAPI {
       id: backendPost.id,
       familyId: backendPost.tenant_id || postData.familyId,
       authorId: backendPost.author_id || fallbackAuthor?.id || 'current-user',
-      authorName: backendPost.author_name || fallbackAuthor?.name || 'User',
-      authorAvatarColor:
-        backendPost.author_avatar || fallbackAuthor?.avatarColor || '#3B82F6',
+      // Use postedAsMember info if available, otherwise use backend/fallback data
+      authorName: postedAsMember?.name || backendPost.author_name || fallbackAuthor?.name || 'User',
+      authorAvatarColor: backendPost.author_avatar || fallbackAuthor?.avatarColor || '#3B82F6',
       createdAt: backendPost.published_at || backendPost.created_at,
       content: backendPost.content,
       media: postData.media, // Use original media from frontend

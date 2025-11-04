@@ -281,21 +281,31 @@ export function PostCreator({ familyId, familySlug, initialMembers = [], onPostC
         .filter(tag => tag.length > 0);
       
       const selectedMember = members.find(m => m.id === selectedMemberId);
-      const effectiveUserId = selectedMember?.userId || selectedMember?.id || selectedMemberId;
+      
+      // Always use the logged-in user's ID as the author_id for the database
+      // The selected member info is for display purposes only
+      const authorId = user.id;
       
       console.log('[PostCreator] Creating post with:');
       console.log('  Family ID:', familyId);
-      console.log('  Author ID:', effectiveUserId);
-      console.log('  Author Name:', selectedMember?.name);
+      console.log('  Author ID (logged-in user):', authorId);
+      console.log('  Posting as member:', selectedMember?.name);
+      console.log('  Selected member ID:', selectedMemberId);
       console.log('  Visibility:', visibility);
       
       const createdPost = await api.createPost({
         content: content.trim() || (media ? `Shared a ${media.type}` : ''),
         familyId,
-        authorId: effectiveUserId,
+        authorId,
         media,
         visibility,
-        tags: postTags
+        tags: postTags,
+        // Add the selected member info for the backend to handle display
+        postedAsMember: selectedMember ? {
+          id: selectedMember.id,
+          name: selectedMember.name,
+          role: selectedMember.role
+        } : undefined
       });
       
       setUploadProgress(100);
