@@ -79,13 +79,16 @@ export function EnhancedFamilyAdmin({ familyId, familySlug }: EnhancedFamilyAdmi
 
   const handleInviteMember = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!newMember.name || !familyId) {
+      alert('Name and family ID are required to invite a member.');
+      return;
+    }
     try {
       setLoading(true);
       const result = await api.inviteFamilyMember({
         ...newMember,
-        familyId
+        familyId: String(familyId)
       });
-      
       // Reset form
       setNewMember({
         email: '',
@@ -93,10 +96,8 @@ export function EnhancedFamilyAdmin({ familyId, familySlug }: EnhancedFamilyAdmi
         birthdate: '',
         role: 'ADULT'
       });
-      
       // Refresh members list
       loadMembers();
-      
       alert(`Member invited successfully with role: ${result.assignedRole}`);
     } catch (error) {
       console.error('Failed to invite member:', error);
