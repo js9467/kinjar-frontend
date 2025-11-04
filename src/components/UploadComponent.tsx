@@ -160,11 +160,33 @@ export default function UploadComponent({
   };
 
   const handleCameraCapture = () => {
-    // For mobile camera capture
-    if (fileInputRef.current) {
-      fileInputRef.current.setAttribute('capture', 'environment');
-      fileInputRef.current.click();
-    }
+    // For mobile camera capture - create a separate input for camera
+    const cameraInput = document.createElement('input');
+    cameraInput.type = 'file';
+    cameraInput.accept = 'image/*,video/*';
+    cameraInput.capture = 'environment'; // Use back camera
+    cameraInput.onchange = (e) => {
+      const target = e.target as HTMLInputElement;
+      if (target.files) {
+        handleFileSelect(target.files);
+      }
+    };
+    cameraInput.click();
+  };
+
+  const handleVideoCapture = () => {
+    // For mobile video capture
+    const videoInput = document.createElement('input');
+    videoInput.type = 'file';
+    videoInput.accept = 'video/*';
+    videoInput.capture = 'environment'; // Use back camera
+    videoInput.onchange = (e) => {
+      const target = e.target as HTMLInputElement;
+      if (target.files) {
+        handleFileSelect(target.files);
+      }
+    };
+    videoInput.click();
   };
 
   return (
@@ -225,27 +247,39 @@ export default function UploadComponent({
       </div>
 
       {/* Mobile action buttons */}
-      <div className="flex gap-3 mt-4 md:hidden">
+      <div className="grid grid-cols-3 gap-2 mt-4 md:hidden">
         <button
           onClick={handleCameraCapture}
           disabled={uploading || !isFamilyReady}
-          className="flex-1 bg-blue-600 text-white py-3 px-4 rounded-lg font-medium hover:bg-blue-700 disabled:opacity-50 flex items-center justify-center gap-2"
+          className="bg-blue-600 text-white py-3 px-2 rounded-lg font-medium hover:bg-blue-700 disabled:opacity-50 flex flex-col items-center justify-center gap-1"
         >
           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
           </svg>
-          Camera
+          <span className="text-xs">Camera</span>
         </button>
+        
+        <button
+          onClick={handleVideoCapture}
+          disabled={uploading || !isFamilyReady}
+          className="bg-red-600 text-white py-3 px-2 rounded-lg font-medium hover:bg-red-700 disabled:opacity-50 flex flex-col items-center justify-center gap-1"
+        >
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+          </svg>
+          <span className="text-xs">Video</span>
+        </button>
+        
         <button
           onClick={triggerFileSelect}
           disabled={uploading || !isFamilyReady}
-          className="flex-1 bg-gray-600 text-white py-3 px-4 rounded-lg font-medium hover:bg-gray-700 disabled:opacity-50 flex items-center justify-center gap-2"
+          className="bg-gray-600 text-white py-3 px-2 rounded-lg font-medium hover:bg-gray-700 disabled:opacity-50 flex flex-col items-center justify-center gap-1"
         >
           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
           </svg>
-          Gallery
+          <span className="text-xs">Gallery</span>
         </button>
       </div>
 
