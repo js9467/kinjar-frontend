@@ -15,12 +15,13 @@ interface FamilyFeedProps {
 }
 
 export function FamilyFeed({ familyIds, highlightFamilyId, title = 'Family stories' }: FamilyFeedProps) {
-  const { families, setPosts } = useAppState();
+  const { families } = useAppState();
   const { user, canManageFamily } = useAuth();
   const [filter, setFilter] = useState<'all' | 'public' | 'family'>('all');
   const [deletingPostId, setDeletingPostId] = useState<string | null>(null);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [postToDelete, setPostToDelete] = useState<string | null>(null);
+  const [deletedPosts, setDeletedPosts] = useState<Set<string>>(new Set());
 
   const posts = useMemo(() => {
     const relevantFamilies = families.filter((family) => familyIds.includes(family.id));
@@ -28,10 +29,11 @@ export function FamilyFeed({ familyIds, highlightFamilyId, title = 'Family stori
       .flatMap((family) =>
         (family.posts || [])
           .filter((post) => post.status === 'approved')
+          .filter((post) => !deletedPosts.has(post.id)) // Filter out deleted posts
           .map((post) => ({ post, family }))
       )
       .sort((a, b) => (a.post.createdAt < b.post.createdAt ? 1 : -1));
-  }, [families, familyIds]);
+  }, [families, familyIds, deletedPosts]);
 
   const filteredPosts = useMemo(() => {
     if (filter === 'all') {
@@ -51,16 +53,11 @@ export function FamilyFeed({ familyIds, highlightFamilyId, title = 'Family stori
   const confirmDeletePost = async () => {
     if (!postToDelete) return;
 
-    // Store the current posts list for potential rollback
-    const originalPostsList = filteredPosts.map(item => item.post);
-
     try {
       setDeletingPostId(postToDelete);
       
-      // Optimistic update - remove post immediately
-      if (setPosts) {
-        setPosts(prev => prev.filter(post => post.id !== postToDelete));
-      }
+      // Optimistic update - hide post immediately
+      setDeletedPosts(prev => new Set([...prev, postToDelete]));
       
       // Try to delete from backend
       await api.deletePost(postToDelete);
@@ -70,18 +67,12 @@ export function FamilyFeed({ familyIds, highlightFamilyId, title = 'Family stori
     } catch (err) {
       console.error('Failed to delete post:', err);
       
-      // Rollback - restore the original posts if deletion failed
-      if (setPosts) {
-        setPosts(prev => {
-          // Find the deleted post from the original list
-          const deletedPost = originalPostsList.find(post => post.id === postToDelete);
-          if (deletedPost) {
-            // Add the post back to the list
-            return [...prev, deletedPost].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-          }
-          return prev;
-        });
-      }
+      // Rollback - show the post again if deletion failed
+      setDeletedPosts(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(postToDelete);
+        return newSet;
+      });
       
       alert(err instanceof Error ? err.message : 'Failed to delete post');
     } finally {
