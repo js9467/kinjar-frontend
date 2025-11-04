@@ -280,6 +280,13 @@ export function FamilyDashboard({ familySlug }: FamilyDashboardProps) {
     try {
       setSavingEdit(true);
       const tenantSlug = effectiveFamilySlug || family?.slug || family?.id;
+      
+      console.log('[FamilyDashboard] Saving post edit:', {
+        postId: editingPostId,
+        content: editContent.trim().substring(0, 50) + '...',
+        tenantSlug: tenantSlug
+      });
+      
       const updatedPost = await api.editPost(editingPostId, editContent.trim(), tenantSlug);
 
       // Update the posts list with the edited post
@@ -289,9 +296,31 @@ export function FamilyDashboard({ familySlug }: FamilyDashboardProps) {
       
       setEditingPostId(null);
       setEditContent('');
+      
+      console.log('[FamilyDashboard] Post edit successful');
     } catch (err) {
-      console.error('Failed to edit post:', err);
-      setError(err instanceof Error ? err.message : 'Failed to edit post');
+      console.error('[FamilyDashboard] Failed to edit post:', err);
+      
+      // Provide more specific error messages based on the error type
+      let errorMessage = 'Failed to edit post';
+      
+      if (err instanceof Error) {
+        if (err.message === 'Failed to fetch') {
+          errorMessage = 'Network error: Unable to connect to the server. Please check your internet connection and try again.';
+        } else if (err.message.includes('401') || err.message.includes('unauthorized')) {
+          errorMessage = 'You are not authorized to edit this post. Please log in again.';
+        } else if (err.message.includes('403') || err.message.includes('forbidden')) {
+          errorMessage = 'You do not have permission to edit this post.';
+        } else if (err.message.includes('404')) {
+          errorMessage = 'Post not found. It may have been deleted by another user.';
+        } else if (err.message.includes('500')) {
+          errorMessage = 'Server error. The edit may have been saved despite this error. Please refresh the page to check.';
+        } else {
+          errorMessage = err.message;
+        }
+      }
+      
+      setError(errorMessage);
     } finally {
       setSavingEdit(false);
     }

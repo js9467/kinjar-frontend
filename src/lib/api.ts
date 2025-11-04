@@ -638,6 +638,9 @@ class KinjarAPI {
 
   async editPost(postId: string, content: string, tenantSlug?: string): Promise<FamilyPost> {
     try {
+      console.log(`[API] Editing post ${postId} with content: "${content.substring(0, 50)}..."`);
+      console.log(`[API] Using tenant slug: ${tenantSlug}`);
+      
       const response = await this.request(
         `/api/posts/${postId}`,
         {
@@ -676,7 +679,24 @@ class KinjarAPI {
         tags: [] // TODO: Get from backend
       };
     } catch (error: any) {
-      console.log('[API] Edit post failed, checking if edit actually succeeded...', error);
+      console.error('[API] Edit post failed with error:', error);
+      console.error('[API] Error details:', {
+        message: error.message,
+        stack: error.stack,
+        name: error.name
+      });
+      
+      // If we get a network error (Failed to fetch), let's try to diagnose
+      if (error.message === 'Failed to fetch') {
+        console.error('[API] Network error detected. Checking connectivity...');
+        console.error('[API] Current baseURL:', this.baseURL);
+        console.error('[API] Current token:', this.token ? 'Present' : 'Missing');
+        console.error('[API] Request details:', {
+          url: `${this.baseURL}/api/posts/${postId}`,
+          method: 'PATCH',
+          tenantSlug: tenantSlug
+        });
+      }
       
       // If we get a 500 error but the edit might have succeeded,
       // fetch the post to see if the content was actually updated
@@ -728,6 +748,25 @@ class KinjarAPI {
       await this.request(`/families/check-subdomain/${subdomain}`);
       return true;
     } catch {
+      return false;
+    }
+  }
+
+  // Health check method for debugging connectivity issues
+  async healthCheck(): Promise<boolean> {
+    try {
+      console.log('[API] Performing health check...');
+      const response = await fetch(`${this.baseURL}/health`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      });
+      const isHealthy = response.ok;
+      console.log(`[API] Health check result: ${isHealthy ? 'HEALTHY' : 'UNHEALTHY'}`);
+      return isHealthy;
+    } catch (error) {
+      console.error('[API] Health check failed:', error);
       return false;
     }
   }
