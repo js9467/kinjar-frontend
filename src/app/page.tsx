@@ -193,7 +193,7 @@ export default function HomePage() {
                   Kinjar
                 </h1>
                 <p className="text-lg text-amber-600 font-medium italic">
-                  Your family's sweet container
+                  Your family's secure container
                 </p>
               </div>
             </div>
