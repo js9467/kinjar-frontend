@@ -111,13 +111,7 @@ class KinjarAPI {
   }
 
   private determineMediaType(contentType?: string, filename?: string): 'image' | 'video' {
-    // Check content type first
-    if (contentType) {
-      if (contentType.startsWith('image/')) return 'image';
-      if (contentType.startsWith('video/')) return 'video';
-    }
-    
-    // Fallback to filename extension
+    // Check filename extension first (more reliable than content type)
     if (filename) {
       const extension = filename.toLowerCase().split('.').pop();
       const videoExtensions = ['mp4', 'mov', 'avi', 'mkv', 'webm', 'ogv', 'm4v', '3gp'];
@@ -125,6 +119,12 @@ class KinjarAPI {
       
       if (videoExtensions.includes(extension || '')) return 'video';
       if (imageExtensions.includes(extension || '')) return 'image';
+    }
+    
+    // Fallback to content type if extension detection fails
+    if (contentType) {
+      if (contentType.startsWith('image/')) return 'image';
+      if (contentType.startsWith('video/')) return 'video';
     }
     
     // Default to image if we can't determine
@@ -308,21 +308,6 @@ class KinjarAPI {
     visibility?: 'family' | 'connections' | 'public';
     tags?: string[];
   }): Promise<FamilyPost> {
-    // Get current user for author info
-    let currentUser;
-    try {
-      currentUser = await this.getCurrentUser();
-    } catch (error) {
-      // Fallback if we can't get user info
-      currentUser = { 
-        id: 'unknown-user',
-        name: 'User', 
-        avatarColor: '#3B82F6',
-        email: '',
-        role: 'member'
-      };
-    }
-
     // Transform frontend data to backend format
     const backendData: any = {
       content: postData.content,
@@ -364,12 +349,13 @@ class KinjarAPI {
 
     // Transform backend response to frontend format
     const backendPost = response.post;
+    
     const frontendPost: FamilyPost = {
       id: backendPost.id,
       familyId: backendPost.tenant_id,
       authorId: backendPost.author_id,
-      authorName: currentUser.name || 'User',
-      authorAvatarColor: currentUser.avatarColor || '#3B82F6',
+      authorName: backendPost.author_name || 'User',
+      authorAvatarColor: backendPost.author_avatar || '#3B82F6',
       createdAt: backendPost.published_at || backendPost.created_at,
       content: backendPost.content,
       media: postData.media, // Use original media from frontend
@@ -404,7 +390,10 @@ class KinjarAPI {
       createdAt: backendPost.published_at || backendPost.created_at,
       content: backendPost.content,
       media: (backendPost.media_filename || backendPost.media_url || backendPost.media_external_url) ? {
-        type: this.determineMediaType(backendPost.media_content_type, backendPost.media_filename || backendPost.media_url || backendPost.media_external_url),
+        type: this.determineMediaType(
+          backendPost.media_content_type, 
+          backendPost.media_filename || backendPost.media_url || backendPost.media_external_url
+        ),
         url: backendPost.media_url || backendPost.media_external_url || `/api/media/${backendPost.media_id}`,
         alt: backendPost.title
       } : undefined,
