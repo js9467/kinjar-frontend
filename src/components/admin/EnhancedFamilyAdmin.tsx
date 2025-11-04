@@ -79,11 +79,12 @@ export function EnhancedFamilyAdmin({ familyId, familySlug }: EnhancedFamilyAdmi
   const loadMembers = async () => {
     try {
       setLoading(true);
-      // This would need to be implemented as a separate endpoint
-      // For now, we'll mock it
-      setMembers([]);
+      // Fetch family profile, which includes members
+      const family = await api.getFamilyBySlug(familySlug);
+      setMembers(family.members || []);
     } catch (error) {
       console.error('Failed to load members:', error);
+      setMembers([]);
     } finally {
       setLoading(false);
     }
