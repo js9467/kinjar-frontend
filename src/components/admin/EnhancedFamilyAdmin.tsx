@@ -208,16 +208,23 @@ export function EnhancedFamilyAdmin({ familyId, familySlug }: EnhancedFamilyAdmi
                     </div>
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Email *
+                        Email {newMember.birthdate && calculateAge(newMember.birthdate) !== null && calculateAge(newMember.birthdate)! < 16 ? 
+                          '(Optional for kids under 16)' : '*'}
                       </label>
                       <input
                         type="email"
-                        required
+                        required={!newMember.birthdate || calculateAge(newMember.birthdate) === null || calculateAge(newMember.birthdate)! >= 16}
                         value={newMember.email}
                         onChange={(e) => setNewMember({ ...newMember, email: e.target.value })}
                         className="w-full rounded-md border border-gray-300 px-3 py-2 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-                        placeholder="Enter email address"
+                        placeholder={newMember.birthdate && calculateAge(newMember.birthdate) !== null && calculateAge(newMember.birthdate)! < 16 
+                          ? "Email optional for kids" : "Enter email address"}
                       />
+                      {newMember.birthdate && calculateAge(newMember.birthdate) !== null && calculateAge(newMember.birthdate)! < 16 && (
+                        <p className="text-sm text-blue-600 mt-1">
+                          💡 Kids under 16 can use their parent's login but still post as themselves
+                        </p>
+                      )}
                     </div>
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">
