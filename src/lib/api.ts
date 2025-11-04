@@ -358,18 +358,20 @@ class KinjarAPI {
   }
 
   async createPost(postData: {
-    content: string;
-    familyId: string;
-    media?: MediaAttachment;
-    visibility?: 'family' | 'connections' | 'public';
-    tags?: string[];
+  content: string;
+  familyId: string;
+  authorId: string;
+  media?: MediaAttachment;
+  visibility?: 'family' | 'connections' | 'public';
+  tags?: string[];
   }): Promise<FamilyPost> {
     // Transform frontend data to backend format
     const backendData: any = {
       content: postData.content,
       title: postData.content.length > 50 ? postData.content.substring(0, 47) + '...' : postData.content,
       visibility: postData.visibility || 'family',
-      tenant_id: postData.familyId // Explicitly set tenant_id
+      tenant_id: postData.familyId, // Explicitly set tenant_id
+      author_id: postData.authorId // Pass authorId for 'post as' feature
     };
 
     // Handle media transformation
