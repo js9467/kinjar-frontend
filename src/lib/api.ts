@@ -51,20 +51,27 @@ export function getSubdomainInfo(): SubdomainInfo {
 
   const hostname = window.location.hostname;
   const parts = hostname.split('.');
+  
+  console.log(`[Subdomain Detection] hostname: ${hostname}, search: ${window.location.search}`);
 
   // Handle localhost development
   if (hostname === 'localhost' || hostname.startsWith('192.168.') || hostname.startsWith('127.0.0.1')) {
     const urlParams = new URLSearchParams(window.location.search);
     const devFamily = urlParams.get('family');
+    console.log(`[Subdomain Detection] localhost detected, devFamily param: ${devFamily}`);
     if (devFamily) {
-      return {
+      const result = {
         isSubdomain: true,
         subdomain: devFamily,
         familySlug: devFamily,
         isRootDomain: false
       };
+      console.log(`[Subdomain Detection] localhost result:`, result);
+      return result;
     }
-    return { isSubdomain: false, isRootDomain: true };
+    const result = { isSubdomain: false, isRootDomain: true };
+    console.log(`[Subdomain Detection] localhost no family param result:`, result);
+    return result;
   }
 
   // Production subdomain detection for kinjar.com
@@ -188,11 +195,14 @@ class KinjarAPI {
 
     // Add subdomain context for API calls
     const subdomainInfo = getSubdomainInfo();
+    console.log(`[API Request] Subdomain info:`, subdomainInfo);
     if (subdomainInfo.isSubdomain && subdomainInfo.familySlug) {
       headers['x-tenant-slug'] = subdomainInfo.familySlug;
       
       // Debug logging
       console.log(`[API Request] Setting x-tenant-slug: ${subdomainInfo.familySlug}`);
+    } else {
+      console.log(`[API Request] No tenant slug to set. isSubdomain: ${subdomainInfo.isSubdomain}, familySlug: ${subdomainInfo.familySlug}`);
     }
 
     const response = await fetch(url, {
