@@ -473,6 +473,17 @@ class KinjarAPI {
       tags: postData.tags || [] // Use original tags from frontend
     };
 
+    // Store the "posted as" info in localStorage for persistence across refreshes
+    if (typeof window !== 'undefined' && postedAsMember) {
+      try {
+        const key = `postedAs_${frontendPost.id}`;
+        localStorage.setItem(key, JSON.stringify(postedAsMember));
+        console.log(`[API] Stored posted-as info for post ${frontendPost.id}:`, postedAsMember);
+      } catch (error) {
+        console.warn('[API] Failed to store posted-as info:', error);
+      }
+    }
+
     return frontendPost;
   }
 
@@ -496,11 +507,27 @@ class KinjarAPI {
     
     // Process each post and load its comments
     for (const backendPost of backendPosts) {
+      // Check localStorage for "posted as" information
+      let postedAsInfo = null;
+      if (typeof window !== 'undefined') {
+        try {
+          const key = `postedAs_${backendPost.id}`;
+          const stored = localStorage.getItem(key);
+          if (stored) {
+            postedAsInfo = JSON.parse(stored);
+            console.log(`[API] Found posted-as info for post ${backendPost.id}:`, postedAsInfo);
+          }
+        } catch (error) {
+          console.warn(`[API] Failed to load posted-as info for post ${backendPost.id}:`, error);
+        }
+      }
+
       const post: FamilyPost = {
         id: backendPost.id,
         familyId: backendPost.tenant_id || familySlugOrId,
         authorId: backendPost.author_id,
-        authorName: backendPost.author_name || 'User', // Use author name if available
+        // Use posted-as name if available, otherwise use backend author name
+        authorName: postedAsInfo?.name || backendPost.author_name || 'User',
         authorAvatarColor: backendPost.author_avatar || '#3B82F6', // Default color
         createdAt: backendPost.published_at || backendPost.created_at,
         content: backendPost.content,
@@ -753,15 +780,40 @@ class KinjarAPI {
     const response = await this.request(`/api/public-feed?limit=${limit}&offset=${offset}`);
     const posts = response.posts || [];
     
-    // Load comments for each post
+    // Load comments for each post and check for "posted as" info
     const postsWithComments = await Promise.all(
       posts.map(async (post: FamilyPost) => {
+        // Check localStorage for "posted as" information
+        let postedAsInfo = null;
+        if (typeof window !== 'undefined') {
+          try {
+            const key = `postedAs_${post.id}`;
+            const stored = localStorage.getItem(key);
+            if (stored) {
+              postedAsInfo = JSON.parse(stored);
+              console.log(`[API] Found posted-as info for public post ${post.id}:`, postedAsInfo);
+            }
+          } catch (error) {
+            console.warn(`[API] Failed to load posted-as info for public post ${post.id}:`, error);
+          }
+        }
+
         try {
           const comments = await this.getPostComments(post.id);
-          return { ...post, comments };
+          return { 
+            ...post, 
+            comments,
+            // Override authorName if we have posted-as info
+            authorName: postedAsInfo?.name || post.authorName
+          };
         } catch (error) {
           console.warn(`Failed to load comments for public post ${post.id}:`, error);
-          return { ...post, comments: [] };
+          return { 
+            ...post, 
+            comments: [],
+            // Override authorName if we have posted-as info
+            authorName: postedAsInfo?.name || post.authorName
+          };
         }
       })
     );
