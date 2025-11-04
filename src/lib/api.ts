@@ -158,7 +158,7 @@ class KinjarAPI {
     this.currentUser = user;
   }
 
-  private async request(endpoint: string, options: RequestInit = {}) {
+  private async request(endpoint: string, options: RequestInit = {}, tenantSlug?: string) {
     // Ensure baseURL is absolute
     if (!this.baseURL.startsWith('http')) {
       console.error(`[API] Invalid baseURL: ${this.baseURL}. Using fallback.`);
@@ -183,16 +183,21 @@ class KinjarAPI {
       console.log(`[API Request] No auth token available`);
     }
 
-    // Add subdomain context for API calls
-    const subdomainInfo = getSubdomainInfo();
-    console.log(`[API Request] Subdomain info:`, subdomainInfo);
-    if (subdomainInfo.isSubdomain && subdomainInfo.familySlug) {
-      headers['x-tenant-slug'] = subdomainInfo.familySlug;
-      
-      // Debug logging
-      console.log(`[API Request] Setting x-tenant-slug: ${subdomainInfo.familySlug}`);
+    // Use provided tenant slug or get from subdomain context
+    let targetTenantSlug = tenantSlug;
+    if (!targetTenantSlug) {
+      const subdomainInfo = getSubdomainInfo();
+      console.log(`[API Request] Subdomain info:`, subdomainInfo);
+      if (subdomainInfo.isSubdomain && subdomainInfo.familySlug) {
+        targetTenantSlug = subdomainInfo.familySlug;
+      }
+    }
+
+    if (targetTenantSlug) {
+      headers['x-tenant-slug'] = targetTenantSlug;
+      console.log(`[API Request] Setting x-tenant-slug: ${targetTenantSlug}`);
     } else {
-      console.log(`[API Request] No tenant slug to set. isSubdomain: ${subdomainInfo.isSubdomain}, familySlug: ${subdomainInfo.familySlug}`);
+      console.log(`[API Request] No tenant slug to set`);
     }
 
     const response = await fetch(url, {
@@ -598,8 +603,8 @@ class KinjarAPI {
   }
 
   // Post Approval System
-  async getPendingPosts(): Promise<FamilyPost[]> {
-    return this.request('/api/posts/pending');
+  async getPendingPosts(tenantSlug?: string): Promise<FamilyPost[]> {
+    return this.request('/api/posts/pending', {}, tenantSlug);
   }
 
   async approvePost(postId: string, action: 'approve' | 'reject', reason = ''): Promise<{ newStatus: string }> {

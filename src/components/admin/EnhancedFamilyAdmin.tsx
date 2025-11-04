@@ -44,10 +44,8 @@ export function EnhancedFamilyAdmin({ familyId, familySlug }: EnhancedFamilyAdmi
   const loadPendingPosts = async () => {
     try {
       setLoading(true);
-      // Set the tenant header for the API call
-      const originalHeaders = api.getHeaders();
-      api.setHeaders({ ...originalHeaders, 'x-tenant-slug': familySlug });
-      const posts = await api.getPendingPosts();
+      // Pass the family slug to ensure we get posts for the correct family
+      const posts = await api.getPendingPosts(familySlug);
       setPendingPosts(posts);
     } catch (error) {
       console.error('Failed to load pending posts:', error);
@@ -407,4 +405,4 @@ export function EnhancedFamilyAdmin({ familyId, familySlug }: EnhancedFamilyAdmi
       </div>
     </div>
   );
-}"
+}
