@@ -6,8 +6,9 @@ import { useMemo, useState } from 'react';
 import { useAppState } from '@/lib/app-state';
 import { useAuth } from '@/lib/auth';
 import { api } from '@/lib/api';
-import { FamilyPost } from '@/lib/types';
+import { FamilyPost, PostComment } from '@/lib/types';
 import { ConfirmModal } from '@/components/ui/ConfirmModal';
+import { CommentSection, PostReactions } from '@/components/family/CommentSection';
 
 interface FamilyFeedProps {
   familyIds: string[];
@@ -24,6 +25,7 @@ export function FamilyFeed({ familyIds, highlightFamilyId, title = 'Family stori
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [postToDelete, setPostToDelete] = useState<string | null>(null);
   const [deletedPosts, setDeletedPosts] = useState<Set<string>>(new Set());
+  const [localPosts, setLocalPosts] = useState<{ [postId: string]: FamilyPost }>({});
   
   // Edit functionality
   const [editingPostId, setEditingPostId] = useState<string | null>(null);
@@ -37,10 +39,13 @@ export function FamilyFeed({ familyIds, highlightFamilyId, title = 'Family stori
         (family.posts || [])
           .filter((post) => post.status === 'approved')
           .filter((post) => !deletedPosts.has(post.id)) // Filter out deleted posts
-          .map((post) => ({ post, family }))
+          .map((post) => ({ 
+            post: localPosts[post.id] || post, // Use local version if available
+            family 
+          }))
       )
       .sort((a, b) => (a.post.createdAt < b.post.createdAt ? 1 : -1));
-  }, [families, familyIds, deletedPosts]);
+  }, [families, familyIds, deletedPosts, localPosts]);
 
   const filteredPosts = useMemo(() => {
     if (filter === 'all') {
@@ -126,6 +131,57 @@ export function FamilyFeed({ familyIds, highlightFamilyId, title = 'Family stori
   const cancelEditPost = () => {
     setEditingPostId(null);
     setEditContent('');
+  };
+
+  const handleCommentAdded = (postId: string, comment: PostComment) => {
+    setLocalPosts(prev => {
+      const originalPost = posts.find(({ post }) => post.id === postId)?.post;
+      if (!originalPost) return prev;
+      
+      return {
+        ...prev,
+        [postId]: {
+          ...originalPost,
+          comments: [...originalPost.comments, comment]
+        }
+      };
+    });
+  };
+
+  const handleReaction = async (postId: string, reaction: string) => {
+    try {
+      // Optimistic update
+      setLocalPosts(prev => {
+        const originalPost = posts.find(({ post }) => post.id === postId)?.post;
+        if (!originalPost) return prev;
+        
+        return {
+          ...prev,
+          [postId]: {
+            ...originalPost,
+            reactions: originalPost.reactions + 1
+          }
+        };
+      });
+
+      // Try to add reaction via API
+      await api.addReaction(postId, reaction);
+    } catch (error) {
+      console.error('Failed to add reaction:', error);
+      // Rollback optimistic update
+      setLocalPosts(prev => {
+        const originalPost = posts.find(({ post }) => post.id === postId)?.post;
+        if (!originalPost) return prev;
+        
+        return {
+          ...prev,
+          [postId]: {
+            ...originalPost,
+            reactions: Math.max(0, originalPost.reactions - 1)
+          }
+        };
+      });
+    }
   };
 
   return (
@@ -273,35 +329,27 @@ export function FamilyFeed({ familyIds, highlightFamilyId, title = 'Family stori
                 ) : null}
                 <div className="mt-4 flex flex-wrap items-center gap-3 text-xs text-slate-500">
                   <span>{new Date(post.createdAt).toLocaleString()}</span>
-                  <span>Reactions: {post.reactions}</span>
+                  <button 
+                    onClick={() => handleReaction(post.id, 'like')}
+                    className="flex items-center gap-1 px-2 py-1 rounded text-blue-600 hover:bg-blue-50"
+                  >
+                    👍 {post.reactions}
+                  </button>
                   {post.tags.map((tag) => (
                     <span key={tag} className="rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-600">
                       #{tag}
                     </span>
                   ))}
                 </div>
-                {post.comments.length > 0 ? (
-                  <div className="mt-4 space-y-3 rounded-2xl border border-slate-100 bg-slate-50/70 p-4">
-                    {post.comments.map((comment) => (
-                      <div key={comment.id} className="flex items-start gap-3 text-sm text-slate-600">
-                        <span
-                          className="mt-1 inline-flex h-6 w-6 items-center justify-center rounded-full text-[10px] font-semibold text-white"
-                          style={{ backgroundColor: comment.authorAvatarColor }}
-                        >
-                          {(comment.authorName || 'User')
-                            .split(' ')
-                            .map((part) => part[0])
-                            .join('')}
-                        </span>
-                        <div>
-                          <p className="font-semibold text-slate-700">{comment.authorName || 'User'}</p>
-                          <p>{comment.content}</p>
-                          <p className="text-xs text-slate-400">{new Date(comment.createdAt).toLocaleString()}</p>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                ) : null}
+                
+                {/* Comments */}
+                <div className="mt-4">
+                  <CommentSection 
+                    post={post} 
+                    onCommentAdded={(comment) => handleCommentAdded(post.id, comment)}
+                    onError={(error) => console.error('Comment error:', error)}
+                  />
+                </div>
               </article>
             );
           })

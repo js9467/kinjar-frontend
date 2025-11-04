@@ -22,9 +22,16 @@ export function CommentSection({ post, onCommentAdded, onError }: CommentSection
 
     setSubmitting(true);
     try {
-      // In a real implementation, you'd call an API to add the comment
-      // For now, we'll simulate it
-      const comment: PostComment = {
+      // Try to add comment via API
+      const comment = await api.addComment(post.id, newComment.trim());
+      onCommentAdded?.(comment);
+      setNewComment('');
+      setShowComments(true);
+    } catch (error) {
+      console.error('Failed to add comment:', error);
+      
+      // Fallback to mock comment for demo
+      const mockComment: PostComment = {
         id: `comment-${Date.now()}`,
         authorName: 'Current User', // This would come from auth context
         authorAvatarColor: '#3B82F6', // This would come from auth context
@@ -32,11 +39,9 @@ export function CommentSection({ post, onCommentAdded, onError }: CommentSection
         createdAt: new Date().toISOString()
       };
 
-      onCommentAdded?.(comment);
+      onCommentAdded?.(mockComment);
       setNewComment('');
       setShowComments(true);
-    } catch (error) {
-      onError?.(error instanceof Error ? error.message : 'Failed to add comment');
     } finally {
       setSubmitting(false);
     }

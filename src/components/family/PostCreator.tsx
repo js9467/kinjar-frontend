@@ -76,7 +76,14 @@ export function PostCreator({ familyId, familySlug, initialMembers = [], onPostC
   const { families } = useAppState();
 
   const [members, setMembers] = useState<FamilyMemberProfile[]>(() => normalizeEligibleMembers(initialMembers));
-  const [selectedMemberId, setSelectedMemberId] = useState<string>('');
+  const [selectedMemberId, setSelectedMemberId] = useState<string>(() => {
+    // Try to get persisted selection from localStorage
+    if (typeof window !== 'undefined') {
+      const persistedSelection = localStorage.getItem(`selectedMember_${familyId}`);
+      return persistedSelection || '';
+    }
+    return '';
+  });
   const [loadingMembers, setLoadingMembers] = useState(false);
 
   const ensureSelectedMember = useCallback((candidates: FamilyMemberProfile[]) => {
@@ -90,9 +97,15 @@ export function PostCreator({ familyId, familySlug, initialMembers = [], onPostC
         : undefined;
       const newSelection = selfMember?.id || candidates[0]?.id || '';
       console.log('[PostCreator] Setting default member:', newSelection, 'from candidates:', candidates.map(c => c.id));
+      
+      // Persist the selection to localStorage
+      if (typeof window !== 'undefined' && newSelection) {
+        localStorage.setItem(`selectedMember_${familyId}`, newSelection);
+      }
+      
       return newSelection;
     });
-  }, [user]);
+  }, [user, familyId]);
 
   const loadMembers = useCallback(async () => {
     let candidateMembers = initialMembers.length > 0 ? initialMembers : [];
@@ -465,7 +478,14 @@ export function PostCreator({ familyId, familySlug, initialMembers = [], onPostC
             <label className="text-sm font-medium text-gray-700">Post as:</label>
             <select
               value={selectedMemberId}
-              onChange={e => setSelectedMemberId(e.target.value)}
+              onChange={e => {
+                const newValue = e.target.value;
+                setSelectedMemberId(newValue);
+                // Persist selection to localStorage
+                if (typeof window !== 'undefined' && newValue) {
+                  localStorage.setItem(`selectedMember_${familyId}`, newValue);
+                }
+              }}
               className="border border-gray-300 rounded-lg px-3 py-1 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               disabled={uploading || members.length === 0}
             >
