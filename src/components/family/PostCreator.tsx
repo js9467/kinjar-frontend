@@ -122,6 +122,7 @@ export function PostCreator({ familyId, onPostCreated, onError, className = '' }
         const createdPost = await api.createPost({
           content: content.trim() || (media ? `Shared a ${media.type}` : ''),
           familyId,
+          authorId: user?.id || 'current-user',
           media,
           visibility,
           tags: postTags
