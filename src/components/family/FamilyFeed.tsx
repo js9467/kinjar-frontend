@@ -143,7 +143,7 @@ export function FamilyFeed({ familyIds, highlightFamilyId, title = 'Family stori
                   <p className="mt-2 whitespace-pre-wrap text-sm text-slate-600">{post.content}</p>
                 </div>
                 <div className="flex items-center gap-3">
-                  {(canManageFamily(family.id) || post.authorId === user?.id) && (
+                  {(canManageFamily(family.id) || canManageFamily(family.slug) || post.authorId === user?.id) && (
                     <button
                       onClick={() => handleDeletePost(post.id)}
                       disabled={deletingPostId === post.id}

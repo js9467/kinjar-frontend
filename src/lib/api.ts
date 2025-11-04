@@ -300,7 +300,8 @@ class KinjarAPI {
     const backendData: any = {
       content: postData.content,
       title: postData.content.length > 50 ? postData.content.substring(0, 47) + '...' : postData.content,
-      visibility: postData.visibility || 'family'
+      visibility: postData.visibility || 'family',
+      tenant_id: postData.familyId // Explicitly set tenant_id
     };
 
     // Handle media transformation
@@ -328,6 +329,9 @@ class KinjarAPI {
     const response = await this.request('/api/posts', {
       method: 'POST',
       body: JSON.stringify(backendData),
+      headers: {
+        'x-tenant-slug': postData.familyId // Ensure tenant header is set for post creation
+      }
     });
 
     // Transform backend response to frontend format

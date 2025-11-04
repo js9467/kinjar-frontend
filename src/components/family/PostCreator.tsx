@@ -116,12 +116,27 @@ export function PostCreator({ familyId, onPostCreated, onError, className = '' }
       } catch (apiError) {
         // If API fails, create mock post for demo
         console.log('API failed, creating mock post for demo');
+        
+        // Try to get current user for mock post
+        let mockAuthorId = 'current-user';
+        let mockAuthorName = 'Demo User';
+        let mockAuthorColor = '#3B82F6';
+        
+        try {
+          const currentUser = await api.getCurrentUser();
+          mockAuthorId = currentUser.id;
+          mockAuthorName = currentUser.name;
+          mockAuthorColor = currentUser.avatarColor;
+        } catch (userError) {
+          console.log('Could not get current user for mock post');
+        }
+        
         const mockPost = {
           id: `mock-post-${Date.now()}`,
           familyId,
-          authorId: 'current-user',
-          authorName: 'Demo User',
-          authorAvatarColor: '#3B82F6',
+          authorId: mockAuthorId,
+          authorName: mockAuthorName,
+          authorAvatarColor: mockAuthorColor,
           createdAt: new Date().toISOString(),
           content: content.trim() || (media ? `Shared a ${media.type}` : ''),
           media,

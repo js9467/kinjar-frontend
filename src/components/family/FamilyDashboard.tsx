@@ -479,7 +479,7 @@ export function FamilyDashboard({ familySlug }: FamilyDashboardProps) {
           <div className="lg:col-span-2 space-y-6">
             {/* Post Creator */}
             <PostCreator
-              familyId={family.id}
+              familyId={family.slug || family.id}
               onPostCreated={handlePostCreated}
               onError={setError}
             />
@@ -555,7 +555,7 @@ export function FamilyDashboard({ familySlug }: FamilyDashboardProps) {
                             </div>
                           </div>
                         </div>
-                        {(canManageFamily(family.id) || post.authorId === user?.id) && (
+                        {(canManageFamily(family.id) || canManageFamily(family.slug) || post.authorId === user?.id) && (
                           <button
                             onClick={() => handleDeletePost(post.id)}
                             disabled={deletingPostId === post.id}
