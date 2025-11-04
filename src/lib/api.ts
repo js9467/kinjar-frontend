@@ -214,6 +214,12 @@ class KinjarAPI {
       throw new Error(errorData.message || `HTTP ${response.status}`);
     }
 
+    // Handle empty responses (like DELETE operations)
+    const contentType = response.headers.get('content-type');
+    if (response.status === 204 || !contentType || !contentType.includes('application/json')) {
+      return null;
+    }
+
     return response.json();
   }
 
