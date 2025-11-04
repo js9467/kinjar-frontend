@@ -29,9 +29,19 @@ const DEMO_MODE = {
   credentials: {
     email: 'testuser@kinjar.com',
     password: 'TestPass123!',
-    token: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1aWQiOiIxNjc0Njc0ZS04ZDA1LTQ1ZjYtODA3NS04OWJjNDdlNDkyZDgiLCJpYXQiOjE3NjIxODU0NDcsImV4cCI6MTc2MzM5NTA0N30.pTwpnFEOaNL8VIvPn6CjI9cQ40pUNIZuWxUo3sAGwQc'
+    token: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1aWQiOiIzZDc3N2Y4NC0zMjM2LTQxY2QtYjVkMS05OTRlN2Y4OWE0ZjAiLCJpYXQiOjE3NjIyMjEwMzksImV4cCI6MTc2MzQzMDYzOX0.ktax1wjmjYvZ3x-v5qwJO4LGYm44D-RtPDvVncxV4sg'
   }
 };
+
+// Development helper - auto-set valid token for testing
+if (typeof window !== 'undefined' && process.env.NODE_ENV === 'development') {
+  const currentToken = localStorage.getItem('kinjar-auth-token');
+  if (!currentToken && window.location.search.includes('dev-auth=true')) {
+    console.log('[DEV] Auto-setting test token for development');
+    localStorage.setItem('kinjar-auth-token', DEMO_MODE.credentials.token);
+    window.location.reload();
+  }
+}
 
 // Utility to get subdomain information
 export function getSubdomainInfo(): SubdomainInfo {
