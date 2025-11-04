@@ -335,16 +335,16 @@ export function PostCreator({ familyId, familySlug, initialMembers = [], onPostC
         {mediaPreview && (
           <div className="relative rounded-lg overflow-hidden bg-gray-100">
             {mediaPreview.type === 'image' ? (
-              <img 
-                src={mediaPreview.url} 
-                alt="Upload preview" 
-                className="w-full h-64 object-cover"
+              <img
+                src={mediaPreview.url}
+                alt="Upload preview"
+                className="w-full h-48 sm:h-64 object-cover"
               />
             ) : (
-              <video 
-                src={mediaPreview.url} 
-                controls 
-                className="w-full h-64 object-cover"
+              <video
+                src={mediaPreview.url}
+                controls
+                className="w-full h-48 sm:h-64 object-cover"
               />
             )}
             <button
@@ -431,8 +431,8 @@ export function PostCreator({ familyId, familySlug, initialMembers = [], onPostC
         </div>
 
         {/* Member selector, visibility, and submit */}
-        <div className="flex items-center justify-between gap-4">
-          <div className="flex flex-col gap-2">
+        <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between md:gap-6">
+          <div className="flex flex-col gap-2 w-full md:w-auto">
             <label className="text-sm font-medium text-gray-700">Post as:</label>
             <select
               value={selectedMemberId}
@@ -445,7 +445,7 @@ export function PostCreator({ familyId, familySlug, initialMembers = [], onPostC
               ))}
             </select>
           </div>
-          <div className="flex flex-col gap-2">
+          <div className="flex flex-col gap-2 w-full md:w-auto">
             <label className="text-sm font-medium text-gray-700">Who can see this:</label>
             <select
               value={visibility}
@@ -461,7 +461,7 @@ export function PostCreator({ familyId, familySlug, initialMembers = [], onPostC
           <button
             type="submit"
             disabled={uploading || (!content.trim() && !mediaPreview) || !isAuthenticated || members.length === 0}
-            className="bg-blue-600 text-white px-6 py-2 rounded-lg font-medium hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+            className="bg-blue-600 text-white px-6 py-3 rounded-lg font-medium hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 w-full md:w-auto"
           >
             {uploading && (
               <svg className="w-4 h-4 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
