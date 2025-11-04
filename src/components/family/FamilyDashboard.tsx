@@ -531,14 +531,20 @@ export function FamilyDashboard({ familySlug }: FamilyDashboardProps) {
       {/* Main Content */}
       <div className="max-w-4xl mx-auto px-4 py-8">
         {/* Enhanced Family Admin Interface */}
-        {showAdminInterface && family && (
+        {showAdminInterface && family && family.id ? (
           <div className="mb-8">
             <EnhancedFamilyAdmin 
               familyId={family.id} 
               familySlug={effectiveFamilySlug || family.slug} 
             />
           </div>
-        )}
+        ) : showAdminInterface && family && !family.id ? (
+          <div className="mb-8">
+            <div className="bg-red-100 text-red-800 p-4 rounded-lg">
+              Error: Family ID is missing. Cannot manage members until family is fully loaded.
+            </div>
+          </div>
+        ) : null}
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Main Feed */}
