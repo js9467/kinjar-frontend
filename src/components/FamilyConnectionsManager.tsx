@@ -111,9 +111,15 @@ export function FamilyConnectionsManager({ tenantSlug }: FamilyConnectionsManage
       setPendingInvitations(response.invitations);
     } catch (error) {
       console.error('Failed to load pending invitations:', error);
-      setError('Failed to load pending invitations');
-      // Set empty array as fallback
-      setPendingInvitations([]);
+      // Don't show error to user if API endpoint doesn't exist yet (404)
+      if (error instanceof Error && error.message.includes('404')) {
+        console.log('Pending invitations API not implemented yet, using empty state');
+        setPendingInvitations([]);
+        setError(null); // Don't show error for missing endpoint
+      } else {
+        setError('Failed to load pending invitations');
+        setPendingInvitations([]);
+      }
     } finally {
       setLoading(false);
     }
@@ -585,9 +591,9 @@ export function FamilyConnectionsManager({ tenantSlug }: FamilyConnectionsManage
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 8l7.89 4.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
                   </svg>
                 </div>
-                <h3 className="text-lg font-medium text-gray-900 mb-2">No Pending Invitations</h3>
+                <h3 className="text-lg font-medium text-gray-900 mb-2">Pending Invitations Coming Soon</h3>
                 <p className="text-gray-600 mb-4">
-                  You haven't sent any family invitations or connection requests yet.
+                  This feature is being developed and will show your sent invitations and their status.
                 </p>
                 <div className="flex gap-2 justify-center">
                   <button
