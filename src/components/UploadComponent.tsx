@@ -20,6 +20,7 @@ export default function UploadComponent({
   const [dragOver, setDragOver] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [postContent, setPostContent] = useState('');
+  const [visibility, setVisibility] = useState<'family_only' | 'family_and_connections'>('family_and_connections');
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const isFamilyReady = typeof familyId === 'number';
@@ -117,6 +118,7 @@ export default function UploadComponent({
         content: postContent.trim() || defaultPostContent,
         familyId: resolvedFamilyId.toString(),
         authorId: api.currentUser?.id || 'current-user',
+        visibility,
         media: {
           type: mediaKind,
           url: uploadResponse.url,
@@ -186,6 +188,33 @@ export default function UploadComponent({
           className="w-full p-3 border border-gray-300 rounded-lg resize-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
           rows={3}
         />
+      </div>
+
+      {/* Visibility toggle */}
+      <div className="mb-4 flex items-center gap-4 p-3 bg-gray-50 rounded-lg border border-gray-200">
+        <span className="text-sm font-medium text-gray-700">Share with:</span>
+        <div className="flex gap-2">
+          <button
+            onClick={() => setVisibility('family_and_connections')}
+            className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+              visibility === 'family_and_connections'
+                ? 'bg-blue-600 text-white'
+                : 'bg-white text-gray-700 hover:bg-gray-100 border border-gray-300'
+            }`}
+          >
+            Family & Connections
+          </button>
+          <button
+            onClick={() => setVisibility('family_only')}
+            className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+              visibility === 'family_only'
+                ? 'bg-blue-600 text-white'
+                : 'bg-white text-gray-700 hover:bg-gray-100 border border-gray-300'
+            }`}
+          >
+            Family Only
+          </button>
+        </div>
       </div>
 
       {/* Upload area */}
@@ -262,6 +291,7 @@ export default function UploadComponent({
                   content: postContent.trim(),
                   familyId: resolvedFamilyId.toString(),
                   authorId: api.currentUser?.id || 'current-user',
+                  visibility,
                 });
                 onUploadSuccess?.(createdPost);
                 setPostContent('');

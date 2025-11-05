@@ -407,7 +407,7 @@ class KinjarAPI {
   familyId: string;
   authorId: string;
   media?: MediaAttachment;
-  visibility?: 'family' | 'connections' | 'public';
+  visibility?: 'family_only' | 'family_and_connections';
   tags?: string[];
   postedAsMember?: {
     id: string;
@@ -419,7 +419,7 @@ class KinjarAPI {
     const backendData: any = {
       content: postData.content,
       title: postData.content.length > 50 ? postData.content.substring(0, 47) + '...' : postData.content,
-      visibility: postData.visibility || 'family',
+      visibility: postData.visibility || 'family_and_connections',
       tenant_id: postData.familyId, // Explicitly set tenant_id
       author_id: postData.authorId // Use logged-in user's ID
     };
@@ -474,7 +474,7 @@ class KinjarAPI {
       createdAt: backendPost.published_at || backendPost.created_at,
       content: backendPost.content,
       media: postData.media, // Use original media from frontend
-      visibility: postData.visibility || 'family',
+      visibility: postData.visibility || 'family_and_connections',
       status: 'approved', // Backend posts are auto-approved
       reactions: 0, // Default
       comments: [], // Default
@@ -547,7 +547,8 @@ class KinjarAPI {
           url: backendPost.media_url || backendPost.media_external_url || `/api/media/${backendPost.media_id}`,
           alt: backendPost.title
         } : undefined,
-        visibility: backendPost.is_public ? 'public' : 'family',
+        // Map backend visibility to frontend - backend has 'visibility' field or fallback to is_public
+        visibility: backendPost.visibility || (backendPost.is_public ? 'family_and_connections' : 'family_only'),
         status: 'approved', // Backend posts are auto-approved
         reactions: 0, // TODO: Get from backend
         comments: [], // Load comments separately
@@ -1167,7 +1168,7 @@ class KinjarAPI {
               url: post.media_url || `/api/media/${post.media_id}`,
               alt: post.title
             } : undefined,
-            visibility: 'connections', // All posts in connected feed are visible to connections
+            visibility: 'family_and_connections', // Posts in connected feed are shared with connections
             status: post.status || 'published',
             tags: post.tags || [],
             comments,
@@ -1196,7 +1197,7 @@ class KinjarAPI {
               url: post.media_url || `/api/media/${post.media_id}`,
               alt: post.title
             } : undefined,
-            visibility: 'connections',
+            visibility: 'family_and_connections',
             status: post.status || 'published',
             tags: post.tags || [],
             comments: [],

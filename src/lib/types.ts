@@ -62,7 +62,7 @@ export interface MediaAttachment {
   alt?: string;
 }
 
-export type PostVisibility = 'family' | 'connections' | 'public';
+export type PostVisibility = 'family_only' | 'family_and_connections';
 export type PostStatus = 'approved' | 'pending' | 'flagged';
 
 export interface PostComment {

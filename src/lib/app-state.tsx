@@ -84,7 +84,7 @@ interface AppStateContextType {
     totalFamilies: number;
     totalMembers: number;
     pendingModeration: number;
-    publicHighlights: number;
+    sharedStories: number;
     storageUsedMb: number;
   };
   getFamilyById: (familyId: string) => FamilyProfile | undefined;
@@ -463,11 +463,11 @@ export const AppStateProvider = ({ children }: { children: ReactNode }) => {
         count + (family.posts || []).filter((post) => post.status === 'pending').length,
       0
     );
-    const publicHighlights = state.families.reduce((count, family) => {
-      const approvedPublicPosts = (family.posts || []).filter(
-        (post) => post.visibility === 'public' && post.status === 'approved'
+    const sharedStories = state.families.reduce((count, family) => {
+      const sharedPosts = (family.posts || []).filter(
+        (post) => post.visibility === 'family_and_connections' && post.status === 'approved'
       );
-      return count + approvedPublicPosts.length;
+      return count + sharedPosts.length;
     }, 0);
     const storageUsedMb = state.families.reduce(
       (total, family) => total + family.storageUsedMb,
@@ -478,7 +478,7 @@ export const AppStateProvider = ({ children }: { children: ReactNode }) => {
       totalFamilies: state.families.length,
       totalMembers,
       pendingModeration,
-      publicHighlights,
+      sharedStories,
       storageUsedMb,
     };
   }, [state.families]);

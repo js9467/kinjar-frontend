@@ -7,9 +7,8 @@ import { useAuth } from '@/lib/auth';
 import { FamilyMemberProfile, FamilyPost, FamilyProfile, PostVisibility } from '@/lib/types';
 
 const VISIBILITY_OPTIONS: Array<{ value: PostVisibility; label: string }> = [
-  { value: 'family', label: 'Family only' },
-  { value: 'connections', label: 'Connected families' },
-  { value: 'public', label: 'Public highlight' },
+  { value: 'family_only', label: 'Family only' },
+  { value: 'family_and_connections', label: 'Family & Connections' },
 ];
 
 export default function FamilyAdminWorkspace() {
@@ -26,7 +25,7 @@ export default function FamilyAdminWorkspace() {
   const [selectedFamilyId, setSelectedFamilyId] = useState<string | null>(null);
   const [newMember, setNewMember] = useState({ name: '', email: '', role: 'ADULT' as FamilyMemberProfile['role'] });
   const [postContent, setPostContent] = useState('');
-  const [postVisibility, setPostVisibility] = useState<PostVisibility>('family');
+  const [postVisibility, setPostVisibility] = useState<PostVisibility>('family_and_connections');
   const [feedback, setFeedback] = useState<string | null>(null);
 
   const accessibleFamilies = useMemo(() => {

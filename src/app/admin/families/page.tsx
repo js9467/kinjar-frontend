@@ -120,8 +120,8 @@ function FamilyDetail({
   onTogglePublic: (familyId: string, updates: Partial<FamilyProfile>) => FamilyProfile | null;
 }) {
   const familyPosts = family.posts || [];
-  const approvedPublicStories = familyPosts.filter(
-    (post) => post.status === 'approved' && post.visibility === 'public'
+  const sharedStories = familyPosts.filter(
+    (post) => post.status === 'approved' && post.visibility === 'family_and_connections'
   );
   const pendingPosts = familyPosts.filter((post) => post.status === 'pending');
 
@@ -160,7 +160,7 @@ function FamilyDetail({
           <InfoRow label="Pending invites" value={`${family.pendingMembers.length}`} />
           <InfoRow label="Connections" value={`${family.connections.length}`} />
           <InfoRow label="Storage used" value={`${family.storageUsedMb.toLocaleString()} MB`} />
-          <InfoRow label="Public highlights" value={`${approvedPublicStories.length}`} />
+          <InfoRow label="Shared stories" value={`${sharedStories.length}`} />
           <InfoRow label="Posts pending" value={`${pendingPosts.length}`} />
         </dl>
       </div>
@@ -184,18 +184,18 @@ function FamilyDetail({
 
       <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
         <div className="flex items-center justify-between">
-          <h3 className="text-lg font-semibold text-slate-900">Recent highlights</h3>
+          <h3 className="text-lg font-semibold text-slate-900">Recent shared stories</h3>
           <Link href={`/family-admin?family=${family.slug}`} className="text-sm font-semibold text-indigo-600 hover:text-indigo-700">
             Open family workspace →
           </Link>
         </div>
         <ul className="mt-4 space-y-3 text-sm text-slate-600">
-          {approvedPublicStories.length === 0 ? (
+          {sharedStories.length === 0 ? (
             <li className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 px-4 py-5 text-center text-xs text-slate-500">
-              No public stories yet. Encourage the family admin to publish highlights.
+              No shared stories yet. Encourage the family to share with connections.
             </li>
           ) : (
-            approvedPublicStories.slice(0, 4).map((post) => (
+            sharedStories.slice(0, 4).map((post) => (
               <li key={post.id} className="rounded-2xl border border-slate-100 bg-slate-50 px-4 py-3">
                 <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">{post.authorName}</p>
                 <p className="mt-1 text-sm text-slate-700">{post.content}</p>

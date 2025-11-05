@@ -19,8 +19,8 @@ export default function FamilyDirectoryPage() {
         </div>
         <div className="grid gap-6 md:grid-cols-2">
           {families.map((family) => {
-            const publicStories = (family.posts || []).filter(
-              (post) => post.status === 'approved' && post.visibility === 'public'
+            const sharedStories = (family.posts || []).filter(
+              (post) => post.status === 'approved' && post.visibility === 'family_and_connections'
             ).length;
             return (
               <article
@@ -42,7 +42,7 @@ export default function FamilyDirectoryPage() {
                   <div className="mt-4 flex flex-wrap gap-3 text-xs font-semibold uppercase tracking-wide text-slate-600">
                     <span className="rounded-full bg-slate-100 px-3 py-1">{family.members.length} members</span>
                     <span className="rounded-full bg-slate-100 px-3 py-1">{family.connections.length} connections</span>
-                    <span className="rounded-full bg-slate-100 px-3 py-1">{publicStories} public stories</span>
+                    <span className="rounded-full bg-slate-100 px-3 py-1">{sharedStories} shared stories</span>
                   </div>
                 </div>
                 <Link

@@ -132,14 +132,14 @@ export default function AdminDashboard() {
                 </dd>
               </div>
               <div className="flex items-center justify-between rounded-2xl border border-slate-100 bg-slate-50 px-4 py-3">
-                <dt>Stories highlighted to the public</dt>
+                <dt>Stories shared with connections</dt>
                 <dd className="font-semibold text-slate-900">
                   {
                     families.reduce(
                       (count, family) =>
                         count +
                         (family.posts || []).filter(
-                          (post) => post.status === 'approved' && post.visibility === 'public'
+                          (post) => post.status === 'approved' && post.visibility === 'family_and_connections'
                         ).length,
                       0
                     )
