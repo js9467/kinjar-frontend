@@ -372,6 +372,17 @@ class KinjarAPI {
     });
   }
 
+  async uploadFamilyPhoto(familyId: string, file: File): Promise<{ familyPhotoUrl: string }> {
+    const formData = new FormData();
+    formData.append('file', file);
+
+    return this.request(`/api/families/${familyId}/upload-photo`, {
+      method: 'POST',
+      body: formData,
+      headers: {},
+    });
+  }
+
   // Member Management
   async inviteMember(invite: InviteMemberRequest): Promise<void> {
     return this.request('/families/invite', {

@@ -582,23 +582,7 @@ export function EnhancedFamilyAdmin({ familyId, familySlug }: EnhancedFamilyAdmi
 
                         try {
                           setLoading(true);
-                          const formData = new FormData();
-                          formData.append('file', file);
-
-                          const token = localStorage.getItem('kinjar-auth-token');
-                          const response = await fetch(`https://kinjar-api.fly.dev/api/families/${familyId}/upload-photo`, {
-                            method: 'POST',
-                            headers: {
-                              'Authorization': `Bearer ${token}`
-                            },
-                            body: formData
-                          });
-
-                          if (!response.ok) {
-                            throw new Error('Failed to upload family photo');
-                          }
-
-                          const result = await response.json();
+                          await api.uploadFamilyPhoto(familyId, file);
                           setSettingsStatus({ 
                             type: 'success', 
                             message: 'Family photo uploaded successfully!' 
@@ -612,7 +596,7 @@ export function EnhancedFamilyAdmin({ familyId, familySlug }: EnhancedFamilyAdmi
                           console.error('Failed to upload family photo:', error);
                           setSettingsStatus({ 
                             type: 'error', 
-                            message: 'Failed to upload family photo' 
+                            message: error?.message || 'Failed to upload family photo' 
                           });
                         } finally {
                           setLoading(false);
