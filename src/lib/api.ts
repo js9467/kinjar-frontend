@@ -1138,23 +1138,26 @@ class KinjarAPI {
           const visibility = this.normalizePostVisibility(post.visibility);
 
           // Transform backend post to frontend format
+          // Backend now returns camelCase (authorName, authorAvatarUrl, etc.)
           const transformedPost: FamilyPost = {
             id: post.id,
-            familyId: post.tenant_id,
-            familySlug: post.family_slug,
-            familyName: post.family_name,
-            familyThemeColor: '#2563eb', // Default blue
-            authorId: post.author_id,
-            // Use posted_as_name from backend if available
-            authorName: post.posted_as_name || post.author_name || 'User',
-            authorAvatarColor: post.posted_as_avatar_color || post.author_avatar_color || '#3B82F6',
-            authorAvatarUrl: post.posted_as_avatar || post.author_avatar,
-            createdAt: post.published_at || post.created_at,
+            familyId: post.tenantId || post.tenant_id,
+            familySlug: post.familySlug || post.family_slug,
+            familyName: post.familyName || post.family_name,
+            familyThemeColor: post.familyThemeColor || post.family_theme_color || '#2563eb',
+            authorId: post.authorId || post.author_id,
+            authorName: post.authorName || post.posted_as_name || post.author_name || 'User',
+            authorAvatarColor: post.authorAvatarColor || post.posted_as_avatar_color || post.author_avatar_color || '#3B82F6',
+            authorAvatarUrl: post.authorAvatarUrl || post.posted_as_avatar || post.author_avatar,
+            createdAt: post.publishedAt || post.published_at || post.createdAt || post.created_at,
             content: post.content,
             title: post.title,
-            media: (post.media_filename || post.media_url || post.media_external_url) ? {
-              type: this.determineMediaType(post.media_content_type, post.media_filename || post.media_url || post.media_external_url),
-              url: post.media_url || post.media_external_url || `${this.baseURL}/api/media/${post.media_id}`,
+            media: (post.media_filename || post.media_url || post.media_external_url || post.mediaUrl) ? {
+              type: this.determineMediaType(
+                post.media_content_type || post.mediaType, 
+                post.media_filename || post.media_url || post.media_external_url || post.mediaUrl
+              ),
+              url: post.media_url || post.media_external_url || post.mediaUrl || `${this.baseURL}/api/media/${post.media_id}`,
               alt: post.title
             } : undefined,
             visibility,
@@ -1173,21 +1176,23 @@ class KinjarAPI {
 
           const transformedPost: FamilyPost = {
             id: post.id,
-            familyId: post.tenant_id,
-            familySlug: post.family_slug,
-            familyName: post.family_name,
-            familyThemeColor: '#2563eb',
-            authorId: post.author_id,
-            // Use posted_as_name from backend if available
-            authorName: post.posted_as_name || post.author_name || 'User',
-            authorAvatarColor: post.posted_as_avatar_color || post.author_avatar_color || '#3B82F6',
-            authorAvatarUrl: post.posted_as_avatar || post.author_avatar,
-            createdAt: post.published_at || post.created_at,
+            familyId: post.tenantId || post.tenant_id,
+            familySlug: post.familySlug || post.family_slug,
+            familyName: post.familyName || post.family_name,
+            familyThemeColor: post.familyThemeColor || post.family_theme_color || '#2563eb',
+            authorId: post.authorId || post.author_id,
+            authorName: post.authorName || post.posted_as_name || post.author_name || 'User',
+            authorAvatarColor: post.authorAvatarColor || post.posted_as_avatar_color || post.author_avatar_color || '#3B82F6',
+            authorAvatarUrl: post.authorAvatarUrl || post.posted_as_avatar || post.author_avatar,
+            createdAt: post.publishedAt || post.published_at || post.createdAt || post.created_at,
             content: post.content,
             title: post.title,
-            media: (post.media_filename || post.media_url || post.media_external_url) ? {
-              type: this.determineMediaType(post.media_content_type, post.media_filename || post.media_url || post.media_external_url),
-              url: post.media_url || post.media_external_url || `${this.baseURL}/api/media/${post.media_id}`,
+            media: (post.media_filename || post.media_url || post.media_external_url || post.mediaUrl) ? {
+              type: this.determineMediaType(
+                post.media_content_type || post.mediaType, 
+                post.media_filename || post.media_url || post.media_external_url || post.mediaUrl
+              ),
+              url: post.media_url || post.media_external_url || post.mediaUrl || `${this.baseURL}/api/media/${post.media_id}`,
               alt: post.title
             } : undefined,
             visibility,
