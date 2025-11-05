@@ -48,7 +48,7 @@ export function PostCreator({ familyId, familySlug, initialMembers = [], onPostC
   const [selectedMemberId, setSelectedMemberId] = useState<string>('');
   const [loadingMembers, setLoadingMembers] = useState(true);
   const [content, setContent] = useState('');
-  const [visibility, setVisibility] = useState<PostVisibility>('family');
+  const [visibility, setVisibility] = useState<PostVisibility>('family_and_connections');
   const [tags, setTags] = useState<string>('');
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
@@ -314,7 +314,7 @@ export function PostCreator({ familyId, familySlug, initialMembers = [], onPostC
       // Reset form
       setContent('');
       setTags('');
-      setVisibility('family');
+      setVisibility('family_and_connections');
       clearMedia();
       
     } catch (error) {

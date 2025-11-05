@@ -20,7 +20,7 @@ interface FamilyFeedProps {
 export function FamilyFeed({ familyIds, highlightFamilyId, title = 'Family stories', onRefresh }: FamilyFeedProps) {
   const { families } = useAppState();
   const { user, canManageFamily } = useAuth();
-  const [filter, setFilter] = useState<'all' | 'public' | 'family'>('all');
+  const [filter, setFilter] = useState<'all' | 'family_only' | 'family_and_connections'>('all');
   const [deletingPostId, setDeletingPostId] = useState<string | null>(null);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [postToDelete, setPostToDelete] = useState<string | null>(null);
@@ -51,10 +51,10 @@ export function FamilyFeed({ familyIds, highlightFamilyId, title = 'Family stori
     if (filter === 'all') {
       return posts;
     }
-    if (filter === 'public') {
-      return posts.filter((item) => item.post.visibility === 'public');
+    if (filter === 'family_and_connections') {
+      return posts.filter((item) => item.post.visibility === 'family_and_connections');
     }
-    return posts.filter((item) => item.post.visibility !== 'public');
+    return posts.filter((item) => item.post.visibility === 'family_only');
   }, [filter, posts]);
 
   const handleDeletePost = async (postId: string) => {
@@ -210,17 +210,17 @@ export function FamilyFeed({ familyIds, highlightFamilyId, title = 'Family stori
           </button>
           <button
             type="button"
-            onClick={() => setFilter('family')}
-            className={`rounded-full px-3 py-1 transition ${filter === 'family' ? 'bg-indigo-600 text-white shadow-sm' : 'hover:bg-white hover:text-indigo-600'}`}
+            onClick={() => setFilter('family_only')}
+            className={`rounded-full px-3 py-1 transition ${filter === 'family_only' ? 'bg-indigo-600 text-white shadow-sm' : 'hover:bg-white hover:text-indigo-600'}`}
           >
-            Family & connections
+            Family only
           </button>
           <button
             type="button"
-            onClick={() => setFilter('public')}
-            className={`rounded-full px-3 py-1 transition ${filter === 'public' ? 'bg-indigo-600 text-white shadow-sm' : 'hover:bg-white hover:text-indigo-600'}`}
+            onClick={() => setFilter('family_and_connections')}
+            className={`rounded-full px-3 py-1 transition ${filter === 'family_and_connections' ? 'bg-indigo-600 text-white shadow-sm' : 'hover:bg-white hover:text-indigo-600'}`}
           >
-            Public highlights
+            Shared
           </button>
         </div>
       </div>
@@ -248,7 +248,7 @@ export function FamilyFeed({ familyIds, highlightFamilyId, title = 'Family stori
                 <div className="flex items-start justify-between gap-3">
                   <div>
                     <p className="text-xs font-semibold uppercase tracking-wide text-indigo-600">
-                      {family.name} · {post.visibility === 'public' ? 'Public' : post.visibility === 'connections' ? 'Connections' : 'Family only'}
+                      {family.name} · {post.visibility === 'family_and_connections' ? 'Shared' : 'Family only'}
                     </p>
                     <h5 className="mt-2 text-lg font-semibold text-slate-900">{post.authorName || 'User'}</h5>
                     

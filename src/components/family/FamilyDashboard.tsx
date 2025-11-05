@@ -26,7 +26,7 @@ export function FamilyDashboard({ familySlug }: FamilyDashboardProps) {
   const [posts, setPosts] = useState<FamilyPost[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [filter, setFilter] = useState<'all' | 'public' | 'family' | 'connections'>('all');
+  const [filter, setFilter] = useState<'all' | 'family_only' | 'family_and_connections'>('all');
   const [deletingPostId, setDeletingPostId] = useState<string | null>(null);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [postToDelete, setPostToDelete] = useState<string | null>(null);
@@ -622,9 +622,8 @@ export function FamilyDashboard({ familySlug }: FamilyDashboardProps) {
               <span className="text-sm text-gray-600 font-medium">Show:</span>
               {[
                 { key: 'all', label: 'All Posts' },
-                { key: 'family', label: 'Family Only' },
-                { key: 'connections', label: 'Connections' },
-                { key: 'public', label: 'Public' }
+                { key: 'family_only', label: 'Family Only' },
+                { key: 'family_and_connections', label: 'Shared' }
               ].map(({ key, label }) => (
                 <button
                   key={key}
@@ -712,15 +711,11 @@ export function FamilyDashboard({ familySlug }: FamilyDashboardProps) {
                                 <span>{new Date(post.createdAt).toLocaleDateString()}</span>
                                 <span>•</span>
                                 <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                                  post.visibility === 'public'
+                                  post.visibility === 'family_and_connections'
                                     ? 'bg-green-100 text-green-800'
-                                    : post.visibility === 'connections'
-                                    ? 'bg-blue-100 text-blue-800'
                                     : 'bg-gray-100 text-gray-800'
                                 }`}>
-                                  {post.visibility === 'public' ? 'Public'
-                                   : post.visibility === 'connections' ? 'Connections'
-                                   : 'Family Only'}
+                                  {post.visibility === 'family_and_connections' ? 'Shared' : 'Family Only'}
                                 </span>
                               </div>
                             </div>

@@ -111,8 +111,8 @@ export function GlobalAdminDashboard({ onImpersonateFamily }: GlobalAdminDashboa
           icon={<span className="text-2xl">🛡️</span>}
         />
         <StatCard
-          label="Public highlights"
-          value={globalStats.publicHighlights}
+          label="Shared stories"
+          value={globalStats.sharedStories}
           highlight={`${(globalStats.storageUsedMb / 1024).toFixed(1)} GB in use`}
           icon={<span className="text-2xl">✨</span>}
         />
@@ -155,7 +155,7 @@ export function GlobalAdminDashboard({ onImpersonateFamily }: GlobalAdminDashboa
                         <td className="px-4 py-3 text-slate-600">{family.members.length}</td>
                         <td className="px-4 py-3 text-slate-600">{family.connections.length}</td>
                         <td className="px-4 py-3 text-slate-600">
-                          {(family.posts || []).filter((post) => post.visibility === 'public' && post.status === 'approved').length}
+                          {(family.posts || []).filter((post) => post.visibility === 'family_and_connections' && post.status === 'approved').length}
                         </td>
                         <td className="px-4 py-3 text-right">
                           <div className="flex items-center justify-end gap-2">
@@ -321,10 +321,10 @@ export function GlobalAdminDashboard({ onImpersonateFamily }: GlobalAdminDashboa
                   <span className="font-medium text-slate-900">{focusedFamily.pendingMembers.length}</span>
                 </div>
                 <div className="flex items-center justify-between">
-                  <span className="text-slate-500">Public stories</span>
+                  <span className="text-slate-500">Shared stories</span>
                   <span className="font-medium text-slate-900">
                     {(focusedFamily.posts || []).filter(
-                      (post) => post.status === 'approved' && post.visibility === 'public'
+                      (post) => post.status === 'approved' && post.visibility === 'family_and_connections'
                     ).length}
                   </span>
                 </div>

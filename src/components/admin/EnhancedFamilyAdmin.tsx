@@ -567,11 +567,11 @@ export function EnhancedFamilyAdmin({ familyId, familySlug }: EnhancedFamilyAdmi
                           </div>
                         </div>
                         <span className={`px-2 py-1 text-xs font-medium rounded-full ${
-                          post.visibility === 'public' 
+                          post.visibility === 'family_and_connections' 
                             ? 'bg-green-100 text-green-800' 
                             : 'bg-blue-100 text-blue-800'
                         }`}>
-                          {post.visibility === 'public' ? 'Public' : 'Family'}
+                          {post.visibility === 'family_and_connections' ? 'Shared' : 'Family Only'}
                         </span>
                       </div>
 

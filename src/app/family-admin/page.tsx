@@ -102,7 +102,7 @@ export default function FamilyAdminWorkspace() {
     const post = createFamilyPost(activeFamily.id, authorId, postContent.trim(), postVisibility);
     if (post) {
       setPostContent('');
-      setPostVisibility('family');
+      setPostVisibility('family_and_connections');
       setFeedback(`Draft created for ${activeFamily.name}. ${post.status === 'approved' ? 'It is live now.' : 'Waiting for moderation.'}`);
     }
   };
@@ -211,9 +211,9 @@ export default function FamilyAdminWorkspace() {
                     <p className="mt-1 font-semibold text-slate-900">{activeFamily.pendingMembers.length}</p>
                   </div>
                   <div className="rounded-2xl border border-slate-100 bg-slate-50 px-4 py-3 text-sm text-slate-600">
-                    <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Highlights shared publicly</p>
+                    <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Stories shared with connections</p>
                     <p className="mt-1 font-semibold text-slate-900">
-                      {(activeFamily.posts || []).filter((post) => post.visibility === 'public' && post.status === 'approved').length}
+                      {(activeFamily.posts || []).filter((post) => post.visibility === 'family_and_connections' && post.status === 'approved').length}
                     </p>
                   </div>
                 </div>

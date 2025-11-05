@@ -14,9 +14,8 @@ interface FamilyAdminDashboardProps {
 }
 
 const visibilityOptions: { value: PostVisibility; label: string }[] = [
-  { value: 'family', label: 'Family only' },
-  { value: 'connections', label: 'Connected families' },
-  { value: 'public', label: 'Public landing page' },
+  { value: 'family_only', label: 'Family only' },
+  { value: 'family_and_connections', label: 'Family & Connections' },
 ];
 
 export function FamilyAdminDashboard({ familyId, onBack }: FamilyAdminDashboardProps) {
@@ -36,7 +35,7 @@ export function FamilyAdminDashboard({ familyId, onBack }: FamilyAdminDashboardP
   const [content, setContent] = useState('');
   const [mediaUrl, setMediaUrl] = useState('');
   const [mediaType, setMediaType] = useState<'image' | 'video'>('image');
-  const [visibility, setVisibility] = useState<PostVisibility>('family');
+  const [visibility, setVisibility] = useState<PostVisibility>('family_and_connections');
   const [memberName, setMemberName] = useState('');
   const [memberEmail, setMemberEmail] = useState('');
   const [isInvite, setIsInvite] = useState(false);
@@ -72,7 +71,7 @@ export function FamilyAdminDashboard({ familyId, onBack }: FamilyAdminDashboardP
     createFamilyPost(family.id, adminMember.id, content, visibility, mediaUrl ? { type: mediaType, url: mediaUrl } : undefined);
     setContent('');
     setMediaUrl('');
-    setVisibility('family');
+    setVisibility('family_and_connections');
   };
 
   const handleAddMember = (event: React.FormEvent) => {
@@ -93,7 +92,7 @@ export function FamilyAdminDashboard({ familyId, onBack }: FamilyAdminDashboardP
 
   const familyStats = {
     totalPosts: (family.posts || []).length,
-    publicPosts: (family.posts || []).filter((post) => post.visibility === 'public' && post.status === 'approved').length,
+    sharedPosts: (family.posts || []).filter((post) => post.visibility === 'family_and_connections' && post.status === 'approved').length,
     pendingModeration: (family.posts || []).filter((post) => post.status === 'pending').length,
     connectedFamilies: family.connections.length,
   };
@@ -125,7 +124,7 @@ export function FamilyAdminDashboard({ familyId, onBack }: FamilyAdminDashboardP
 
       <section className="grid gap-6 md:grid-cols-2 xl:grid-cols-4">
         <StatCard label="Total posts" value={familyStats.totalPosts} icon={<span className="text-2xl">📝</span>} />
-        <StatCard label="Public stories" value={familyStats.publicPosts} icon={<span className="text-2xl">🌍</span>} />
+        <StatCard label="Shared stories" value={familyStats.sharedPosts} icon={<span className="text-2xl">🌍</span>} />
         <StatCard label="Pending review" value={familyStats.pendingModeration} icon={<span className="text-2xl">🛑</span>} />
         <StatCard label="Connections" value={familyStats.connectedFamilies} icon={<span className="text-2xl">🔗</span>} />
       </section>
