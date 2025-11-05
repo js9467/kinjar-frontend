@@ -55,10 +55,10 @@ export function getSubdomainInfo(): SubdomainInfo {
     return result;
   }
 
-  // Check for path-based family access (e.g., www.kinjar.com/families/smithfamily)
-  const pathMatch = pathname.match(/^\/families\/([^\/]+)/);
+  // Check for path-based family access (e.g., www.kinjar.com/family/smithfamily or /families/smithfamily)
+  const pathMatch = pathname.match(/^\/(family|families)\/([^\/]+)/);
   if (pathMatch) {
-    const familySlug = pathMatch[1];
+    const familySlug = pathMatch[2];
     console.log(`[Subdomain Detection] path-based family detected: ${familySlug}`);
     const result = {
       isSubdomain: true, // Treat as subdomain for API purposes
