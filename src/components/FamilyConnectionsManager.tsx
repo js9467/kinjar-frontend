@@ -28,6 +28,24 @@ interface FamilyConnection {
   responderName?: string;
   createdAt: string;
   respondedAt?: string;
+  memberCount?: number;
+  themeColor?: string;
+}
+
+interface FamilyDetails {
+  id: string;
+  slug: string;
+  name: string;
+  description?: string;
+  themeColor: string;
+  members: Array<{
+    id: string;
+    name: string;
+    age?: number;
+    role: string;
+    avatarColor: string;
+  }>;
+  createdAt: string;
 }
 
 interface FamilyConnectionsManagerProps {
@@ -35,7 +53,7 @@ interface FamilyConnectionsManagerProps {
 }
 
 export function FamilyConnectionsManager({ tenantSlug }: FamilyConnectionsManagerProps) {
-  const [activeTab, setActiveTab] = useState<'search' | 'connections' | 'invite'>('search');
+  const [activeTab, setActiveTab] = useState<'search' | 'connections' | 'invite'>('connections');
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<FamilySearchResult[]>([]);
   const [connections, setConnections] = useState<FamilyConnection[]>([]);
@@ -44,6 +62,8 @@ export function FamilyConnectionsManager({ tenantSlug }: FamilyConnectionsManage
   const [inviteEmail, setInviteEmail] = useState('');
   const [inviteName, setInviteName] = useState('');
   const [inviteMessage, setInviteMessage] = useState('');
+  const [selectedFamily, setSelectedFamily] = useState<FamilyDetails | null>(null);
+  const [loadingFamilyDetails, setLoadingFamilyDetails] = useState(false);
   const { user } = useAuth();
 
   useEffect(() => {
@@ -77,6 +97,33 @@ export function FamilyConnectionsManager({ tenantSlug }: FamilyConnectionsManage
       setError('Failed to load connections');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loadFamilyDetails = async (familySlug: string) => {
+    try {
+      setLoadingFamilyDetails(true);
+      const familyData = await api.getFamilyBySlug(familySlug);
+      setSelectedFamily({
+        id: familyData.id,
+        slug: familyData.slug,
+        name: familyData.name,
+        description: familyData.description,
+        themeColor: familyData.themeColor,
+        members: familyData.members.map((member: any) => ({
+          id: member.id,
+          name: member.name,
+          age: member.age,
+          role: member.role,
+          avatarColor: member.avatarColor
+        })),
+        createdAt: familyData.createdAt
+      });
+    } catch (error) {
+      console.error('Failed to load family details:', error);
+      setError('Failed to load family details');
+    } finally {
+      setLoadingFamilyDetails(false);
     }
   };
 
@@ -263,61 +310,142 @@ export function FamilyConnectionsManager({ tenantSlug }: FamilyConnectionsManage
         {/* Connections Tab */}
         {activeTab === 'connections' && (
           <div className="space-y-6">
-            <h3 className="text-lg font-semibold text-gray-900">Family Connections</h3>
-            
-            {connections.length > 0 ? (
-              <div className="space-y-4">
-                {connections.map((connection) => (
-                  <div key={connection.id} className="border border-gray-200 rounded-lg p-4">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <h4 className="font-semibold text-gray-900">{connection.otherFamilyName}</h4>
-                        <p className="text-sm text-gray-500">
-                          {connection.direction === 'outgoing' ? 'You requested' : 'They requested'} • {formatDate(connection.createdAt)}
-                        </p>
-                        {connection.requestMessage && (
-                          <p className="text-sm text-gray-600 mt-1">"{connection.requestMessage}"</p>
-                        )}
-                        <p className="text-xs text-gray-500 mt-1">
-                          Requested by: {connection.requesterName}
-                          {connection.responderName && ` • Responded by: ${connection.responderName}`}
-                        </p>
+            {selectedFamily ? (
+              // Show family details view
+              <div>
+                <button
+                  onClick={() => setSelectedFamily(null)}
+                  className="flex items-center gap-2 text-blue-600 hover:text-blue-700 mb-4"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7" />
+                  </svg>
+                  Back to Connections
+                </button>
+                
+                <div className="border border-gray-200 rounded-lg p-6">
+                  <div 
+                    className="w-full h-24 rounded-lg mb-4"
+                    style={{ backgroundColor: selectedFamily.themeColor }}
+                  />
+                  <h3 className="text-2xl font-bold text-gray-900 mb-2">{selectedFamily.name}</h3>
+                  {selectedFamily.description && (
+                    <p className="text-gray-600 mb-4">{selectedFamily.description}</p>
+                  )}
+                  <p className="text-sm text-gray-500 mb-6">
+                    Connected since {new Date(selectedFamily.createdAt).toLocaleDateString()}
+                  </p>
+                  
+                  <h4 className="text-lg font-semibold text-gray-900 mb-3">
+                    Family Members ({selectedFamily.members.length})
+                  </h4>
+                  <div className="space-y-2">
+                    {selectedFamily.members.map((member) => (
+                      <div key={member.id} className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
+                        <div
+                          className="w-10 h-10 rounded-full flex items-center justify-center text-white font-semibold text-sm"
+                          style={{ backgroundColor: member.avatarColor }}
+                        >
+                          {member.name.split(' ').map(part => part[0]).join('').slice(0, 2)}
+                        </div>
+                        <div className="flex-1">
+                          <p className="font-medium text-gray-900">{member.name}</p>
+                          <p className="text-sm text-gray-500">
+                            {member.age ? `${member.age} years old` : 'Age not specified'}
+                          </p>
+                        </div>
                       </div>
-                      <div className="text-right">
-                        {connection.status === 'pending' && connection.direction === 'incoming' && (
-                          <div className="space-y-2">
-                            <button
-                              onClick={() => respondToConnection(connection.id, 'accept')}
-                              className="block bg-green-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-green-700"
-                            >
-                              Accept
-                            </button>
-                            <button
-                              onClick={() => respondToConnection(connection.id, 'decline')}
-                              className="block bg-red-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-red-700"
-                            >
-                              Decline
-                            </button>
-                          </div>
-                        )}
-                        {connection.status === 'pending' && connection.direction === 'outgoing' && (
-                          <span className="text-yellow-600 font-medium">Pending Response</span>
-                        )}
-                        {connection.status === 'accepted' && (
-                          <span className="text-green-600 font-medium">Connected</span>
-                        )}
-                        {connection.status === 'declined' && (
-                          <span className="text-red-600 font-medium">Declined</span>
-                        )}
-                      </div>
-                    </div>
+                    ))}
                   </div>
-                ))}
+                </div>
               </div>
             ) : (
-              <div className="text-center py-8">
-                <p className="text-gray-600">No family connections yet</p>
-              </div>
+              // Show connections list
+              <>
+                <h3 className="text-lg font-semibold text-gray-900">
+                  Family Connections ({connections.filter(c => c.status === 'accepted').length})
+                </h3>
+                
+                {connections.length > 0 ? (
+                  <div className="space-y-4">
+                    {connections.map((connection) => (
+                      <div key={connection.id} className="border border-gray-200 rounded-lg p-4 hover:border-blue-300 transition-colors">
+                        <div className="flex items-center justify-between">
+                          <div className="flex-1">
+                            <div className="flex items-center gap-3">
+                              <div
+                                className="w-10 h-10 rounded-full flex items-center justify-center text-white font-semibold"
+                                style={{ backgroundColor: connection.themeColor || '#0ea5e9' }}
+                              >
+                                {connection.otherFamilyName.charAt(0).toUpperCase()}
+                              </div>
+                              <div>
+                                <h4 className="font-semibold text-gray-900">{connection.otherFamilyName}</h4>
+                                <p className="text-sm text-gray-500">
+                                  {connection.direction === 'outgoing' ? 'You requested' : 'They requested'} • {formatDate(connection.createdAt)}
+                                </p>
+                                {connection.requestMessage && (
+                                  <p className="text-sm text-gray-600 mt-1">"{connection.requestMessage}"</p>
+                                )}
+                                <p className="text-xs text-gray-500 mt-1">
+                                  Requested by: {connection.requesterName}
+                                  {connection.responderName && ` • Responded by: ${connection.responderName}`}
+                                </p>
+                              </div>
+                            </div>
+                          </div>
+                          <div className="text-right flex flex-col gap-2">
+                            {connection.status === 'pending' && connection.direction === 'incoming' && (
+                              <>
+                                <button
+                                  onClick={() => respondToConnection(connection.id, 'accept')}
+                                  className="bg-green-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-green-700 text-sm"
+                                >
+                                  Accept
+                                </button>
+                                <button
+                                  onClick={() => respondToConnection(connection.id, 'decline')}
+                                  className="bg-red-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-red-700 text-sm"
+                                >
+                                  Decline
+                                </button>
+                              </>
+                            )}
+                            {connection.status === 'pending' && connection.direction === 'outgoing' && (
+                              <span className="text-yellow-600 font-medium text-sm">Pending Response</span>
+                            )}
+                            {connection.status === 'accepted' && (
+                              <>
+                                <span className="text-green-600 font-medium text-sm">Connected</span>
+                                <button
+                                  onClick={() => loadFamilyDetails(connection.otherFamilySlug)}
+                                  disabled={loadingFamilyDetails}
+                                  className="text-blue-600 hover:text-blue-700 text-sm font-medium disabled:opacity-50"
+                                >
+                                  View Details
+                                </button>
+                              </>
+                            )}
+                            {connection.status === 'declined' && (
+                              <span className="text-red-600 font-medium text-sm">Declined</span>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-8">
+                    <p className="text-gray-600">No family connections yet</p>
+                    <button
+                      onClick={() => setActiveTab('search')}
+                      className="mt-4 text-blue-600 hover:text-blue-700 font-medium"
+                    >
+                      Search for families to connect with
+                    </button>
+                  </div>
+                )}
+              </>
             )}
           </div>
         )}

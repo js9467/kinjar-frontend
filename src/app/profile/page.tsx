@@ -1,10 +1,11 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth } from '@/lib/auth';
 import { useRouter } from 'next/navigation';
 import { api } from '@/lib/api';
 import { ChangePasswordModal } from '@/components/ui/ChangePasswordModal';
+import { AvatarUpload } from '@/components/ui/AvatarUpload';
 import Link from 'next/link';
 
 export default function ProfilePage() {
@@ -19,12 +20,12 @@ export default function ProfilePage() {
   const [success, setSuccess] = useState('');
 
   // Initialize form fields when user is loaded
-  useState(() => {
+  useEffect(() => {
     if (user) {
       setName(user.name || '');
       setBio(user.bio || '');
     }
-  });
+  }, [user]);
 
   if (!user) {
     return (
@@ -43,8 +44,14 @@ export default function ProfilePage() {
       setError('');
       setSuccess('');
 
-      // Call API to update profile (you'll need to implement this endpoint)
-      // await api.updateProfile({ name, bio });
+      // Call API to update profile
+      await api.updateUserProfile({ 
+        displayName: name, 
+        bio 
+      });
+      
+      // Refresh user data
+      const updatedUser = await api.getCurrentUser();
       
       setSuccess('Profile updated successfully!');
       setEditMode(false);
@@ -53,6 +60,16 @@ export default function ProfilePage() {
     } finally {
       setSaving(false);
     }
+  };
+
+  const handleAvatarUploadSuccess = async (avatarUrl: string) => {
+    setSuccess('Avatar uploaded successfully!');
+    // Refresh user data to show new avatar
+    await api.getCurrentUser();
+  };
+
+  const handleAvatarUploadError = (errorMsg: string) => {
+    setError(errorMsg);
   };
 
   return (
@@ -90,16 +107,13 @@ export default function ProfilePage() {
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
           {/* Avatar and Basic Info */}
           <div className="flex items-start gap-6 mb-6">
-            <div
-              className="w-24 h-24 rounded-full flex items-center justify-center text-white text-3xl font-semibold"
-              style={{ backgroundColor: user.avatarColor }}
-            >
-              {user.name
-                .split(' ')
-                .map(part => part[0])
-                .join('')
-                .slice(0, 2)}
-            </div>
+            <AvatarUpload
+              currentAvatarUrl={user.avatarUrl}
+              currentAvatarColor={user.avatarColor}
+              userName={user.name}
+              onUploadSuccess={handleAvatarUploadSuccess}
+              onError={handleAvatarUploadError}
+            />
             <div className="flex-1">
               <h2 className="text-2xl font-bold text-gray-900">{user.name}</h2>
               <p className="text-gray-600">{user.email}</p>

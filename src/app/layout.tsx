@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from 'next';
 import './globals.css';
 import { AppStateProvider } from '@/lib/app-state';
 import { AuthProvider } from '@/lib/auth';
+import { InstallPrompt } from '@/components/ui/InstallPrompt';
 
 export const metadata: Metadata = {
   title: 'Kinjar - Family Social Platform',
@@ -36,6 +37,7 @@ export default function RootLayout({
       <body className="min-h-screen bg-white font-sans text-gray-900 antialiased">
         <AuthProvider>
           <AppStateProvider>
+            <InstallPrompt />
             {children}
           </AppStateProvider>
         </AuthProvider>
