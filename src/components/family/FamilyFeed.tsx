@@ -8,6 +8,7 @@ import { useAuth } from '@/lib/auth';
 import { api } from '@/lib/api';
 import { FamilyPost, PostComment } from '@/lib/types';
 import { ConfirmModal } from '@/components/ui/ConfirmModal';
+import { AuthenticatedImage } from '@/components/ui/AuthenticatedImage';
 import { CommentSection, PostReactions } from '@/components/family/CommentSection';
 
 interface FamilyFeedProps {
@@ -315,7 +316,7 @@ export function FamilyFeed({ familyIds, highlightFamilyId, title = 'Family stori
                   <div className="mt-4 overflow-hidden rounded-2xl">
                     {post.media.type === 'image' ? (
                       <div className="relative h-64 w-full">
-                        <Image
+                        <AuthenticatedImage
                           src={post.media.url}
                           alt={post.media.alt ?? 'Family moment'}
                           fill

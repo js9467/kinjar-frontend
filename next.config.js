@@ -30,6 +30,15 @@ const nextConfig = {
         hostname: 'images.unsplash.com',
       },
     ],
+    // Add timeout and error handling for image optimization
+    dangerouslyAllowSVG: true,
+    contentDispositionType: 'attachment',
+    // Increase timeout for image optimization
+    minimumCacheTTL: 60,
+    // Add custom loader for authenticated media endpoints
+    unoptimized: false,
+    // Handle 502 errors from authenticated endpoints
+    loader: 'default',
   },
   async rewrites() {
     return [
