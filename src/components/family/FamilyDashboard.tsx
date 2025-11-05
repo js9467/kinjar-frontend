@@ -100,49 +100,13 @@ export function FamilyDashboard({ familySlug }: FamilyDashboardProps) {
         
         console.log('[FamilyDashboard] Family data loaded:', normalizedFamily.name, 'Posts in family data:', normalizedFamily.posts?.length || 0);
         
-        // Handle cases where posts might be undefined or null
-        const familyPosts = normalizedFamily.posts || [];
-        
-        // If no posts included in family data, try to load them separately
-        if (familyPosts.length === 0) {
-          console.log('[FamilyDashboard] No posts in family data, loading separately...');
-          try {
-            const postsData = await api.getFamilyPosts(effectiveFamilySlug);
-            console.log('[FamilyDashboard] Loaded posts separately:', postsData.length);
-            const normalizedPosts = postsData.map(post => ({
-              ...post,
-              comments: post.comments || [],
-              tags: post.tags || []
-            }));
-            const sortedPosts = normalizedPosts.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-            setPosts(sortedPosts);
-            setPostsBackup(sortedPosts); // Backup the posts
-            
-            // Persist to localStorage
-            if (typeof window !== 'undefined' && effectiveFamilySlug) {
-              try {
-                localStorage.setItem(`familyPosts_${effectiveFamilySlug}`, JSON.stringify(sortedPosts));
-                console.log('[FamilyDashboard] Posts persisted to localStorage:', sortedPosts.length);
-              } catch (error) {
-                console.error('[FamilyDashboard] Failed to persist posts:', error);
-              }
-            }
-          } catch (postsError) {
-            console.log('[FamilyDashboard] No posts found for family via API, checking localStorage...');
-            
-            // Try to recover from localStorage
-            if (persistedPosts.length > 0) {
-              console.log('[FamilyDashboard] Recovering posts from localStorage:', persistedPosts.length);
-              setPosts(persistedPosts);
-              setPostsBackup(persistedPosts);
-            } else {
-              console.log('[FamilyDashboard] No posts in localStorage either, using empty array');
-              setPosts([]);
-            }
-          }
-        } else {
-          console.log('[FamilyDashboard] Using posts from family data:', familyPosts.length);
-          const normalizedPosts = familyPosts.map(post => ({
+        // Always load posts from connected families feed (includes own family posts + connected family posts)
+        console.log('[FamilyDashboard] Loading posts including connected families...');
+        try {
+          // Use getConnectedFamiliesFeed to get posts from own family + connected families
+          const postsData = await api.getConnectedFamiliesFeed(effectiveFamilySlug);
+          console.log('[FamilyDashboard] Loaded posts (including connections):', postsData.length);
+          const normalizedPosts = postsData.map(post => ({
             ...post,
             comments: post.comments || [],
             tags: post.tags || []
@@ -150,7 +114,7 @@ export function FamilyDashboard({ familySlug }: FamilyDashboardProps) {
           const sortedPosts = normalizedPosts.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
           setPosts(sortedPosts);
           setPostsBackup(sortedPosts); // Backup the posts
-          
+            
           // Persist to localStorage
           if (typeof window !== 'undefined' && effectiveFamilySlug) {
             try {
@@ -159,6 +123,18 @@ export function FamilyDashboard({ familySlug }: FamilyDashboardProps) {
             } catch (error) {
               console.error('[FamilyDashboard] Failed to persist posts:', error);
             }
+          }
+        } catch (postsError) {
+          console.log('[FamilyDashboard] Failed to load connected feed, checking localStorage...');
+          
+          // Try to recover from localStorage
+          if (persistedPosts.length > 0) {
+            console.log('[FamilyDashboard] Recovering posts from localStorage:', persistedPosts.length);
+            setPosts(persistedPosts);
+            setPostsBackup(persistedPosts);
+          } else {
+            console.log('[FamilyDashboard] No posts in localStorage either, using empty array');
+            setPosts([]);
           }
         }
       } catch (apiError) {
