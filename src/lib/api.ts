@@ -1,6 +1,6 @@
 'use client';
 
-import { AuthUser, CreateFamilyRequest, FamilyProfile, InviteMemberRequest, SubdomainInfo, FamilyPost, MediaAttachment, NotificationSettings } from './types';
+import { AuthUser, CreateFamilyRequest, FamilyProfile, InviteMemberRequest, SubdomainInfo, FamilyPost, MediaAttachment, NotificationSettings, PostVisibility } from './types';
 
 // Export types that components might need
 export type Post = FamilyPost;
@@ -1127,7 +1127,9 @@ class KinjarAPI {
       posts.map(async (post: any) => {
         try {
           const comments = await this.getPostComments(post.id);
-          
+
+          const visibility = this.normalizePostVisibility(post.visibility);
+
           // Transform backend post to frontend format
           const transformedPost: FamilyPost = {
             id: post.id,
@@ -1147,7 +1149,7 @@ class KinjarAPI {
               url: post.media_url || post.media_external_url || `${this.baseURL}/api/media/${post.media_id}`,
               alt: post.title
             } : undefined,
-            visibility: 'family_and_connections', // Posts in connected feed are shared with connections
+            visibility,
             status: post.status || 'published',
             tags: post.tags || [],
             comments,
@@ -1159,6 +1161,8 @@ class KinjarAPI {
           console.warn(`Failed to load comments for connected feed post ${post.id}:`, error);
           
           // Transform without comments
+          const visibility = this.normalizePostVisibility(post.visibility);
+
           const transformedPost: FamilyPost = {
             id: post.id,
             familyId: post.tenant_id,
@@ -1177,7 +1181,7 @@ class KinjarAPI {
               url: post.media_url || post.media_external_url || `${this.baseURL}/api/media/${post.media_id}`,
               alt: post.title
             } : undefined,
-            visibility: 'family_and_connections',
+            visibility,
             status: post.status || 'published',
             tags: post.tags || [],
             comments: [],
@@ -1250,6 +1254,24 @@ class KinjarAPI {
     return this.request('/api/users/test-notification-email', {
       method: 'POST',
     });
+  }
+
+  private normalizePostVisibility(rawVisibility: string | undefined): PostVisibility {
+    if (!rawVisibility) {
+      return 'family_and_connections';
+    }
+
+    const normalized = rawVisibility.toLowerCase();
+    if (normalized === 'family_only') {
+      return 'family_only';
+    }
+
+    if (normalized === 'family_and_connections' || normalized === 'connections') {
+      return 'family_and_connections';
+    }
+
+    // Treat legacy/public posts fetched through this feed as shared with connections
+    return 'family_and_connections';
   }
 }
 
