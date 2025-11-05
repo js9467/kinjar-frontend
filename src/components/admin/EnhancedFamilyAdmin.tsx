@@ -44,7 +44,7 @@ export function EnhancedFamilyAdmin({ familyId, familySlug }: EnhancedFamilyAdmi
   useEffect(() => {
     if (activeTab === 'pending') {
       void loadPendingPosts();
-    } else if (activeTab === 'members') {
+    } else if (activeTab === 'members' || activeTab === 'settings') {
       void loadMembers();
     }
   }, [activeTab, familySlug]);
