@@ -153,8 +153,9 @@ export function PublicFeed() {
                   />
                 ) : (
                   <video
-                    src={post.media.url}
+                    src={`${post.media.url}#t=2`}
                     controls
+                    preload="metadata"
                     className="rounded-lg w-full"
                   >
                     Your browser does not support the video tag.

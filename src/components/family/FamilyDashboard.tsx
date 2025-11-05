@@ -817,8 +817,9 @@ export function FamilyDashboard({ familySlug }: FamilyDashboardProps) {
                                 controls
                                 className="w-full max-h-96 rounded-lg"
                                 poster={post.media.alt}
+                                preload="metadata"
                               >
-                                <source src={post.media.url} type="video/mp4" />
+                                <source src={`${post.media.url}#t=2`} type="video/mp4" />
                                 Your browser does not support the video tag.
                               </video>
                             )}
