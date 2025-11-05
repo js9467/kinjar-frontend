@@ -11,6 +11,7 @@ import { ConfirmModal } from '@/components/ui/ConfirmModal';
 import { ChangePasswordModal } from '@/components/ui/ChangePasswordModal';
 import { EnhancedFamilyAdmin } from '@/components/admin/EnhancedFamilyAdmin';
 import { FamilyConnectionsManager } from '@/components/FamilyConnectionsManager';
+import { getMemberAgeDisplay } from '@/lib/age-utils';
 import Image from 'next/image';
 import Link from 'next/link';
 
@@ -31,6 +32,14 @@ export function FamilyDashboard({ familySlug }: FamilyDashboardProps) {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [postToDelete, setPostToDelete] = useState<string | null>(null);
   const [showChangePasswordModal, setShowChangePasswordModal] = useState(false);
+  
+  // Family connections modal
+  const [showConnectionsModal, setShowConnectionsModal] = useState(false);
+  
+  // Hover tooltip for connected families
+  const [hoveredFamily, setHoveredFamily] = useState<string | null>(null);
+  const [hoveredFamilyData, setHoveredFamilyData] = useState<FamilyProfile | null>(null);
+  const [loadingHoveredFamily, setLoadingHoveredFamily] = useState(false);
   
   // Add a backup for posts to prevent data loss
   const [postsBackup, setPostsBackup] = useState<FamilyPost[]>([]);
@@ -314,6 +323,31 @@ export function FamilyDashboard({ familySlug }: FamilyDashboardProps) {
     }
   };
 
+  // Handle hovering over connected family to show members
+  const handleFamilyHover = async (familySlug: string) => {
+    if (hoveredFamily === familySlug) return; // Already loaded
+    
+    setHoveredFamily(familySlug);
+    setLoadingHoveredFamily(true);
+    
+    try {
+      const familyData = await api.getFamilyBySlug(familySlug);
+      setHoveredFamilyData(familyData);
+    } catch (err) {
+      console.error('Failed to load family data for hover:', err);
+    } finally {
+      setLoadingHoveredFamily(false);
+    }
+  };
+
+  const handleFamilyHoverEnd = () => {
+    // Delay clearing to allow mouse to move to tooltip
+    setTimeout(() => {
+      setHoveredFamily(null);
+      setHoveredFamilyData(null);
+    }, 300);
+  };
+
   const cancelEditPost = () => {
     setEditingPostId(null);
     setEditContent('');
@@ -518,6 +552,26 @@ export function FamilyDashboard({ familySlug }: FamilyDashboardProps) {
                 </div>
               </div>
               <div className="flex items-center gap-2">
+                {/* Profile button */}
+                <Link
+                  href="/profile"
+                  className="px-4 py-2 text-sm font-medium text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors flex items-center gap-2"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                  </svg>
+                  Profile
+                </Link>
+                {/* Connections button */}
+                <button
+                  onClick={() => setShowConnectionsModal(true)}
+                  className="px-4 py-2 text-sm font-medium text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors flex items-center gap-2"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+                  </svg>
+                  Connections
+                </button>
                 {/* Change Password button */}
                 <button
                   onClick={() => setShowChangePasswordModal(true)}
@@ -828,16 +882,16 @@ export function FamilyDashboard({ familySlug }: FamilyDashboardProps) {
               <h2 className="text-lg font-semibold text-gray-900 mb-4">Family Info</h2>
               <div className="space-y-3">
                 <div>
-                  <span className="text-sm text-gray-600">Mission:</span>
-                  <p className="text-sm text-gray-900">{family.missionStatement || 'No mission statement set'}</p>
-                </div>
-                <div>
                   <span className="text-sm text-gray-600">Created:</span>
                   <p className="text-sm text-gray-900">{new Date(family.createdAt).toLocaleDateString()}</p>
                 </div>
                 <div>
-                  <span className="text-sm text-gray-600">Storage Used:</span>
-                  <p className="text-sm text-gray-900">{family.storageUsedMb} MB</p>
+                  <span className="text-sm text-gray-600">Total Posts:</span>
+                  <p className="text-sm text-gray-900">{posts.length}</p>
+                </div>
+                <div>
+                  <span className="text-sm text-gray-600">Connections:</span>
+                  <p className="text-sm text-gray-900">{family.connectedFamilies?.length || 0} families</p>
                 </div>
               </div>
             </div>
@@ -860,19 +914,11 @@ export function FamilyDashboard({ familySlug }: FamilyDashboardProps) {
                     </div>
                     <div className="flex-1">
                       <p className="text-sm font-medium text-gray-900">{member.name}</p>
-                      <p className="text-xs text-gray-500 capitalize">{member.role.replace('_', ' ').toLowerCase()}</p>
+                      <p className="text-xs text-gray-500">{getMemberAgeDisplay(member.birthdate, member.role)}</p>
                     </div>
                   </div>
                 ))}
               </div>
-            </div>
-
-            {/* Family Connections Manager */}
-            <div className="bg-white rounded-lg border border-gray-200 p-6">
-              <h2 className="text-lg font-semibold text-gray-900 mb-4">Family Connections</h2>
-              <FamilyConnectionsManager 
-                tenantSlug={effectiveFamilySlug || family.slug}
-              />
             </div>
 
             {/* Connected Families */}
@@ -881,7 +927,12 @@ export function FamilyDashboard({ familySlug }: FamilyDashboardProps) {
                 <h2 className="text-lg font-semibold text-gray-900 mb-4">Connected Families</h2>
                 <div className="space-y-3">
                   {family.connectedFamilies.map((connection) => (
-                    <div key={connection.id} className="flex items-center gap-3">
+                    <div 
+                      key={connection.id} 
+                      className="flex items-center gap-3 relative group"
+                      onMouseEnter={() => handleFamilyHover(connection.familySlug)}
+                      onMouseLeave={handleFamilyHoverEnd}
+                    >
                       <div className="w-8 h-8 rounded-full bg-purple-600 flex items-center justify-center text-white text-sm font-semibold">
                         {connection.familyName[0]}
                       </div>
@@ -891,6 +942,33 @@ export function FamilyDashboard({ familySlug }: FamilyDashboardProps) {
                           Connected {new Date(connection.connectedAt).toLocaleDateString()}
                         </p>
                       </div>
+                      
+                      {/* Hover tooltip showing family members */}
+                      {hoveredFamily === connection.familySlug && (
+                        <div className="absolute left-full ml-2 top-0 z-50 w-64 bg-white rounded-lg shadow-xl border border-gray-200 p-4 pointer-events-none group-hover:pointer-events-auto">
+                          <h3 className="font-semibold text-gray-900 mb-3">{connection.familyName} Members</h3>
+                          {loadingHoveredFamily ? (
+                            <p className="text-sm text-gray-500">Loading...</p>
+                          ) : hoveredFamilyData ? (
+                            <div className="space-y-2 max-h-48 overflow-y-auto">
+                              {hoveredFamilyData.members.map((member) => (
+                                <div key={member.id} className="flex items-center gap-2">
+                                  <div
+                                    className="w-6 h-6 rounded-full flex items-center justify-center text-white text-xs font-semibold"
+                                    style={{ backgroundColor: member.avatarColor }}
+                                  >
+                                    {(member.name || 'U')[0]}
+                                  </div>
+                                  <div className="flex-1 min-w-0">
+                                    <p className="text-xs font-medium text-gray-900 truncate">{member.name}</p>
+                                    <p className="text-xs text-gray-500">{getMemberAgeDisplay(member.birthdate, member.role)}</p>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          ) : null}
+                        </div>
+                      )}
                     </div>
                   ))}
                 </div>
@@ -970,6 +1048,31 @@ export function FamilyDashboard({ familySlug }: FamilyDashboardProps) {
         isOpen={showChangePasswordModal}
         onClose={() => setShowChangePasswordModal(false)}
       />
+
+      {/* Family Connections Modal */}
+      {showConnectionsModal && (
+        <div className="fixed inset-0 z-50 overflow-y-auto">
+          <div className="flex min-h-full items-center justify-center p-4">
+            <div className="fixed inset-0 bg-black bg-opacity-25" onClick={() => setShowConnectionsModal(false)}></div>
+            <div className="relative bg-white rounded-lg shadow-xl max-w-2xl w-full p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-xl font-semibold text-gray-900">Family Connections</h2>
+                <button
+                  onClick={() => setShowConnectionsModal(false)}
+                  className="text-gray-400 hover:text-gray-600"
+                >
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+              <FamilyConnectionsManager 
+                tenantSlug={effectiveFamilySlug || family?.slug || ''}
+              />
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

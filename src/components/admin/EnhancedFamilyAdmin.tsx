@@ -177,8 +177,7 @@ export function EnhancedFamilyAdmin({ familyId, familySlug }: EnhancedFamilyAdmi
 
   const tabs = [
     { id: 'posts', label: 'Posts', icon: '📝' },
-    { id: 'members', label: 'Members', icon: '👥' },
-    { id: 'pending', label: 'Pending Approval', icon: '⏳', badge: pendingPosts.length }
+    { id: 'members', label: 'Members', icon: '👥' }
   ];
 
   return (
@@ -205,11 +204,6 @@ export function EnhancedFamilyAdmin({ familyId, familySlug }: EnhancedFamilyAdmi
               >
                 <span>{tab.icon}</span>
                 <span>{tab.label}</span>
-                {tab.badge && tab.badge > 0 && (
-                  <span className="bg-red-100 text-red-800 text-xs font-medium px-2 py-1 rounded-full">
-                    {tab.badge}
-                  </span>
-                )}
               </button>
             ))}
           </nav>
@@ -528,99 +522,6 @@ export function EnhancedFamilyAdmin({ familyId, familySlug }: EnhancedFamilyAdmi
                   </div>
                 )}
               </div>
-            </div>
-          )}
-
-          {/* Pending Approval Tab */}
-          {activeTab === 'pending' && (
-            <div className="space-y-6">
-              <h2 className="text-xl font-semibold text-gray-900">Posts Pending Approval</h2>
-              <p className="text-gray-600">
-                Review and approve posts from family members who require approval before publishing.
-              </p>
-
-              {loading ? (
-                <div className="text-center py-8">
-                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
-                  <p className="mt-2 text-gray-600">Loading pending posts...</p>
-                </div>
-              ) : pendingPosts.length === 0 ? (
-                <div className="text-center py-12 text-gray-500">
-                  <span className="text-4xl mb-4 block">✅</span>
-                  No posts pending approval!
-                </div>
-              ) : (
-                <div className="space-y-6">
-                  {pendingPosts.map((post) => (
-                    <div key={post.id} className="bg-white border rounded-lg p-6 shadow-sm">
-                      <div className="flex items-start justify-between mb-4">
-                        <div className="flex items-center space-x-3">
-                          <div 
-                            className="w-10 h-10 rounded-full flex items-center justify-center text-white font-semibold"
-                            style={{ backgroundColor: post.authorAvatarColor }}
-                          >
-                            {post.authorName?.charAt(0)?.toUpperCase() || 'U'}
-                          </div>
-                          <div>
-                            <h3 className="font-medium text-gray-900">{post.authorName}</h3>
-                            <p className="text-sm text-gray-500">{new Date(post.createdAt).toLocaleDateString()}</p>
-                          </div>
-                        </div>
-                        <span className={`px-2 py-1 text-xs font-medium rounded-full ${
-                          post.visibility === 'family_and_connections' 
-                            ? 'bg-green-100 text-green-800' 
-                            : 'bg-blue-100 text-blue-800'
-                        }`}>
-                          {post.visibility === 'family_and_connections' ? 'Shared' : 'Family Only'}
-                        </span>
-                      </div>
-
-                      {post.title && (
-                        <h2 className="text-lg font-semibold text-gray-900 mb-2">{post.title}</h2>
-                      )}
-                      
-                      <div className="prose prose-sm max-w-none mb-4">
-                        <p className="text-gray-700 whitespace-pre-wrap">{post.content}</p>
-                      </div>
-
-                      {post.media && (
-                        <div className="mb-4">
-                          {post.media.type === 'image' ? (
-                            <img
-                              src={post.media.url}
-                              alt={post.media.alt || 'Post image'}
-                              className="rounded-lg max-w-full h-auto max-h-64 object-cover"
-                            />
-                          ) : (
-                            <video
-                              src={post.media.url}
-                              controls
-                              className="rounded-lg max-w-full h-auto max-h-64"
-                            >
-                              Your browser does not support the video tag.
-                            </video>
-                          )}
-                        </div>
-                      )}
-
-                      <div className="flex justify-end space-x-3 pt-4 border-t border-gray-200">
-                        <button
-                          onClick={() => handleApprovePost(post.id, 'reject')}
-                          className="px-4 py-2 text-sm font-medium text-red-600 bg-red-50 rounded-md hover:bg-red-100 transition-colors"
-                        >
-                          Reject
-                        </button>
-                        <button
-                          onClick={() => handleApprovePost(post.id, 'approve')}
-                          className="px-4 py-2 text-sm font-medium text-white bg-green-600 rounded-md hover:bg-green-700 transition-colors"
-                        >
-                          Approve & Publish
-                        </button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
             </div>
           )}
         </div>

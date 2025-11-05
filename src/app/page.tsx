@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { getSubdomainInfo } from '@/lib/api';
 import { FamilyDashboard } from '@/components/family/FamilyDashboard';
 import { useAuth } from '@/lib/auth';
+import { KinjarIcon } from '@/components/ui/KinjarIcon';
 import Link from 'next/link';
 
 export default function HomePage() {
@@ -88,10 +89,8 @@ export default function HomePage() {
       <header className="bg-white shadow-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center">
-                <span className="text-white font-bold text-xl">K</span>
-              </div>
+            <div className="flex items-center gap-3">
+              <KinjarIcon className="text-blue-600" size={40} />
               <span className="text-2xl font-bold text-gray-900">Kinjar</span>
             </div>
             <div className="flex items-center gap-4">
@@ -131,13 +130,18 @@ export default function HomePage() {
       {/* Hero Section */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 sm:py-24">
         <div className="text-center">
+          <div className="flex justify-center mb-8">
+            <KinjarIcon className="text-blue-600" size={120} />
+          </div>
           <h1 className="text-4xl sm:text-5xl md:text-6xl font-bold text-gray-900 mb-6">
-            Your Family's Private
-            <span className="block text-blue-600">Social Network</span>
+            <span className="text-blue-600">Kin</span> + <span className="text-blue-600">Jar</span>
           </h1>
+          <p className="text-2xl font-semibold text-gray-700 mb-4">
+            A Safe Container for Your Family
+          </p>
           <p className="text-xl text-gray-600 mb-8 max-w-3xl mx-auto">
-            Share photos, videos, and memories with your family and connected families. 
-            Keep your precious moments private and secure.
+            Store and share your family's precious moments in your own private space.
+            Connect with other families while keeping everything secure and private.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             {user && user.memberships && user.memberships.length > 0 ? (
