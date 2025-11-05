@@ -697,12 +697,28 @@ class KinjarAPI {
         throw new Error('Invalid response format from server');
       }
 
+      // Check localStorage for "posted as" information to preserve it
+      let postedAsName = postData.author_name;
+      if (typeof window !== 'undefined') {
+        try {
+          const key = `postedAs_${postId}`;
+          const stored = localStorage.getItem(key);
+          if (stored) {
+            const postedAsInfo = JSON.parse(stored);
+            postedAsName = postedAsInfo.name;
+            console.log(`[API] Preserved posted-as name for edited post ${postId}:`, postedAsName);
+          }
+        } catch (error) {
+          console.warn(`[API] Failed to load posted-as info for post ${postId}:`, error);
+        }
+      }
+
       // Transform backend response to frontend format
       return {
         id: postData.id,
         content: postData.content,
         authorId: postData.author_id,
-        authorName: postData.author_name,
+        authorName: postedAsName,
         authorAvatarColor: postData.author_avatar_color || '#3B82F6',
         createdAt: postData.created_at,
         familyId: postData.tenant_id,

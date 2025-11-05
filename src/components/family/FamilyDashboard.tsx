@@ -277,9 +277,9 @@ export function FamilyDashboard({ familySlug }: FamilyDashboardProps) {
       
       const updatedPost = await api.editPost(editingPostId, editContent.trim(), tenantSlug);
 
-      // Update the posts list with the edited post
+      // Update the posts list with the edited post, preserving the original authorName
       setPosts(prev => prev.map(post =>
-        post.id === editingPostId ? updatedPost : post
+        post.id === editingPostId ? { ...updatedPost, authorName: post.authorName } : post
       ));
       
       setEditingPostId(null);
