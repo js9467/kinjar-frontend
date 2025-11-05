@@ -589,7 +589,7 @@ export function FamilyDashboard({ familySlug }: FamilyDashboardProps) {
                         : 'bg-blue-100 text-blue-700 hover:bg-blue-200'
                     }`}
                   >
-                    {showAdminInterface ? 'Hide' : 'Manage'}
+                    {showAdminInterface ? 'Hide' : 'Manage Family'}
                   </button>
                 )}
                 <button
