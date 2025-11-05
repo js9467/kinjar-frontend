@@ -89,6 +89,16 @@ export function EnhancedFamilyAdmin({ familyId, familySlug }: EnhancedFamilyAdmi
       const family = await api.getFamilyBySlug(familySlug);
       setMembers(family.members || []);
       setPendingMembers(family.pendingMembers || []);
+      
+      // Initialize settings form with family data
+      const settings = {
+        name: family.name || '',
+        slug: family.slug || '',
+        description: family.description || ''
+      };
+      setSettingsForm(settings);
+      setInitialSettings(settings);
+      
       console.log('Loaded members:', family.members?.length, 'pending:', family.pendingMembers?.length);
     } catch (error) {
       console.error('Failed to load members:', error);
@@ -164,7 +174,8 @@ export function EnhancedFamilyAdmin({ familyId, familySlug }: EnhancedFamilyAdmi
   };
 
   const tabs = [
-    { id: 'members', label: 'Members', icon: '👥' }
+    { id: 'members', label: 'Members', icon: '👥' },
+    { id: 'settings', label: 'Family Settings', icon: '⚙️' }
   ];
 
   return (
@@ -448,6 +459,172 @@ export function EnhancedFamilyAdmin({ familyId, familySlug }: EnhancedFamilyAdmi
                     ))}
                   </div>
                 )}
+              </div>
+            </div>
+          )}
+
+          {/* Settings Tab */}
+          {activeTab === 'settings' && (
+            <div className="space-y-6">
+              <h2 className="text-xl font-semibold text-gray-900">Family Settings</h2>
+              
+              {/* Family Details Form */}
+              <div className="bg-gray-50 rounded-lg p-6">
+                <h3 className="text-lg font-medium text-gray-900 mb-4">Family Information</h3>
+                <form 
+                  onSubmit={async (e) => {
+                    e.preventDefault();
+                    setSavingSettings(true);
+                    setSettingsStatus(null);
+                    
+                    try {
+                      await api.updateFamily(familyId, {
+                        name: settingsForm.name,
+                        slug: settingsForm.slug,
+                        description: settingsForm.description
+                      });
+                      setSettingsStatus({ type: 'success', message: 'Family settings updated successfully!' });
+                      setInitialSettings({ ...settingsForm });
+                      
+                      // Reload family data after 1 second
+                      setTimeout(() => {
+                        window.location.reload();
+                      }, 1000);
+                    } catch (error: any) {
+                      console.error('Failed to update family settings:', error);
+                      setSettingsStatus({ 
+                        type: 'error', 
+                        message: error.message || 'Failed to update family settings' 
+                      });
+                    } finally {
+                      setSavingSettings(false);
+                    }
+                  }}
+                  className="space-y-4"
+                >
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Family Name
+                    </label>
+                    <input
+                      type="text"
+                      value={settingsForm.name}
+                      onChange={(e) => setSettingsForm({ ...settingsForm, name: e.target.value })}
+                      className="w-full rounded-md border border-gray-300 px-3 py-2 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                      placeholder="Enter family name"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Family Slug (URL)
+                    </label>
+                    <input
+                      type="text"
+                      value={settingsForm.slug}
+                      onChange={(e) => setSettingsForm({ ...settingsForm, slug: e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '') })}
+                      className="w-full rounded-md border border-gray-300 px-3 py-2 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                      placeholder="family-slug"
+                    />
+                    <p className="text-sm text-gray-500 mt-1">
+                      Your family URL will be: {settingsForm.slug || 'family-slug'}.kinjar.com
+                    </p>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Description
+                    </label>
+                    <textarea
+                      value={settingsForm.description}
+                      onChange={(e) => setSettingsForm({ ...settingsForm, description: e.target.value })}
+                      rows={4}
+                      className="w-full rounded-md border border-gray-300 px-3 py-2 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                      placeholder="Describe your family..."
+                    />
+                  </div>
+
+                  {settingsStatus && (
+                    <div className={`p-4 rounded-md ${
+                      settingsStatus.type === 'success' ? 'bg-green-50 text-green-800' : 'bg-red-50 text-red-800'
+                    }`}>
+                      {settingsStatus.message}
+                    </div>
+                  )}
+
+                  <div className="flex justify-end">
+                    <button
+                      type="submit"
+                      disabled={savingSettings || (
+                        settingsForm.name === initialSettings.name && 
+                        settingsForm.slug === initialSettings.slug && 
+                        settingsForm.description === initialSettings.description
+                      )}
+                      className="bg-blue-600 text-white px-6 py-2 rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {savingSettings ? 'Saving...' : 'Save Changes'}
+                    </button>
+                  </div>
+                </form>
+              </div>
+
+              {/* Family Photo Upload */}
+              <div className="bg-gray-50 rounded-lg p-6">
+                <h3 className="text-lg font-medium text-gray-900 mb-4">Family Photo</h3>
+                <div className="space-y-4">
+                  <div>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={async (e) => {
+                        const file = e.target.files?.[0];
+                        if (!file) return;
+
+                        try {
+                          setLoading(true);
+                          const formData = new FormData();
+                          formData.append('file', file);
+
+                          const token = localStorage.getItem('kinjar-auth-token');
+                          const response = await fetch(`https://kinjar-api.fly.dev/api/families/${familyId}/upload-photo`, {
+                            method: 'POST',
+                            headers: {
+                              'Authorization': `Bearer ${token}`
+                            },
+                            body: formData
+                          });
+
+                          if (!response.ok) {
+                            throw new Error('Failed to upload family photo');
+                          }
+
+                          const result = await response.json();
+                          setSettingsStatus({ 
+                            type: 'success', 
+                            message: 'Family photo uploaded successfully!' 
+                          });
+                          
+                          // Reload after 1 second to show new photo
+                          setTimeout(() => {
+                            window.location.reload();
+                          }, 1000);
+                        } catch (error: any) {
+                          console.error('Failed to upload family photo:', error);
+                          setSettingsStatus({ 
+                            type: 'error', 
+                            message: 'Failed to upload family photo' 
+                          });
+                        } finally {
+                          setLoading(false);
+                        }
+                      }}
+                      className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+                    />
+                    <p className="text-sm text-gray-500 mt-2">
+                      Upload a photo that represents your family. This will be shown on your family page and in the family directory.
+                    </p>
+                  </div>
+                </div>
               </div>
             </div>
           )}
