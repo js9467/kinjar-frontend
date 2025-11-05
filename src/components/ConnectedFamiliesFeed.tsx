@@ -217,7 +217,7 @@ export function ConnectedFamiliesFeed({ tenantSlug, limit = 20 }: ConnectedFamil
                   />
                 ) : (
                   <video
-                    src={`${post.media.url}#t=2`}
+                    src={`${post.media.url}#t=0.5`}
                     controls
                     className="rounded-lg w-full"
                     preload="metadata"

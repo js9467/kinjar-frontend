@@ -153,7 +153,7 @@ export function PublicFeed() {
                   />
                 ) : (
                   <video
-                    src={`${post.media.url}#t=2`}
+                    src={`${post.media.url}#t=0.5`}
                     controls
                     preload="metadata"
                     className="rounded-lg w-full"

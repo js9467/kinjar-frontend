@@ -819,7 +819,7 @@ export function FamilyDashboard({ familySlug }: FamilyDashboardProps) {
                                 poster={post.media.alt}
                                 preload="metadata"
                               >
-                                <source src={`${post.media.url}#t=2`} type="video/mp4" />
+                                <source src={`${post.media.url}#t=0.5`} type="video/mp4" />
                                 Your browser does not support the video tag.
                               </video>
                             )}

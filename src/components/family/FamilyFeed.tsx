@@ -329,8 +329,8 @@ export function FamilyFeed({ familyIds, highlightFamilyId, title = 'Family stori
                         className="w-full rounded-2xl"
                         preload="metadata"
                       >
-                        <source src={`${post.media.url}#t=2`} type="video/mp4" />
-                        <source src={`${post.media.url}#t=2`} type="video/quicktime" />
+                        <source src={`${post.media.url}#t=0.5`} type="video/mp4" />
+                        <source src={`${post.media.url}#t=0.5`} type="video/quicktime" />
                         Your browser does not support the video tag.
                       </video>
                     )}
