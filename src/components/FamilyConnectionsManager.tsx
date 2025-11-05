@@ -107,19 +107,20 @@ export function FamilyConnectionsManager({ tenantSlug }: FamilyConnectionsManage
     try {
       setLoading(true);
       setError(null);
-      const response = await api.getPendingInvitations(tenantSlug);
-      setPendingInvitations(response.invitations);
+      
+      // TODO: Remove this when backend API is implemented
+      // For now, skip the API call to avoid 404 errors
+      console.log('Pending invitations API not implemented yet, using empty state');
+      setPendingInvitations([]);
+      return;
+      
+      // Uncomment when backend is ready:
+      // const response = await api.getPendingInvitations(tenantSlug);
+      // setPendingInvitations(response.invitations);
     } catch (error) {
       console.error('Failed to load pending invitations:', error);
-      // Don't show error to user if API endpoint doesn't exist yet (404)
-      if (error instanceof Error && error.message.includes('404')) {
-        console.log('Pending invitations API not implemented yet, using empty state');
-        setPendingInvitations([]);
-        setError(null); // Don't show error for missing endpoint
-      } else {
-        setError('Failed to load pending invitations');
-        setPendingInvitations([]);
-      }
+      setPendingInvitations([]);
+      setError(null); // Don't show error to user for missing endpoint
     } finally {
       setLoading(false);
     }
