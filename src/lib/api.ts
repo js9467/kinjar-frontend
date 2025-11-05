@@ -1,6 +1,6 @@
 'use client';
 
-import { AuthUser, CreateFamilyRequest, FamilyProfile, InviteMemberRequest, SubdomainInfo, FamilyPost, MediaAttachment } from './types';
+import { AuthUser, CreateFamilyRequest, FamilyProfile, InviteMemberRequest, SubdomainInfo, FamilyPost, MediaAttachment, NotificationSettings } from './types';
 
 // Export types that components might need
 export type Post = FamilyPost;
@@ -890,6 +890,23 @@ class KinjarAPI {
     }, tenantSlug);
   }
 
+  async getPendingInvitations(tenantSlug: string): Promise<{
+    invitations: Array<{
+      id: string;
+      type: 'family_creation' | 'connection_request';
+      recipientEmail: string;
+      recipientName: string;
+      message?: string;
+      sentAt: string;
+      expiresAt?: string;
+      status: 'pending' | 'accepted' | 'declined' | 'expired';
+    }>;
+  }> {
+    return this.request('/api/families/pending-invitations', {
+      method: 'GET',
+    }, tenantSlug);
+  }
+
   async getFamilyCreationInvitationDetails(token: string): Promise<{
     invitation: {
       id: string;
@@ -1200,6 +1217,39 @@ class KinjarAPI {
     );
     
     return postsWithComments;
+  }
+
+  // Notification Settings
+  async getNotificationSettings(): Promise<NotificationSettings> {
+    const response = await this.request('/api/users/notification-settings');
+    return response.settings || {
+      emailNotifications: {
+        familyInvitationAccepted: true,
+        connectionRequestAccepted: true,
+        newFamilyMemberJoined: true,
+        familyConnectionEstablished: true,
+        newPostInConnectedFamily: false,
+      },
+      pushNotifications: {
+        enabled: false,
+        newComments: false,
+        newReactions: false,
+      },
+    };
+  }
+
+  async updateNotificationSettings(settings: NotificationSettings): Promise<NotificationSettings> {
+    const response = await this.request('/api/users/notification-settings', {
+      method: 'PUT',
+      body: JSON.stringify(settings),
+    });
+    return response.settings;
+  }
+
+  async sendNotificationTestEmail(): Promise<{ message: string }> {
+    return this.request('/api/users/test-notification-email', {
+      method: 'POST',
+    });
   }
 }
 

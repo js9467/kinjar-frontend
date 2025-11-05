@@ -10,10 +10,7 @@ interface EnhancedFamilyAdminProps {
 }
 
 export function EnhancedFamilyAdmin({ familyId, familySlug }: EnhancedFamilyAdminProps) {
-  // Post creation state for admin
-  const [postContent, setPostContent] = useState('');
-  const [postAuthorId, setPostAuthorId] = useState('');
-  const [activeTab, setActiveTab] = useState<'posts' | 'members' | 'pending'>('posts');
+  const [activeTab, setActiveTab] = useState<'members' | 'pending'>('members');
   const [pendingPosts, setPendingPosts] = useState<FamilyPost[]>([]);
   const [members, setMembers] = useState<FamilyMemberProfile[]>([]);
   const [pendingMembers, setPendingMembers] = useState<FamilyMemberProfile[]>([]);
@@ -32,13 +29,6 @@ export function EnhancedFamilyAdmin({ familyId, familySlug }: EnhancedFamilyAdmi
     }
     return email;
   };
-
-  useEffect(() => {
-    // Set default author to first member when members are loaded
-    if (members.length > 0 && !postAuthorId) {
-      setPostAuthorId(members[0].id);
-    }
-  }, [members, postAuthorId]);
 
   useEffect(() => {
     if (activeTab === 'pending') {
@@ -67,10 +57,6 @@ export function EnhancedFamilyAdmin({ familyId, familySlug }: EnhancedFamilyAdmi
   ];
 
   useEffect(() => {
-    // Set default author to first member when members are loaded
-    if (activeTab === 'members' && members.length > 0 && !postAuthorId) {
-      setPostAuthorId(members[0].id);
-    }
     if (activeTab === 'pending') {
       loadPendingPosts();
     } else if (activeTab === 'members') {
@@ -176,7 +162,6 @@ export function EnhancedFamilyAdmin({ familyId, familySlug }: EnhancedFamilyAdmi
   };
 
   const tabs = [
-    { id: 'posts', label: 'Posts', icon: '📝' },
     { id: 'members', label: 'Members', icon: '👥' }
   ];
 
@@ -210,66 +195,6 @@ export function EnhancedFamilyAdmin({ familyId, familySlug }: EnhancedFamilyAdmi
         </div>
 
         <div className="p-6">
-          {/* Posts Tab */}
-          {activeTab === 'posts' && (
-            <div className="space-y-6">
-              <h2 className="text-xl font-semibold text-gray-900">Post Management</h2>
-              <p className="text-gray-600">Manage and monitor all family posts.</p>
-              <form
-                onSubmit={async (e) => {
-                  e.preventDefault();
-                  if (!postContent || !postAuthorId) return;
-                  setLoading(true);
-                  try {
-                    await api.createPost({
-                      familyId,
-                      authorId: postAuthorId,
-                      content: postContent,
-                    });
-                    setPostContent('');
-                  } catch (err) {
-                    alert('Failed to create post');
-                  } finally {
-                    setLoading(false);
-                  }
-                }}
-                className="space-y-4"
-              >
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Post as</label>
-                  <select
-                    value={postAuthorId}
-                    onChange={(e) => setPostAuthorId(e.target.value)}
-                    className="w-full rounded-md border border-gray-300 px-3 py-2 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-                  >
-                    {members.map((member) => (
-                      <option key={member.id} value={member.id}>
-                        {member.name} {member.email ? `(${member.email})` : '(kid/no email)'}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Content</label>
-                  <textarea
-                    value={postContent}
-                    onChange={(e) => setPostContent(e.target.value)}
-                    className="w-full rounded-md border border-gray-300 px-3 py-2 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-                    rows={3}
-                    placeholder="Write your post..."
-                  />
-                </div>
-                <button
-                  type="submit"
-                  disabled={loading || !postContent || !postAuthorId}
-                  className="bg-blue-600 text-white px-6 py-2 rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {loading ? 'Posting...' : 'Create Post'}
-                </button>
-              </form>
-            </div>
-          )}
-
           {/* Members Tab */}
           {activeTab === 'members' && (
             <div className="space-y-6">

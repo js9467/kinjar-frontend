@@ -26,6 +26,22 @@ export interface AuthUser {
   memberships: FamilyMembership[];
   createdAt: string;
   lastLoginAt?: string;
+  notificationSettings?: NotificationSettings;
+}
+
+export interface NotificationSettings {
+  emailNotifications: {
+    familyInvitationAccepted: boolean;
+    connectionRequestAccepted: boolean;
+    newFamilyMemberJoined: boolean;
+    familyConnectionEstablished: boolean;
+    newPostInConnectedFamily: boolean;
+  };
+  pushNotifications: {
+    enabled: boolean;
+    newComments: boolean;
+    newReactions: boolean;
+  };
 }
 
 export interface FamilyMemberProfile {

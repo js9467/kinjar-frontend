@@ -53,7 +53,7 @@ interface FamilyConnectionsManagerProps {
 }
 
 export function FamilyConnectionsManager({ tenantSlug }: FamilyConnectionsManagerProps) {
-  const [activeTab, setActiveTab] = useState<'search' | 'connections' | 'invite'>('connections');
+  const [activeTab, setActiveTab] = useState<'search' | 'connections' | 'invite' | 'pending'>('connections');
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<FamilySearchResult[]>([]);
   const [connections, setConnections] = useState<FamilyConnection[]>([]);
@@ -64,11 +64,14 @@ export function FamilyConnectionsManager({ tenantSlug }: FamilyConnectionsManage
   const [inviteMessage, setInviteMessage] = useState('');
   const [selectedFamily, setSelectedFamily] = useState<FamilyDetails | null>(null);
   const [loadingFamilyDetails, setLoadingFamilyDetails] = useState(false);
+  const [pendingInvitations, setPendingInvitations] = useState<any[]>([]);
   const { user } = useAuth();
 
   useEffect(() => {
     if (activeTab === 'connections') {
       loadConnections();
+    } else if (activeTab === 'pending') {
+      loadPendingInvitations();
     }
   }, [activeTab, tenantSlug]);
 
@@ -95,6 +98,22 @@ export function FamilyConnectionsManager({ tenantSlug }: FamilyConnectionsManage
     } catch (error) {
       console.error('Failed to load connections:', error);
       setError('Failed to load connections');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const loadPendingInvitations = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const response = await api.getPendingInvitations(tenantSlug);
+      setPendingInvitations(response.invitations);
+    } catch (error) {
+      console.error('Failed to load pending invitations:', error);
+      setError('Failed to load pending invitations');
+      // Set empty array as fallback
+      setPendingInvitations([]);
     } finally {
       setLoading(false);
     }
@@ -217,6 +236,16 @@ export function FamilyConnectionsManager({ tenantSlug }: FamilyConnectionsManage
             }`}
           >
             Invite New Family
+          </button>
+          <button
+            onClick={() => setActiveTab('pending')}
+            className={`py-3 px-6 text-sm font-medium border-b-2 transition-colors ${
+              activeTab === 'pending'
+                ? 'border-blue-500 text-blue-600'
+                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+            }`}
+          >
+            Pending Invites
           </button>
         </nav>
       </div>
@@ -509,6 +538,74 @@ export function FamilyConnectionsManager({ tenantSlug }: FamilyConnectionsManage
                 {loading ? 'Sending Invitation...' : 'Send Family Invitation'}
               </button>
             </div>
+          </div>
+        )}
+
+        {/* Pending Invitations Tab */}
+        {activeTab === 'pending' && (
+          <div className="space-y-6">
+            <div>
+              <h3 className="text-lg font-semibold text-gray-900 mb-2">Pending Invitations</h3>
+              <p className="text-gray-600 mb-4">
+                Track family creation invitations and connection requests you've sent that are still pending.
+              </p>
+            </div>
+
+            {pendingInvitations.length > 0 ? (
+              <div className="space-y-4">
+                {pendingInvitations.map((invitation, index) => (
+                  <div key={index} className="border border-gray-200 rounded-lg p-4">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <h4 className="font-semibold text-gray-900">{invitation.recipientName}</h4>
+                        <p className="text-sm text-gray-500">{invitation.recipientEmail}</p>
+                        <p className="text-sm text-gray-600 mt-1">
+                          Sent on {formatDate(invitation.sentAt)}
+                        </p>
+                        {invitation.message && (
+                          <p className="text-sm text-gray-600 mt-1">"{invitation.message}"</p>
+                        )}
+                      </div>
+                      <div className="text-right">
+                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+                          Pending
+                        </span>
+                        <p className="text-xs text-gray-500 mt-1">
+                          {invitation.type === 'family_creation' ? 'Family Creation' : 'Connection Request'}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-8">
+                <div className="text-gray-400 mb-4">
+                  <svg className="w-12 h-12 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 8l7.89 4.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                  </svg>
+                </div>
+                <h3 className="text-lg font-medium text-gray-900 mb-2">No Pending Invitations</h3>
+                <p className="text-gray-600 mb-4">
+                  You haven't sent any family invitations or connection requests yet.
+                </p>
+                <div className="flex gap-2 justify-center">
+                  <button
+                    onClick={() => setActiveTab('invite')}
+                    className="text-blue-600 hover:text-blue-700 font-medium"
+                  >
+                    Send a Family Invitation
+                  </button>
+                  <span className="text-gray-400">or</span>
+                  <button
+                    onClick={() => setActiveTab('search')}
+                    className="text-blue-600 hover:text-blue-700 font-medium"
+                  >
+                    Search for Families
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         )}
       </div>
