@@ -421,12 +421,13 @@ class KinjarAPI {
       title: postData.content.length > 50 ? postData.content.substring(0, 47) + '...' : postData.content,
       visibility: postData.visibility || 'family_and_connections',
       tenant_id: postData.familyId, // Explicitly set tenant_id
-      author_id: postData.authorId // Use logged-in user's ID
+      // author_id is always the logged-in user (backend handles this from JWT)
+      // posted_as_id is the member being posted as (can be different)
+      posted_as_id: postData.postedAsMember?.id || postData.authorId
     };
 
-    // Store the posted-as member info for frontend display
-    // (Backend doesn't handle this yet, so we'll manage it on frontend)
-    const postedAsMember = postData.postedAsMember;
+    console.log('[API] Posted as member:', postData.postedAsMember);
+    console.log('[API] Sending posted_as_id:', backendData.posted_as_id);
 
     // Handle media transformation
     if (postData.media) {
@@ -448,7 +449,7 @@ class KinjarAPI {
       backendData.tags = postData.tags;
     }
 
-    console.log('[API] Sending post data to backend (v2):', backendData);
+    console.log('[API] Sending post data to backend (v3):', backendData);
     console.log('[API] PostData.familyId for tenant header:', postData.familyId);
 
     const response = await this.request('/api/posts', {
@@ -468,9 +469,9 @@ class KinjarAPI {
       id: backendPost.id,
       familyId: backendPost.tenant_id || postData.familyId,
       authorId: backendPost.author_id || fallbackAuthor?.id || 'current-user',
-      // Use postedAsMember info if available, otherwise use backend/fallback data
-      authorName: postedAsMember?.name || backendPost.author_name || fallbackAuthor?.name || 'User',
-      authorAvatarColor: backendPost.author_avatar || fallbackAuthor?.avatarColor || '#3B82F6',
+      // Use posted_as_name from backend if available, otherwise fall back to backend author_name
+      authorName: backendPost.posted_as_name || backendPost.author_name || fallbackAuthor?.name || 'User',
+      authorAvatarColor: backendPost.posted_as_avatar_color || backendPost.author_avatar || fallbackAuthor?.avatarColor || '#3B82F6',
       createdAt: backendPost.published_at || backendPost.created_at,
       content: backendPost.content,
       media: postData.media, // Use original media from frontend
@@ -480,17 +481,6 @@ class KinjarAPI {
       comments: [], // Default
       tags: postData.tags || [] // Use original tags from frontend
     };
-
-    // Store the "posted as" info in localStorage for persistence across refreshes
-    if (typeof window !== 'undefined' && postedAsMember) {
-      try {
-        const key = `postedAs_${frontendPost.id}`;
-        localStorage.setItem(key, JSON.stringify(postedAsMember));
-        console.log(`[API] Stored posted-as info for post ${frontendPost.id}:`, postedAsMember);
-      } catch (error) {
-        console.warn('[API] Failed to store posted-as info:', error);
-      }
-    }
 
     return frontendPost;
   }
@@ -515,28 +505,13 @@ class KinjarAPI {
     
     // Process each post and load its comments
     for (const backendPost of backendPosts) {
-      // Check localStorage for "posted as" information
-      let postedAsInfo = null;
-      if (typeof window !== 'undefined') {
-        try {
-          const key = `postedAs_${backendPost.id}`;
-          const stored = localStorage.getItem(key);
-          if (stored) {
-            postedAsInfo = JSON.parse(stored);
-            console.log(`[API] Found posted-as info for post ${backendPost.id}:`, postedAsInfo);
-          }
-        } catch (error) {
-          console.warn(`[API] Failed to load posted-as info for post ${backendPost.id}:`, error);
-        }
-      }
-
       const post: FamilyPost = {
         id: backendPost.id,
         familyId: backendPost.tenant_id || familySlugOrId,
         authorId: backendPost.author_id,
-        // Use posted-as name if available, otherwise use backend author name
-        authorName: postedAsInfo?.name || backendPost.author_name || 'User',
-        authorAvatarColor: backendPost.author_avatar || '#3B82F6', // Default color
+        // Use posted_as_name from backend if available, otherwise fall back to author_name
+        authorName: backendPost.posted_as_name || backendPost.author_name || 'User',
+        authorAvatarColor: backendPost.posted_as_avatar_color || backendPost.author_avatar || '#3B82F6',
         createdAt: backendPost.published_at || backendPost.created_at,
         content: backendPost.content,
         media: (backendPost.media_filename || backendPost.media_url || backendPost.media_external_url) ? {
@@ -697,29 +672,14 @@ class KinjarAPI {
         throw new Error('Invalid response format from server');
       }
 
-      // Check localStorage for "posted as" information to preserve it
-      let postedAsName = postData.author_name;
-      if (typeof window !== 'undefined') {
-        try {
-          const key = `postedAs_${postId}`;
-          const stored = localStorage.getItem(key);
-          if (stored) {
-            const postedAsInfo = JSON.parse(stored);
-            postedAsName = postedAsInfo.name;
-            console.log(`[API] Preserved posted-as name for edited post ${postId}:`, postedAsName);
-          }
-        } catch (error) {
-          console.warn(`[API] Failed to load posted-as info for post ${postId}:`, error);
-        }
-      }
-
       // Transform backend response to frontend format
+      // Use posted_as_name from backend if available
       return {
         id: postData.id,
         content: postData.content,
         authorId: postData.author_id,
-        authorName: postedAsName,
-        authorAvatarColor: postData.author_avatar_color || '#3B82F6',
+        authorName: postData.posted_as_name || postData.author_name || 'User',
+        authorAvatarColor: postData.posted_as_avatar_color || postData.author_avatar_color || '#3B82F6',
         createdAt: postData.created_at,
         familyId: postData.tenant_id,
         media: postData.media_url ? {
@@ -1145,24 +1105,9 @@ class KinjarAPI {
     const response = await this.request(`/api/posts?tenant=${tenantSlug}&include_connected=true&limit=${limit}&offset=${offset}`);
     const posts = response.posts || [];
     
-    // Load comments for each post and check for "posted as" info
+    // Load comments for each post
     const postsWithComments = await Promise.all(
       posts.map(async (post: any) => {
-        // Check localStorage for "posted as" information
-        let postedAsInfo = null;
-        if (typeof window !== 'undefined') {
-          try {
-            const key = `postedAs_${post.id}`;
-            const stored = localStorage.getItem(key);
-            if (stored) {
-              postedAsInfo = JSON.parse(stored);
-              console.log(`[API] Found posted-as info for connected feed post ${post.id}:`, postedAsInfo);
-            }
-          } catch (error) {
-            console.warn(`[API] Failed to load posted-as info for connected feed post ${post.id}:`, error);
-          }
-        }
-
         try {
           const comments = await this.getPostComments(post.id);
           
@@ -1174,8 +1119,9 @@ class KinjarAPI {
             familyName: post.family_name,
             familyThemeColor: '#2563eb', // Default blue
             authorId: post.author_id,
-            authorName: postedAsInfo?.name || post.author_name || 'User',
-            authorAvatarColor: post.author_avatar || '#3B82F6',
+            // Use posted_as_name from backend if available
+            authorName: post.posted_as_name || post.author_name || 'User',
+            authorAvatarColor: post.posted_as_avatar_color || post.author_avatar || '#3B82F6',
             createdAt: post.published_at || post.created_at,
             content: post.content,
             title: post.title,
@@ -1203,8 +1149,9 @@ class KinjarAPI {
             familyName: post.family_name,
             familyThemeColor: '#2563eb',
             authorId: post.author_id,
-            authorName: postedAsInfo?.name || post.author_name || 'User',
-            authorAvatarColor: post.author_avatar || '#3B82F6',
+            // Use posted_as_name from backend if available
+            authorName: post.posted_as_name || post.author_name || 'User',
+            authorAvatarColor: post.posted_as_avatar_color || post.author_avatar || '#3B82F6',
             createdAt: post.published_at || post.created_at,
             content: post.content,
             title: post.title,
@@ -1233,39 +1180,20 @@ class KinjarAPI {
     const response = await this.request(`/api/public-feed?limit=${limit}&offset=${offset}`);
     const posts = response.posts || [];
     
-    // Load comments for each post and check for "posted as" info
+    // Load comments for each post
     const postsWithComments = await Promise.all(
       posts.map(async (post: FamilyPost) => {
-        // Check localStorage for "posted as" information
-        let postedAsInfo = null;
-        if (typeof window !== 'undefined') {
-          try {
-            const key = `postedAs_${post.id}`;
-            const stored = localStorage.getItem(key);
-            if (stored) {
-              postedAsInfo = JSON.parse(stored);
-              console.log(`[API] Found posted-as info for public post ${post.id}:`, postedAsInfo);
-            }
-          } catch (error) {
-            console.warn(`[API] Failed to load posted-as info for public post ${post.id}:`, error);
-          }
-        }
-
         try {
           const comments = await this.getPostComments(post.id);
           return { 
             ...post, 
-            comments,
-            // Override authorName if we have posted-as info
-            authorName: postedAsInfo?.name || post.authorName
+            comments
           };
         } catch (error) {
           console.warn(`Failed to load comments for public post ${post.id}:`, error);
           return { 
             ...post, 
-            comments: [],
-            // Override authorName if we have posted-as info
-            authorName: postedAsInfo?.name || post.authorName
+            comments: []
           };
         }
       })
