@@ -184,11 +184,21 @@ export function ConnectedFamiliesFeed({ tenantSlug, limit = 20 }: ConnectedFamil
           <div className="p-4 sm:p-6 space-y-4">
             {/* Author Info */}
             <div className="flex items-center gap-3">
-              <div
-                className="w-10 h-10 rounded-full flex items-center justify-center text-white font-semibold"
-                style={{ backgroundColor: post.authorAvatarColor }}
-              >
-                {post.authorName?.charAt(0)?.toUpperCase() || 'U'}
+              <div className="flex-shrink-0">
+                {post.authorAvatarUrl ? (
+                  <img
+                    src={post.authorAvatarUrl}
+                    alt={`${post.authorName}'s avatar`}
+                    className="w-10 h-10 rounded-full object-cover border"
+                  />
+                ) : (
+                  <div
+                    className="w-10 h-10 rounded-full flex items-center justify-center text-white font-semibold"
+                    style={{ backgroundColor: post.authorAvatarColor }}
+                  >
+                    {post.authorName?.charAt(0)?.toUpperCase() || 'U'}
+                  </div>
+                )}
               </div>
               <div>
                 <p className="font-medium text-gray-900">{post.authorName}</p>
@@ -237,15 +247,25 @@ export function ConnectedFamiliesFeed({ tenantSlug, limit = 20 }: ConnectedFamil
                 <div className="space-y-3">
                   {post.comments.slice(0, 3).map((comment) => (
                     <div key={comment.id} className="flex items-start gap-3">
-                      <div 
-                        className="flex-shrink-0 w-6 h-6 rounded-full flex items-center justify-center text-white text-xs font-semibold"
-                        style={{ backgroundColor: comment.authorAvatarColor }}
-                      >
-                        {comment.authorName
-                          .split(' ')
-                          .map(part => part[0])
-                          .join('')
-                          .slice(0, 2)}
+                      <div className="flex-shrink-0">
+                        {comment.authorAvatarUrl ? (
+                          <img
+                            src={comment.authorAvatarUrl}
+                            alt={`${comment.authorName}'s avatar`}
+                            className="w-6 h-6 rounded-full object-cover border"
+                          />
+                        ) : (
+                          <div 
+                            className="w-6 h-6 rounded-full flex items-center justify-center text-white text-xs font-semibold"
+                            style={{ backgroundColor: comment.authorAvatarColor }}
+                          >
+                            {comment.authorName
+                              .split(' ')
+                              .map(part => part[0])
+                              .join('')
+                              .slice(0, 2)}
+                          </div>
+                        )}
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="bg-gray-50 rounded-lg p-2">

@@ -85,6 +85,7 @@ export interface PostComment {
   id: string;
   authorName: string;
   authorAvatarColor: string;
+  authorAvatarUrl?: string;
   content: string;
   createdAt: string;
 }
@@ -98,6 +99,7 @@ export interface FamilyPost {
   authorId: string;
   authorName: string;
   authorAvatarColor: string;
+  authorAvatarUrl?: string;
   createdAt: string;
   title?: string;  // For enhanced posts
   content: string;

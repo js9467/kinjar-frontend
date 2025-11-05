@@ -1,6 +1,6 @@
 'use client';
 
-import { AuthUser, CreateFamilyRequest, FamilyProfile, InviteMemberRequest, SubdomainInfo, FamilyPost, MediaAttachment, NotificationSettings, PostVisibility } from './types';
+import { AuthUser, CreateFamilyRequest, FamilyProfile, InviteMemberRequest, SubdomainInfo, FamilyPost, MediaAttachment, NotificationSettings, PostVisibility, PostComment } from './types';
 
 // Export types that components might need
 export type Post = FamilyPost;
@@ -471,7 +471,8 @@ class KinjarAPI {
       authorId: backendPost.author_id || fallbackAuthor?.id || 'current-user',
       // Use posted_as_name from backend if available, otherwise fall back to backend author_name
       authorName: backendPost.posted_as_name || backendPost.author_name || fallbackAuthor?.name || 'User',
-      authorAvatarColor: backendPost.posted_as_avatar_color || backendPost.author_avatar || fallbackAuthor?.avatarColor || '#3B82F6',
+      authorAvatarColor: backendPost.posted_as_avatar_color || backendPost.author_avatar_color || fallbackAuthor?.avatarColor || '#3B82F6',
+      authorAvatarUrl: backendPost.posted_as_avatar || backendPost.author_avatar || fallbackAuthor?.avatarUrl,
       createdAt: backendPost.published_at || backendPost.created_at,
       content: backendPost.content,
       media: postData.media, // Use original media from frontend
@@ -510,8 +511,9 @@ class KinjarAPI {
         familyId: backendPost.tenant_id || familySlugOrId,
         authorId: backendPost.author_id,
         // Use posted_as_name from backend if available, otherwise fall back to author_name
-        authorName: backendPost.posted_as_name || backendPost.author_name || 'User',
-        authorAvatarColor: backendPost.posted_as_avatar_color || backendPost.author_avatar || '#3B82F6',
+  authorName: backendPost.posted_as_name || backendPost.author_name || 'User',
+  authorAvatarColor: backendPost.posted_as_avatar_color || backendPost.author_avatar_color || '#3B82F6',
+  authorAvatarUrl: backendPost.posted_as_avatar || backendPost.author_avatar,
         createdAt: backendPost.published_at || backendPost.created_at,
         content: backendPost.content,
         media: (backendPost.media_filename || backendPost.media_url || backendPost.media_external_url) ? {
@@ -547,7 +549,7 @@ class KinjarAPI {
     return frontendPosts;
   }
 
-  async addComment(postId: string, content: string): Promise<{ id: string; authorName: string; authorAvatarColor: string; content: string; createdAt: string }> {
+  async addComment(postId: string, content: string): Promise<PostComment> {
     console.log(`[API] Adding comment to post ${postId}:`, content);
     const response = await this.request(`/api/posts/${postId}/comments`, {
       method: 'POST',
@@ -560,19 +562,20 @@ class KinjarAPI {
     const comment = response.comment || response;
     
     // Backend comment might not have author details, so fill in from current user
-    const formattedComment = {
+    const formattedComment: PostComment = {
       id: comment.id,
       content: comment.content,
       createdAt: comment.created_at || new Date().toISOString(),
       authorName: this.currentUser?.name || 'User',
-      authorAvatarColor: this.currentUser?.avatarColor || '#3B82F6'
+      authorAvatarColor: this.currentUser?.avatarColor || '#3B82F6',
+      authorAvatarUrl: this.currentUser?.avatarUrl
     };
     
     console.log(`[API] Formatted comment:`, formattedComment);
     return formattedComment;
   }
 
-  async editComment(commentId: string, content: string): Promise<{ id: string; authorName: string; authorAvatarColor: string; content: string; createdAt: string }> {
+  async editComment(commentId: string, content: string): Promise<PostComment> {
     console.log(`[API] Editing comment ${commentId} with content:`, content);
     const response = await this.request(`/api/comments/${commentId}`, {
       method: 'PATCH',
@@ -585,12 +588,13 @@ class KinjarAPI {
     const comment = response.comment || response;
     
     // Backend comment might not have author details, so fill in from current user
-    const formattedComment = {
+    const formattedComment: PostComment = {
       id: comment.id,
       content: comment.content,
       createdAt: comment.created_at || comment.createdAt,
       authorName: this.currentUser?.name || 'User',
-      authorAvatarColor: this.currentUser?.avatarColor || '#3B82F6'
+      authorAvatarColor: this.currentUser?.avatarColor || '#3B82F6',
+      authorAvatarUrl: this.currentUser?.avatarUrl
     };
     
     console.log(`[API] Formatted edited comment:`, formattedComment);
@@ -610,7 +614,7 @@ class KinjarAPI {
     }
   }
 
-  async getPostComments(postId: string): Promise<{ id: string; authorName: string; authorAvatarColor: string; content: string; createdAt: string }[]> {
+  async getPostComments(postId: string): Promise<PostComment[]> {
     try {
       console.log(`[API] Loading comments for post ${postId}`);
       const response = await this.request(`/api/posts/${postId}/comments`);
@@ -621,12 +625,13 @@ class KinjarAPI {
       const backendComments = response.comments || [];
       
       // Transform backend comments to frontend format
-      const formattedComments = backendComments.map((comment: any) => ({
+      const formattedComments: PostComment[] = backendComments.map((comment: any) => ({
         id: comment.id,
         content: comment.content,
-        createdAt: comment.created_at || new Date().toISOString(),
+        createdAt: comment.created_at || comment.createdAt || new Date().toISOString(),
         authorName: comment.author_name || 'User',
-        authorAvatarColor: comment.author_avatar || '#3B82F6'
+        authorAvatarColor: comment.author_avatar_color || '#3B82F6',
+        authorAvatarUrl: comment.author_avatar
       }));
       
       console.log(`[API] Loaded ${formattedComments.length} comments for post ${postId}`);
@@ -680,6 +685,7 @@ class KinjarAPI {
         authorId: postData.author_id,
         authorName: postData.posted_as_name || postData.author_name || 'User',
         authorAvatarColor: postData.posted_as_avatar_color || postData.author_avatar_color || '#3B82F6',
+  authorAvatarUrl: postData.posted_as_avatar || postData.author_avatar,
         createdAt: postData.created_at,
         familyId: postData.tenant_id,
         media: postData.media_url ? {
@@ -1140,7 +1146,8 @@ class KinjarAPI {
             authorId: post.author_id,
             // Use posted_as_name from backend if available
             authorName: post.posted_as_name || post.author_name || 'User',
-            authorAvatarColor: post.posted_as_avatar_color || post.author_avatar || '#3B82F6',
+            authorAvatarColor: post.posted_as_avatar_color || post.author_avatar_color || '#3B82F6',
+            authorAvatarUrl: post.posted_as_avatar || post.author_avatar,
             createdAt: post.published_at || post.created_at,
             content: post.content,
             title: post.title,
@@ -1172,7 +1179,8 @@ class KinjarAPI {
             authorId: post.author_id,
             // Use posted_as_name from backend if available
             authorName: post.posted_as_name || post.author_name || 'User',
-            authorAvatarColor: post.posted_as_avatar_color || post.author_avatar || '#3B82F6',
+            authorAvatarColor: post.posted_as_avatar_color || post.author_avatar_color || '#3B82F6',
+            authorAvatarUrl: post.posted_as_avatar || post.author_avatar,
             createdAt: post.published_at || post.created_at,
             content: post.content,
             title: post.title,

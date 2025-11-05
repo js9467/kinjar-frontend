@@ -186,15 +186,25 @@ export function CommentSection({ post, onCommentAdded, onError }: CommentSection
         <div className="space-y-3 bg-gray-50 rounded-lg p-4">
           {comments.map((comment) => (
             <div key={comment.id} className="flex items-start gap-3">
-              <div 
-                className="flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center text-white text-sm font-semibold"
-                style={{ backgroundColor: comment.authorAvatarColor }}
-              >
-                {comment.authorName
-                  .split(' ')
-                  .map(part => part[0])
-                  .join('')
-                  .slice(0, 2)}
+              <div className="flex-shrink-0">
+                {comment.authorAvatarUrl ? (
+                  <img
+                    src={comment.authorAvatarUrl}
+                    alt={`${comment.authorName}'s avatar`}
+                    className="w-8 h-8 rounded-full object-cover border"
+                  />
+                ) : (
+                  <div 
+                    className="w-8 h-8 rounded-full flex items-center justify-center text-white text-sm font-semibold"
+                    style={{ backgroundColor: comment.authorAvatarColor }}
+                  >
+                    {comment.authorName
+                      .split(' ')
+                      .map(part => part[0])
+                      .join('')
+                      .slice(0, 2)}
+                  </div>
+                )}
               </div>
               <div className="flex-1 min-w-0">
                 <div className="bg-white rounded-lg p-3 shadow-sm">
@@ -270,13 +280,23 @@ export function CommentSection({ post, onCommentAdded, onError }: CommentSection
       {/* Add comment form */}
       <form onSubmit={handleSubmitComment} className="space-y-3">
         <div className="flex gap-3">
-          <div 
-            className="flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center text-white text-sm font-semibold"
-            style={{ backgroundColor: user?.avatarColor || '#3B82F6' }}
-          >
-            {user?.name
-              ? user.name.split(' ').map(part => part[0]).join('').slice(0, 2)
-              : 'CU'}
+          <div className="flex-shrink-0">
+            {user?.avatarUrl ? (
+              <img
+                src={user.avatarUrl}
+                alt={`${user.name}'s avatar`}
+                className="w-8 h-8 rounded-full object-cover border"
+              />
+            ) : (
+              <div 
+                className="w-8 h-8 rounded-full flex items-center justify-center text-white text-sm font-semibold"
+                style={{ backgroundColor: user?.avatarColor || '#3B82F6' }}
+              >
+                {user?.name
+                  ? user.name.split(' ').map(part => part[0]).join('').slice(0, 2)
+                  : 'CU'}
+              </div>
+            )}
           </div>
           <div className="flex-1">
             <textarea

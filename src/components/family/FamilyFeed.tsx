@@ -301,15 +301,25 @@ export function FamilyFeed({ familyIds, highlightFamilyId, title = 'Family stori
                         </button>
                       </>
                     ) : null}
-                    <span
-                      className="flex h-10 w-10 items-center justify-center rounded-full text-sm font-semibold text-white"
-                      style={{ backgroundColor: post.authorAvatarColor }}
-                    >
-                      {(post.authorName || 'User')
-                        .split(' ')
-                        .map((part) => part[0])
-                        .join('')}
-                    </span>
+                    <div className="flex-shrink-0">
+                      {post.authorAvatarUrl ? (
+                        <img
+                          src={post.authorAvatarUrl}
+                          alt={`${post.authorName}'s avatar`}
+                          className="h-10 w-10 rounded-full object-cover border"
+                        />
+                      ) : (
+                        <span
+                          className="flex h-10 w-10 items-center justify-center rounded-full text-sm font-semibold text-white"
+                          style={{ backgroundColor: post.authorAvatarColor }}
+                        >
+                          {(post.authorName || 'User')
+                            .split(' ')
+                            .map((part) => part[0])
+                            .join('')}
+                        </span>
+                      )}
+                    </div>
                   </div>
                 </div>
                 {post.media ? (
