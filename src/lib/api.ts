@@ -1163,9 +1163,9 @@ class KinjarAPI {
             createdAt: post.published_at || post.created_at,
             content: post.content,
             title: post.title,
-            media: (post.media_filename || post.media_url) ? {
-              type: this.determineMediaType(post.media_content_type, post.media_filename || post.media_url),
-              url: post.media_url || `/api/media/${post.media_id}`,
+            media: (post.media_filename || post.media_url || post.media_external_url) ? {
+              type: this.determineMediaType(post.media_content_type, post.media_filename || post.media_url || post.media_external_url),
+              url: post.media_url || post.media_external_url || `${this.baseURL}/api/media/${post.media_id}`,
               alt: post.title
             } : undefined,
             visibility: 'family_and_connections', // Posts in connected feed are shared with connections
@@ -1192,9 +1192,9 @@ class KinjarAPI {
             createdAt: post.published_at || post.created_at,
             content: post.content,
             title: post.title,
-            media: (post.media_filename || post.media_url) ? {
-              type: this.determineMediaType(post.media_content_type, post.media_filename || post.media_url),
-              url: post.media_url || `/api/media/${post.media_id}`,
+            media: (post.media_filename || post.media_url || post.media_external_url) ? {
+              type: this.determineMediaType(post.media_content_type, post.media_filename || post.media_url || post.media_external_url),
+              url: post.media_url || post.media_external_url || `${this.baseURL}/api/media/${post.media_id}`,
               alt: post.title
             } : undefined,
             visibility: 'family_and_connections',
