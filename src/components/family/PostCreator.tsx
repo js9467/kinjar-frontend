@@ -549,9 +549,8 @@ export function PostCreator({ familyId, familySlug, initialMembers = [], onPostC
               className="border border-gray-300 rounded-lg px-3 py-1 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               disabled={uploading}
             >
-              <option value="family">Family only</option>
-              <option value="connections">Family + Connections</option>
-              <option value="public">Public</option>
+              <option value="family_and_connections">Family & Connections</option>
+              <option value="family_only">Family Only</option>
             </select>
           </div>
           
