@@ -725,16 +725,24 @@ export function FamilyDashboard({ familySlug }: FamilyDashboardProps) {
                       <div className="p-6 pb-4">
                         <div className="flex items-start justify-between">
                           <div className="flex items-center gap-3">
-                            <div
-                              className="w-10 h-10 rounded-full flex items-center justify-center text-white font-semibold"
-                              style={{ backgroundColor: post.authorAvatarColor }}
-                            >
-                              {(post.authorName || 'User')
-                                .split(' ')
-                                .map(part => part[0])
-                                .join('')
-                                .slice(0, 2)}
-                            </div>
+                            {post.authorAvatarUrl ? (
+                              <img
+                                src={post.authorAvatarUrl}
+                                alt={`${post.authorName || 'User'}'s avatar`}
+                                className="w-10 h-10 rounded-full object-cover border"
+                              />
+                            ) : (
+                              <div
+                                className="w-10 h-10 rounded-full flex items-center justify-center text-white font-semibold"
+                                style={{ backgroundColor: post.authorAvatarColor }}
+                              >
+                                {(post.authorName || 'User')
+                                  .split(' ')
+                                  .map(part => part[0])
+                                  .join('')
+                                  .slice(0, 2)}
+                              </div>
+                            )}
                             <div>
                               <h3 className="font-semibold text-gray-900">{post.authorName || 'User'}</h3>
                               <div className="flex items-center gap-2 text-sm text-gray-500">
