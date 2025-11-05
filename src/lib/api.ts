@@ -366,7 +366,7 @@ class KinjarAPI {
   }
 
   async updateFamily(familyId: string, updates: Partial<FamilyProfile>): Promise<FamilyProfile> {
-    return this.request(`/families/${familyId}`, {
+    return this.request(`/api/families/${familyId}`, {
       method: 'PATCH',
       body: JSON.stringify(updates),
     });
@@ -508,20 +508,20 @@ class KinjarAPI {
     for (const backendPost of backendPosts) {
       const post: FamilyPost = {
         id: backendPost.id,
-        familyId: backendPost.tenant_id || familySlugOrId,
-        authorId: backendPost.author_id,
-        // Use posted_as_name from backend if available, otherwise fall back to author_name
-  authorName: backendPost.posted_as_name || backendPost.author_name || 'User',
-  authorAvatarColor: backendPost.posted_as_avatar_color || backendPost.author_avatar_color || '#3B82F6',
-  authorAvatarUrl: backendPost.posted_as_avatar || backendPost.author_avatar,
-        createdAt: backendPost.published_at || backendPost.created_at,
+        familyId: backendPost.tenantId || backendPost.tenant_id || familySlugOrId,
+        authorId: backendPost.authorId || backendPost.author_id,
+        // Backend now returns camelCase directly
+        authorName: backendPost.authorName || 'User',
+        authorAvatarColor: backendPost.authorAvatarColor || '#3B82F6',
+        authorAvatarUrl: backendPost.authorAvatarUrl,
+        createdAt: backendPost.publishedAt || backendPost.published_at || backendPost.createdAt || backendPost.created_at,
         content: backendPost.content,
-        media: (backendPost.media_filename || backendPost.media_url || backendPost.media_external_url) ? {
+        media: (backendPost.media_filename || backendPost.media_url || backendPost.media_external_url || backendPost.mediaUrl) ? {
           type: this.determineMediaType(
-            backendPost.media_content_type, 
-            backendPost.media_filename || backendPost.media_url || backendPost.media_external_url
+            backendPost.media_content_type || backendPost.mediaType, 
+            backendPost.media_filename || backendPost.media_url || backendPost.media_external_url || backendPost.mediaUrl
           ),
-          url: backendPost.media_url || backendPost.media_external_url || `/api/media/${backendPost.media_id}`,
+          url: backendPost.media_url || backendPost.media_external_url || backendPost.mediaUrl || `/api/media/${backendPost.media_id}`,
           alt: backendPost.title
         } : undefined,
         // Map backend visibility to frontend - backend has 'visibility' field or fallback to is_public
@@ -561,14 +561,14 @@ class KinjarAPI {
     // Backend returns { ok: true, comment: {...} }, we need just the comment
     const comment = response.comment || response;
     
-    // Backend comment might not have author details, so fill in from current user
+    // Backend now returns camelCase fields directly
     const formattedComment: PostComment = {
       id: comment.id,
       content: comment.content,
-      createdAt: comment.created_at || new Date().toISOString(),
-      authorName: this.currentUser?.name || 'User',
-      authorAvatarColor: this.currentUser?.avatarColor || '#3B82F6',
-      authorAvatarUrl: this.currentUser?.avatarUrl
+      createdAt: comment.createdAt || comment.created_at || new Date().toISOString(),
+      authorName: comment.authorName || comment.author_name || this.currentUser?.name || 'User',
+      authorAvatarColor: comment.authorAvatarColor || comment.author_avatar_color || this.currentUser?.avatarColor || '#3B82F6',
+      authorAvatarUrl: comment.authorAvatarUrl || comment.author_avatar || this.currentUser?.avatarUrl
     };
     
     console.log(`[API] Formatted comment:`, formattedComment);
@@ -587,14 +587,14 @@ class KinjarAPI {
     // Backend returns { ok: true, comment: {...} }, we need just the comment
     const comment = response.comment || response;
     
-    // Backend comment might not have author details, so fill in from current user
+    // Backend now returns camelCase fields directly
     const formattedComment: PostComment = {
       id: comment.id,
       content: comment.content,
-      createdAt: comment.created_at || comment.createdAt,
-      authorName: this.currentUser?.name || 'User',
-      authorAvatarColor: this.currentUser?.avatarColor || '#3B82F6',
-      authorAvatarUrl: this.currentUser?.avatarUrl
+      createdAt: comment.createdAt || comment.created_at,
+      authorName: comment.authorName || comment.author_name || this.currentUser?.name || 'User',
+      authorAvatarColor: comment.authorAvatarColor || comment.author_avatar_color || this.currentUser?.avatarColor || '#3B82F6',
+      authorAvatarUrl: comment.authorAvatarUrl || comment.author_avatar || this.currentUser?.avatarUrl
     };
     
     console.log(`[API] Formatted edited comment:`, formattedComment);
@@ -625,13 +625,14 @@ class KinjarAPI {
       const backendComments = response.comments || [];
       
       // Transform backend comments to frontend format
+      // Backend now returns camelCase (authorName, authorAvatarColor, authorAvatarUrl, createdAt)
       const formattedComments: PostComment[] = backendComments.map((comment: any) => ({
         id: comment.id,
         content: comment.content,
-        createdAt: comment.created_at || comment.createdAt || new Date().toISOString(),
-        authorName: comment.author_name || 'User',
-        authorAvatarColor: comment.author_avatar_color || '#3B82F6',
-        authorAvatarUrl: comment.author_avatar
+        createdAt: comment.createdAt || comment.created_at || new Date().toISOString(),
+        authorName: comment.authorName || comment.author_name || 'User',
+        authorAvatarColor: comment.authorAvatarColor || comment.author_avatar_color || '#3B82F6',
+        authorAvatarUrl: comment.authorAvatarUrl || comment.author_avatar
       }));
       
       console.log(`[API] Loaded ${formattedComments.length} comments for post ${postId}`);
