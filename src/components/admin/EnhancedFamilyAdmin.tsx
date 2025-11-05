@@ -10,11 +10,22 @@ interface EnhancedFamilyAdminProps {
 }
 
 export function EnhancedFamilyAdmin({ familyId, familySlug }: EnhancedFamilyAdminProps) {
-  const [activeTab, setActiveTab] = useState<'members' | 'pending'>('members');
+  const [activeTab, setActiveTab] = useState<'members' | 'pending' | 'settings'>('members');
   const [pendingPosts, setPendingPosts] = useState<FamilyPost[]>([]);
   const [members, setMembers] = useState<FamilyMemberProfile[]>([]);
   const [pendingMembers, setPendingMembers] = useState<FamilyMemberProfile[]>([]);
   const [loading, setLoading] = useState(false);
+  const [currentFamilySlug, setCurrentFamilySlug] = useState(familySlug);
+  const [settingsForm, setSettingsForm] = useState({ name: '', slug: '', description: '' });
+  const [initialSettings, setInitialSettings] = useState({ name: '', slug: '', description: '' });
+  const [settingsStatus, setSettingsStatus] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
+  const [savingSettings, setSavingSettings] = useState(false);
+
+  useEffect(() => {
+    if (familySlug && familySlug !== currentFamilySlug) {
+      setCurrentFamilySlug(familySlug);
+    }
+  }, [familySlug, currentFamilySlug]);
 
   // Utility function to mask child email addresses
   const maskChildEmail = (email: string, role: string): string => {
@@ -32,11 +43,11 @@ export function EnhancedFamilyAdmin({ familyId, familySlug }: EnhancedFamilyAdmi
 
   useEffect(() => {
     if (activeTab === 'pending') {
-      loadPendingPosts();
+      void loadPendingPosts();
     } else if (activeTab === 'members') {
-      loadMembers();
+      void loadMembers();
     }
-  }, [activeTab]);
+  }, [activeTab, familySlug]);
 
   // Member invitation form
   const [newMember, setNewMember] = useState({
@@ -55,15 +66,6 @@ export function EnhancedFamilyAdmin({ familyId, familySlug }: EnhancedFamilyAdmi
     { value: 'CHILD_14_16', label: 'Teen (14-16)' },
     { value: 'CHILD_16_ADULT', label: 'Teen (16-18)' }
   ];
-
-  useEffect(() => {
-    if (activeTab === 'pending') {
-      loadPendingPosts();
-    } else if (activeTab === 'members') {
-      loadMembers();
-    }
-  }, [activeTab]);
-
   const loadPendingPosts = async () => {
     try {
       setLoading(true);
