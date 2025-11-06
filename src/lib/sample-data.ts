@@ -128,6 +128,7 @@ const williamsPosts: FamilyPost[] = [
     comments: [
       {
         id: 'comment-williams-1',
+        authorId: 'member-williams-lucas',
         authorName: 'Lucas Williams',
         authorAvatarColor: '#38bdf8',
         content: 'Still laughing about the photo booth props! 😂',
@@ -186,6 +187,7 @@ const fernandezPosts: FamilyPost[] = [
     comments: [
       {
         id: 'comment-fernandez-1',
+        authorId: 'member-fernandez-elena',
         authorName: 'Elena Fernandez',
         authorAvatarColor: '#60a5fa',
         content: 'Uploading some photos from her youth right now! 💜',
