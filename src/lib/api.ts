@@ -436,7 +436,7 @@ class KinjarAPI {
   };
   actingAsChild?: { id: string; name: string; avatarColor: string; avatarUrl?: string };
   }): Promise<FamilyPost> {
-    // Use actingAsChild if provided, otherwise use postedAsMember for backwards compatibility, or fallback to instance child
+    // Use actingAsChild if provided, otherwise use the instance-level one, otherwise use postedAsMember for backwards compatibility
     const childToActAs = postData.actingAsChild || this._actingAsChild;
     const memberToPostAs = childToActAs ? {
       id: childToActAs.id,
@@ -584,7 +584,7 @@ class KinjarAPI {
     
     const requestBody: any = { content };
     
-    // Use provided actingAsChild or the instance-level one
+    // Use provided actingAsChild, or the instance-level one, or nothing
     const childToActAs = actingAsChild || this._actingAsChild;
     if (childToActAs) {
       requestBody.posted_as_id = childToActAs.id;
@@ -607,9 +607,12 @@ class KinjarAPI {
       content: comment.content,
       createdAt: comment.createdAt || comment.created_at || new Date().toISOString(),
       // Use posted_as_* fields if available (when acting as child), otherwise fall back to author fields
-      authorName: comment.posted_as_name || comment.authorName || comment.author_name || this.currentUser?.name || 'User',
-      authorAvatarColor: comment.posted_as_avatar_color || comment.authorAvatarColor || comment.author_avatar_color || this.currentUser?.avatarColor || '#3B82F6',
-      authorAvatarUrl: comment.posted_as_avatar || comment.authorAvatarUrl || comment.author_avatar || this.currentUser?.avatarUrl
+      authorName: comment.posted_as_name || comment.authorName || comment.author_name || 
+                 (childToActAs ? childToActAs.name : this.currentUser?.name) || 'User',
+      authorAvatarColor: comment.posted_as_avatar_color || comment.authorAvatarColor || comment.author_avatar_color || 
+                        (childToActAs ? childToActAs.avatarColor : this.currentUser?.avatarColor) || '#3B82F6',
+      authorAvatarUrl: comment.posted_as_avatar || comment.authorAvatarUrl || comment.author_avatar || 
+                      (childToActAs ? childToActAs.avatarUrl : this.currentUser?.avatarUrl)
     };
     
     console.log(`[API] Formatted comment:`, formattedComment);

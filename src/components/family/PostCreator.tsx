@@ -307,13 +307,7 @@ export function PostCreator({ familyId, familySlug, initialMembers = [], onPostC
         media,
         visibility,
         tags: postTags,
-        // Use actingAsChild if available, otherwise fall back to postedAsMember
-        actingAsChild: actingChild ? {
-          id: actingChild.id,
-          name: actingChild.name,
-          avatarColor: actingChild.avatarColor,
-          avatarUrl: actingChild.avatarUrl
-        } : undefined,
+        // Use postedAsMember for backwards compatibility if not using child context
         postedAsMember: !actingChild && selectedMember ? {
           id: selectedMember.id,
           name: selectedMember.name,

@@ -46,12 +46,8 @@ export function CommentSection({ post, onCommentAdded, onError }: CommentSection
       console.log('[CommentSection] Adding comment to post:', post.id);
       console.log('[CommentSection] Comment content:', newComment.trim());
       
-      // Add comment via API (with child context if applicable)
-      const comment = await api.addComment(
-        post.id, 
-        newComment.trim(), 
-        childContext?.selectedChild || undefined
-      );
+      // Add comment via API (child context is automatically handled by API)
+      const comment = await api.addComment(post.id, newComment.trim());
       console.log('[CommentSection] Comment added successfully:', comment);
       
       // Update local comments immediately

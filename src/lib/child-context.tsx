@@ -11,8 +11,8 @@ import React, {
 } from 'react';
 
 import { useAuth } from './auth';
-import { FamilyMemberProfile, FamilyRole } from './types';
 import { api } from './api';
+import { FamilyMemberProfile, FamilyRole } from './types';
 
 interface ChildContextType {
   selectedChild: FamilyMemberProfile | null;
@@ -102,6 +102,18 @@ export const ChildProvider = ({ children, familyId, familySlug }: ChildProviderP
   const selectChild = useCallback((child: FamilyMemberProfile | null) => {
     setSelectedChild(child);
     
+    // Update the API instance to use this child
+    if (child) {
+      api.setActingAsChild({
+        id: child.id,
+        name: child.name,
+        avatarColor: child.avatarColor,
+        avatarUrl: child.avatarUrl,
+      });
+    } else {
+      api.setActingAsChild(null);
+    }
+    
     // Store selection in sessionStorage for persistence within session
     if (child) {
       sessionStorage.setItem(`selected-child-${effectiveFamilySlug}`, JSON.stringify(child));
@@ -121,7 +133,19 @@ export const ChildProvider = ({ children, familyId, familySlug }: ChildProviderP
         // Verify this child is still available
         setSelectedChild(prev => {
           const isValid = availableChildren.some(ac => ac.id === child.id);
-          return isValid ? child : prev;
+          const validChild = isValid ? child : prev;
+          
+          // Update API with restored child
+          if (validChild) {
+            api.setActingAsChild({
+              id: validChild.id,
+              name: validChild.name,
+              avatarColor: validChild.avatarColor,
+              avatarUrl: validChild.avatarUrl,
+            });
+          }
+          
+          return validChild;
         });
       } catch (error) {
         console.error('Failed to restore selected child:', error);

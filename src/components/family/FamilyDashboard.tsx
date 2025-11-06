@@ -12,7 +12,8 @@ import { ChangePasswordModal } from '@/components/ui/ChangePasswordModal';
 import { EnhancedFamilyAdmin } from '@/components/admin/EnhancedFamilyAdmin';
 import { FamilyConnectionsManager } from '@/components/FamilyConnectionsManager';
 import { FamilyAppHeader } from '@/components/layout/FamilyAppHeader';
-import { ChildProvider } from '@/lib/child-context';
+import { FamilyHeaderActions } from '@/components/layout/FamilyHeaderActions';
+import { ChildProvider, useOptionalChildContext } from '@/lib/child-context';
 import { getMemberAgeDisplay } from '@/lib/age-utils';
 import Image from 'next/image';
 import Link from 'next/link';
@@ -528,20 +529,12 @@ export function FamilyDashboard({ familySlug }: FamilyDashboardProps) {
             window.location.href = '/auth/login';
           }}
           actions={
-            <div className="flex items-center gap-3">
-              {canManageFamily(family.id) && (
-                <button
-                  onClick={() => setShowAdminInterface(!showAdminInterface)}
-                  className={`rounded-lg px-4 py-2 text-sm font-medium transition-colors ${
-                    showAdminInterface
-                      ? 'bg-indigo-600 text-white hover:bg-indigo-700'
-                      : 'bg-indigo-100 text-indigo-700 hover:bg-indigo-200'
-                  }`}
-                >
-                  {showAdminInterface ? 'Hide Admin' : 'Manage Family'}
-                </button>
-              )}
-            </div>
+            <FamilyHeaderActions
+              canManageFamily={canManageFamily(family.id)}
+              familyId={family.id}
+              showAdminInterface={showAdminInterface}
+              setShowAdminInterface={setShowAdminInterface}
+            />
           }
         />
 

@@ -123,7 +123,6 @@ export default function UploadComponent({
         familyId: resolvedFamilyId.toString(),
         authorId: api.currentUser?.id || 'current-user',
         visibility,
-        actingAsChild: childContext?.selectedChild || undefined,
         media: {
           type: mediaKind,
           url: uploadResponse.url,
@@ -353,7 +352,6 @@ export default function UploadComponent({
                   familyId: resolvedFamilyId.toString(),
                   authorId: api.currentUser?.id || 'current-user',
                   visibility,
-                  actingAsChild: childContext?.selectedChild || undefined,
                 });
                 onUploadSuccess?.(createdPost);
                 setPostContent('');

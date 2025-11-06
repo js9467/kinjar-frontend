@@ -108,20 +108,7 @@ export function FamilyAppHeader({
         </div>
         
         <div className="flex flex-col items-stretch gap-3 sm:flex-row sm:items-center sm:gap-4">
-          {/* Exit Child Mode Button - Prominent when in child mode */}
-          {childContext?.isActingAsChild && (
-            <button
-              onClick={handleReturnToParent}
-              className="flex items-center gap-2 rounded-lg bg-orange-100 border border-orange-300 px-4 py-2 text-sm font-medium text-orange-700 transition hover:bg-orange-200"
-            >
-              <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-              </svg>
-              Exit Child Mode
-            </button>
-          )}
-
-          {/* Current User/Child Display */}
+          {/* Current User/Child Display with integrated exit */}
           <div className="flex items-center gap-3 rounded-full border border-slate-200 bg-white px-4 py-2 shadow-sm">
             <span
               className="inline-flex h-10 w-10 items-center justify-center rounded-full text-base font-semibold text-white"
@@ -140,13 +127,24 @@ export function FamilyAppHeader({
                   .join('')
               )}
             </span>
-            <div className="min-w-[10rem]">
+            <div className="min-w-[10rem] flex-1">
               <div className="flex items-center gap-2">
                 <p className="text-sm font-semibold text-slate-900">{currentActingUser.name}</p>
                 {childContext?.isActingAsChild && (
-                  <span className="inline-flex items-center rounded-full bg-blue-50 px-2 py-0.5 text-xs font-medium text-blue-700">
-                    Child Mode
-                  </span>
+                  <div className="flex items-center gap-1">
+                    <span className="inline-flex items-center rounded-full bg-blue-50 px-2 py-0.5 text-xs font-medium text-blue-700">
+                      Child Mode
+                    </span>
+                    <button
+                      onClick={handleReturnToParent}
+                      className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-slate-200 hover:bg-slate-300 transition-colors"
+                      title="Exit Child Mode"
+                    >
+                      <svg className="w-3 h-3 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                    </button>
+                  </div>
                 )}
               </div>
               {childContext?.isActingAsChild ? (
@@ -260,12 +258,12 @@ export function FamilyAppHeader({
 
           {/* Navigation and Actions */}
           <div className="flex items-center gap-3">
-            {/* Profile Button */}
+            {/* Profile Button - goes to child profile when in child mode */}
             <a
-              href="/profile"
+              href={childContext?.isActingAsChild ? `/profile/${childContext.selectedChild?.id}` : "/profile"}
               className="rounded-full border border-slate-300 px-4 py-2 text-sm font-medium text-slate-600 transition hover:border-slate-400 hover:text-slate-900"
             >
-              Profile
+              {childContext?.isActingAsChild ? `${currentActingUser.name}'s Profile` : 'Profile'}
             </a>
             
             {/* Connections Button */}
@@ -278,8 +276,8 @@ export function FamilyAppHeader({
               </button>
             )}
             
-            {/* Change Password Button */}
-            {onChangePasswordClick && (
+            {/* Change Password Button - only show when not in child mode */}
+            {onChangePasswordClick && !childContext?.isActingAsChild && (
               <button
                 onClick={onChangePasswordClick}
                 className="hidden sm:block rounded-full border border-slate-300 px-4 py-2 text-sm font-medium text-slate-600 transition hover:border-slate-400 hover:text-slate-900"
@@ -288,14 +286,19 @@ export function FamilyAppHeader({
               </button>
             )}
             
+            {/* Actions - will be filtered in parent component for child mode */}
             {actions}
-            <button
-              type="button"
-              onClick={onLogout}
-              className="rounded-full border border-slate-300 px-4 py-2 text-sm font-medium text-slate-600 transition hover:border-slate-400 hover:text-slate-900"
-            >
-              Sign out
-            </button>
+            
+            {/* Sign out - only for parent */}
+            {!childContext?.isActingAsChild && (
+              <button
+                type="button"
+                onClick={onLogout}
+                className="rounded-full border border-slate-300 px-4 py-2 text-sm font-medium text-slate-600 transition hover:border-slate-400 hover:text-slate-900"
+              >
+                Sign out
+              </button>
+            )}
           </div>
         </div>
       </div>
