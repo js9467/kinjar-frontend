@@ -10,7 +10,7 @@ import React, {
 } from 'react';
 
 import { useAuth } from './auth';
-import { useChildContext } from './child-context';
+import { useOptionalChildContext } from './child-context';
 
 // Theme definitions
 export const ADULT_THEMES = [
@@ -54,13 +54,29 @@ export function useTheme() {
   return context;
 }
 
+// Optional theme hook that returns default values when not in a ThemeProvider
+export function useOptionalTheme() {
+  const context = useContext(ThemeContext);
+  if (context === undefined) {
+    // Return default theme context when not available
+    return {
+      currentTheme: ADULT_THEMES[0],
+      allThemes: ADULT_THEMES,
+      isChildTheme: false,
+      setTheme: () => {},
+    };
+  }
+  return context;
+}
+
 interface ThemeProviderProps {
   children: ReactNode;
 }
 
 export function ThemeProvider({ children }: ThemeProviderProps) {
   const { user } = useAuth();
-  const { selectedChild } = useChildContext();
+  const childContext = useOptionalChildContext();
+  const selectedChild = childContext?.selectedChild;
   const [currentTheme, setCurrentTheme] = useState<Theme>(ADULT_THEMES[0]);
 
   // Get the appropriate theme based on current context

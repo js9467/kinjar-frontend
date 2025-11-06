@@ -6,14 +6,15 @@ import { useRouter } from 'next/navigation';
 import { api } from '@/lib/api';
 import { ChangePasswordModal } from '@/components/ui/ChangePasswordModal';
 import { AvatarUpload } from '@/components/ui/AvatarUpload';
-import { useChildContext } from '@/lib/child-context';
-import { useTheme } from '@/lib/theme-context';
+import { useOptionalChildContext } from '@/lib/child-context';
+import { useOptionalTheme, Theme } from '@/lib/theme-context';
 import Link from 'next/link';
 
 export default function ProfilePage() {
   const { user } = useAuth();
-  const { selectedChild } = useChildContext();
-  const { currentTheme, allThemes, isChildTheme, setTheme } = useTheme();
+  const childContext = useOptionalChildContext();
+  const selectedChild = childContext?.selectedChild;
+  const { currentTheme, allThemes, isChildTheme, setTheme } = useOptionalTheme();
   const router = useRouter();
   const [showChangePasswordModal, setShowChangePasswordModal] = useState(false);
   const [editMode, setEditMode] = useState(false);
