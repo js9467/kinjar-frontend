@@ -334,9 +334,13 @@ class KinjarAPI {
 
   async getFamilyBySlug(slug: string): Promise<FamilyProfile> {
     const response = await this.request(`/families/${slug}`);
+    console.log('[API] getFamilyBySlug raw response:', response);
+    
     // Unwrap family object if present
     if (response.family) {
       const family = response.family;
+      
+      console.log('[API] Family members before transform:', family.members);
       
       // Transform members to match frontend expectations
       const transformedMembers = (family.members || response.members || []).map((member: any) => ({
@@ -345,11 +349,13 @@ class KinjarAPI {
         id: member.id, // Keep the original id (user_id from backend)
         userId: member.id, // Also set userId to the same value for consistency
         name: member.name || member.display_name || member.email?.split('@')[0] || 'User',
-        avatarColor: member.avatar_color || '#3B82F6',
-        joinedAt: member.joined_at || member.createdAt || new Date().toISOString()
+        avatarColor: member.avatarColor || member.avatar_color || '#3B82F6',
+        avatarUrl: member.avatarUrl || member.avatar_url,
+        birthdate: member.birthdate,
+        joinedAt: member.joined_at || member.joinedAt || member.createdAt || new Date().toISOString()
       }));
       
-      console.log('[API] Transformed family members:', transformedMembers.map((m: any) => ({ id: m.id, userId: m.userId, name: m.name })));
+      console.log('[API] Transformed family members:', transformedMembers.map((m: any) => ({ id: m.id, name: m.name, avatarColor: m.avatarColor })));
       
       return {
         ...family,
@@ -366,16 +372,19 @@ class KinjarAPI {
     }
     
     // If no nested family object, transform the response directly
+    console.log('[API] Direct response members:', response.members);
     const transformedMembers = (response.members || []).map((member: any) => ({
       ...member,
       id: member.id,
       userId: member.id,
       name: member.name || member.display_name || member.email?.split('@')[0] || 'User',
-      avatarColor: member.avatar_color || '#3B82F6',
-      joinedAt: member.joined_at || member.createdAt || new Date().toISOString()
+      avatarColor: member.avatarColor || member.avatar_color || '#3B82F6',
+      avatarUrl: member.avatarUrl || member.avatar_url,
+      birthdate: member.birthdate,
+      joinedAt: member.joined_at || member.joinedAt || member.createdAt || new Date().toISOString()
     }));
     
-    console.log('[API] Transformed family members (direct):', transformedMembers.map((m: any) => ({ id: m.id, userId: m.userId, name: m.name })));
+    console.log('[API] Transformed family members (direct):', transformedMembers.map((m: any) => ({ id: m.id, name: m.name, avatarColor: m.avatarColor })));
     
     return {
       ...response,

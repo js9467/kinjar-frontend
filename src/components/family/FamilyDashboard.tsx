@@ -96,6 +96,10 @@ export function FamilyDashboard({ familySlug }: FamilyDashboardProps) {
       try {
         const familyData = await api.getFamilyBySlug(effectiveFamilySlug);
         
+        console.log('[FamilyDashboard] Raw family data from API:', familyData);
+        console.log('[FamilyDashboard] Family members from API:', familyData.members);
+        console.log('[FamilyDashboard] Connected families from API:', familyData.connectedFamilies);
+        
         // Ensure all arrays are initialized to prevent undefined errors
         const normalizedFamily = {
           ...familyData,
@@ -107,6 +111,8 @@ export function FamilyDashboard({ familySlug }: FamilyDashboardProps) {
           highlights: familyData.highlights || [],
           pendingMembers: familyData.pendingMembers || []
         };
+        
+        console.log('[FamilyDashboard] Normalized family members:', normalizedFamily.members.length, normalizedFamily.members);
         
         setFamily(normalizedFamily);
         setError(null);
@@ -329,6 +335,8 @@ export function FamilyDashboard({ familySlug }: FamilyDashboardProps) {
 
   // Handle toggling connected family expansion to show members and bio
   const handleConnectedFamilyClick = async (familySlug: string) => {
+    console.log('[FamilyDashboard] Clicked connected family:', familySlug);
+    
     // If already expanded, collapse it
     if (expandedFamilySlug === familySlug) {
       setExpandedFamilySlug(null);
@@ -342,6 +350,8 @@ export function FamilyDashboard({ familySlug }: FamilyDashboardProps) {
     
     try {
       const familyData = await api.getFamilyBySlug(familySlug);
+      console.log('[FamilyDashboard] Loaded connected family data:', familyData);
+      console.log('[FamilyDashboard] Connected family members:', familyData.members?.length, familyData.members);
       setExpandedFamilyData(familyData);
     } catch (err) {
       console.error('Failed to load family data:', err);
@@ -956,14 +966,6 @@ export function FamilyDashboard({ familySlug }: FamilyDashboardProps) {
                                   )}
                                 </div>
                               </div>
-
-                              {/* Visit Family Link */}
-                              <Link
-                                href={`/families/${connection.familySlug}`}
-                                className="block text-center py-2 px-4 bg-blue-50 hover:bg-blue-100 text-blue-600 rounded-lg text-sm font-medium transition-colors"
-                              >
-                                Visit Family Page →
-                              </Link>
                             </>
                           ) : null}
                         </div>
