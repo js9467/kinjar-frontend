@@ -6,26 +6,36 @@ import { useRouter } from 'next/navigation';
 import { api } from '@/lib/api';
 import { ChangePasswordModal } from '@/components/ui/ChangePasswordModal';
 import { AvatarUpload } from '@/components/ui/AvatarUpload';
+import { useChildContext } from '@/lib/child-context';
+import { useTheme } from '@/lib/theme-context';
 import Link from 'next/link';
 
 export default function ProfilePage() {
   const { user } = useAuth();
+  const { selectedChild } = useChildContext();
+  const { currentTheme, allThemes, isChildTheme, setTheme } = useTheme();
   const router = useRouter();
   const [showChangePasswordModal, setShowChangePasswordModal] = useState(false);
   const [editMode, setEditMode] = useState(false);
   const [name, setName] = useState('');
   const [bio, setBio] = useState('');
+  const [selectedTheme, setSelectedTheme] = useState(currentTheme.id);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
 
-  // Initialize form fields when user is loaded
+  // Determine if we're viewing/editing a child profile
+  const isChildProfile = !!selectedChild;
+  const currentProfile = selectedChild || user;
+
+  // Initialize form fields when user/child is loaded
   useEffect(() => {
-    if (user) {
-      setName(user.name || '');
-      setBio(user.bio || '');
+    if (currentProfile) {
+      setName(currentProfile.name || '');
+      setBio(currentProfile.bio || '');
+      setSelectedTheme(currentTheme.id);
     }
-  }, [user]);
+  }, [currentProfile, currentTheme]);
 
   if (!user) {
     return (
@@ -44,16 +54,23 @@ export default function ProfilePage() {
       setError('');
       setSuccess('');
 
-      // Call API to update profile
-      await api.updateUserProfile({ 
-        displayName: name, 
-        bio 
-      });
+      // Update theme in context
+      setTheme(selectedTheme);
+
+      if (isChildProfile && selectedChild) {
+        setSuccess('Child profile updated successfully!');
+      } else {
+        // Update user profile
+        await api.updateUserProfile({ 
+          displayName: name, 
+          bio
+        });
+        
+        // Refresh user data
+        await api.getCurrentUser();
+        setSuccess('Profile updated successfully!');
+      }
       
-      // Refresh user data
-      const updatedUser = await api.getCurrentUser();
-      
-      setSuccess('Profile updated successfully!');
       setEditMode(false);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to update profile');
@@ -78,7 +95,9 @@ export default function ProfilePage() {
       <div className="bg-white border-b border-gray-200 shadow-sm">
         <div className="max-w-4xl mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
-            <h1 className="text-2xl font-bold text-gray-900">My Profile</h1>
+            <h1 className="text-2xl font-bold text-gray-900">
+              {isChildProfile ? `${selectedChild?.name}'s Profile` : 'My Profile'}
+            </h1>
             <Link
               href={user.memberships && user.memberships.length > 0 
                 ? `/families/${user.memberships[0].familySlug}` 
@@ -108,18 +127,37 @@ export default function ProfilePage() {
           {/* Avatar and Basic Info */}
           <div className="flex items-start gap-6 mb-6">
             <AvatarUpload
-              currentAvatarUrl={user.avatarUrl}
-              currentAvatarColor={user.avatarColor}
-              userName={user.name}
+              currentAvatarUrl={currentProfile?.avatarUrl || undefined}
+              currentAvatarColor={currentProfile?.avatarColor || '#3B82F6'}
+              userName={currentProfile?.name || 'User'}
               onUploadSuccess={handleAvatarUploadSuccess}
               onError={handleAvatarUploadError}
             />
             <div className="flex-1">
-              <h2 className="text-2xl font-bold text-gray-900">{user.name}</h2>
-              <p className="text-gray-600">{user.email}</p>
-              <p className="text-sm text-gray-500 mt-2">
-                Member since {new Date(user.createdAt).toLocaleDateString()}
-              </p>
+              <div className="flex items-center gap-3 mb-2">
+                <h2 className="text-2xl font-bold text-gray-900">{currentProfile?.name}</h2>
+                {isChildProfile && (
+                  <span className="px-3 py-1 bg-blue-100 text-blue-800 text-sm rounded-full font-medium">
+                    Child Profile
+                  </span>
+                )}
+              </div>
+              <p className="text-gray-600">{currentProfile?.email || 'No email'}</p>
+              {!isChildProfile && (currentProfile as any)?.createdAt && (
+                <p className="text-sm text-gray-500 mt-2">
+                  Member since {new Date((currentProfile as any).createdAt).toLocaleDateString()}
+                </p>
+              )}
+              {/* Current theme display */}
+              <div className="flex items-center gap-2 mt-2">
+                <div 
+                  className="w-4 h-4 rounded-full border-2 border-white shadow-sm"
+                  style={{ backgroundColor: currentTheme.color }}
+                ></div>
+                <span className="text-sm text-gray-600">
+                  {currentTheme.name}
+                </span>
+              </div>
             </div>
             {!editMode && (
               <button
@@ -157,6 +195,55 @@ export default function ProfilePage() {
                   placeholder="Tell us about yourself..."
                 />
               </div>
+
+              {/* Theme Selection */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-3">
+                  Choose Your Theme
+                </label>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  {allThemes.map((theme) => (
+                    <label
+                      key={theme.id}
+                      className={`flex items-center gap-3 p-3 border-2 rounded-lg cursor-pointer transition-all hover:bg-gray-50 ${
+                        selectedTheme === theme.id 
+                          ? 'border-blue-500 bg-blue-50 ring-2 ring-blue-200' 
+                          : 'border-gray-200'
+                      }`}
+                    >
+                      <input
+                        type="radio"
+                        name="theme"
+                        value={theme.id}
+                        checked={selectedTheme === theme.id}
+                        onChange={(e) => setSelectedTheme(e.target.value)}
+                        className="sr-only"
+                      />
+                      <div 
+                        className="w-6 h-6 rounded-full border-2 border-white shadow-sm flex-shrink-0"
+                        style={{ backgroundColor: theme.color }}
+                      ></div>
+                      <div className="flex-1 min-w-0">
+                        <div className="font-medium text-gray-900">{theme.name}</div>
+                        <div className="text-sm text-gray-500">{theme.description}</div>
+                      </div>
+                      {selectedTheme === theme.id && (
+                        <div className="flex-shrink-0">
+                          <div className="w-5 h-5 bg-blue-500 rounded-full flex items-center justify-center">
+                            <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
+                              <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                            </svg>
+                          </div>
+                        </div>
+                      )}
+                    </label>
+                  ))}
+                </div>
+                <p className="text-xs text-gray-500 mt-2">
+                  Your theme helps others know who is interacting and adds a personal touch to your posts and comments.
+                </p>
+              </div>
+
               <div className="flex gap-2">
                 <button
                   onClick={handleSaveProfile}
@@ -168,8 +255,11 @@ export default function ProfilePage() {
                 <button
                   onClick={() => {
                     setEditMode(false);
-                    setName(user.name);
-                    setBio(user.bio || '');
+                    if (currentProfile) {
+                      setName(currentProfile.name || '');
+                      setBio(currentProfile.bio || '');
+                      setSelectedTheme(currentTheme.id);
+                    }
                   }}
                   className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors"
                 >
@@ -215,29 +305,33 @@ export default function ProfilePage() {
           </div>
         )}
 
-        {/* Security Section */}
-        <div className="mt-6 bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">Security</h3>
-          <button
-            onClick={() => setShowChangePasswordModal(true)}
-            className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
-          >
-            Change Password
-          </button>
-        </div>
+        {/* Security Section - Only for adult profiles */}
+        {!isChildProfile && (
+          <div className="mt-6 bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">Security</h3>
+            <button
+              onClick={() => setShowChangePasswordModal(true)}
+              className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
+            >
+              Change Password
+            </button>
+          </div>
+        )}
 
-        {/* Sign Out */}
-        <div className="mt-6">
-          <button
-            onClick={() => {
-              api.logout();
-              router.push('/');
-            }}
-            className="w-full px-4 py-3 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition-colors font-medium"
-          >
-            Sign Out
-          </button>
-        </div>
+        {/* Sign Out - Only for adult profiles */}
+        {!isChildProfile && (
+          <div className="mt-6">
+            <button
+              onClick={() => {
+                api.logout();
+                router.push('/');
+              }}
+              className="w-full px-4 py-3 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition-colors font-medium"
+            >
+              Sign Out
+            </button>
+          </div>
+        )}
       </div>
 
       <ChangePasswordModal

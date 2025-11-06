@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import { AuthUser } from '@/lib/types';
 import { useOptionalChildContext } from '@/lib/child-context';
+import { useTheme } from '@/lib/theme-context';
 
 // Simple SVG icons
 const ChevronDownIcon = ({ className }: { className?: string }) => (
@@ -54,6 +55,7 @@ export function FamilyAppHeader({
   onChangePasswordClick
 }: FamilyAppHeaderProps) {
   const childContext = useOptionalChildContext();
+  const { currentTheme } = useTheme();
   const [showChildDropdown, setShowChildDropdown] = useState(false);
 
   const currentActingUser = childContext?.getCurrentActingUser() || {
@@ -132,7 +134,13 @@ export function FamilyAppHeader({
                 <p className="text-sm font-semibold text-slate-900">{currentActingUser.name}</p>
                 {childContext?.isActingAsChild && (
                   <div className="flex items-center gap-1">
-                    <span className="inline-flex items-center rounded-full bg-blue-50 px-2 py-0.5 text-xs font-medium text-blue-700">
+                    <span 
+                      className="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium"
+                      style={{ 
+                        backgroundColor: currentTheme.color + '20', 
+                        color: currentTheme.color 
+                      }}
+                    >
                       Child Mode
                     </span>
                     <button
@@ -215,9 +223,12 @@ export function FamilyAppHeader({
                       onClick={() => handleChildSelect(child)}
                       className={`flex w-full items-center gap-3 px-4 py-2 text-left text-sm hover:bg-slate-50 ${
                         childContext.selectedChild?.id === child.id 
-                          ? 'bg-blue-50 text-blue-900' 
+                          ? 'text-slate-900' 
                           : 'text-slate-700'
                       }`}
+                      style={{
+                        backgroundColor: childContext.selectedChild?.id === child.id ? currentTheme.color + '20' : 'transparent'
+                      }}
                     >
                       <span
                         className="inline-flex h-8 w-8 items-center justify-center rounded-full text-sm font-semibold text-white"
@@ -241,7 +252,10 @@ export function FamilyAppHeader({
                         <p className="text-xs text-slate-500">Age {child.age || 'Unknown'}</p>
                       </div>
                       {childContext.selectedChild?.id === child.id && (
-                        <div className="h-2 w-2 rounded-full bg-blue-500"></div>
+                        <div 
+                          className="h-2 w-2 rounded-full"
+                          style={{ backgroundColor: currentTheme.color }}
+                        ></div>
                       )}
                     </button>
                   ))}

@@ -14,6 +14,7 @@ import { FamilyConnectionsManager } from '@/components/FamilyConnectionsManager'
 import { FamilyAppHeader } from '@/components/layout/FamilyAppHeader';
 import { FamilyHeaderActions } from '@/components/layout/FamilyHeaderActions';
 import { ChildProvider, useOptionalChildContext } from '@/lib/child-context';
+import { ThemeProvider } from '@/lib/theme-context';
 import { getMemberAgeDisplay } from '@/lib/age-utils';
 import Image from 'next/image';
 import Link from 'next/link';
@@ -504,7 +505,8 @@ export function FamilyDashboard({ familySlug }: FamilyDashboardProps) {
 
   return (
     <ChildProvider familyId={family.id} familySlug={effectiveFamilySlug}>
-      <div className="min-h-screen bg-gray-50">
+      <ThemeProvider>
+        <div className="min-h-screen bg-gray-50">
         {/* Family App Header with Child Selector */}
         <FamilyAppHeader
           title={family.name}
@@ -1013,6 +1015,7 @@ export function FamilyDashboard({ familySlug }: FamilyDashboardProps) {
         </div>
       )}
       </div>
+      </ThemeProvider>
     </ChildProvider>
   );
 }

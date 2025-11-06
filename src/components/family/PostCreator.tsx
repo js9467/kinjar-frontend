@@ -5,6 +5,7 @@ import { api } from '@/lib/api';
 import { useAuth } from '@/lib/auth';
 import { useAppState } from '@/lib/app-state';
 import { useOptionalChildContext } from '@/lib/child-context';
+import { useTheme } from '@/lib/theme-context';
 import { FamilyPost, MediaAttachment, PostVisibility, FamilyMemberProfile } from '@/lib/types';
 
 interface PostCreatorProps {
@@ -45,10 +46,8 @@ export function PostCreator({ familyId, familySlug, initialMembers = [], onPostC
   const { user, isAuthenticated } = useAuth();
   const { families } = useAppState();
   const childContext = useOptionalChildContext();
+  const { currentTheme } = useTheme();
 
-  const [members, setMembers] = useState<FamilyMemberProfile[]>([]);
-  const [selectedMemberId, setSelectedMemberId] = useState<string>('');
-  const [loadingMembers, setLoadingMembers] = useState(true);
   const [content, setContent] = useState('');
   const [visibility, setVisibility] = useState<PostVisibility>('family_and_connections');
   const [tags, setTags] = useState<string>('');
@@ -57,141 +56,6 @@ export function PostCreator({ familyId, familySlug, initialMembers = [], onPostC
   const [dragOver, setDragOver] = useState(false);
   const [mediaPreview, setMediaPreview] = useState<{ file: File; url: string; type: 'image' | 'video' } | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
-
-  // Load family members and set up post as options
-  const loadMembers = useCallback(async () => {
-    console.log('[PostCreator] Loading members for familyId:', familyId, 'user:', user?.name, 'loadingMembers:', loadingMembers);
-    
-    try {
-      setLoadingMembers(true);
-      
-      // Start with current user - they can always post as themselves
-      const postAsOptions: FamilyMemberProfile[] = [];
-      
-      if (user) {
-        console.log('[PostCreator] Adding current user to post options:', user.name);
-        postAsOptions.push({
-          id: user.id,
-          userId: user.id,
-          name: user.name || 'Me',
-          email: user.email,
-          role: 'ADULT' as any,
-          avatarColor: user.avatarColor || '#3B82F6',
-          joinedAt: new Date().toISOString()
-        });
-      }
-
-      // Try to get family members from various sources
-      let familyMembers: FamilyMemberProfile[] = [];
-
-      // 1. From initialMembers prop
-      if (initialMembers.length > 0) {
-        console.log('[PostCreator] Using initialMembers:', initialMembers.length);
-        familyMembers = initialMembers;
-      }
-      // 2. From app state families
-      else {
-        const contextFamily = families.find((family) =>
-          family.id === familyId ||
-          family.slug === familyId ||
-          (!!familySlug && (family.slug === familySlug || family.id === familySlug))
-        );
-        if (contextFamily?.members?.length) {
-          console.log('[PostCreator] Using family from app state:', contextFamily.members.length);
-          familyMembers = contextFamily.members;
-        }
-      }
-
-      // 3. Fetch from API if still no members
-      if (familyMembers.length === 0 && familySlug) {
-        try {
-          console.log('[PostCreator] Fetching family members from API for:', familySlug);
-          const fetchedFamily = await api.getFamilyBySlug(familySlug);
-          familyMembers = fetchedFamily.members || [];
-          console.log('[PostCreator] Fetched members from API:', familyMembers.length);
-        } catch (error) {
-          console.warn('[PostCreator] Failed to load family members:', error);
-        }
-      }
-
-      // Process family members - adults can post as children under 14
-      for (const member of familyMembers) {
-        // Skip if member is current user (already added)
-        if (user && (member.userId === user.id || member.id === user.id)) {
-          continue;
-        }
-
-        // Adults can post as children under 14
-        if (member.birthdate) {
-          const age = calculateAge(member.birthdate);
-          if (age < 14) {
-            console.log('[PostCreator] Adding child member (by age):', member.name, 'age:', age);
-            postAsOptions.push({
-              ...member,
-              name: member.name || member.email?.split('@')[0] || 'Family Member',
-              role: member.role || 'CHILD_0_5'
-            });
-          }
-        }
-        // If no birthdate but role suggests child, include them
-        else if (member.role && ['CHILD_0_5', 'CHILD_5_10', 'CHILD_10_14'].includes(member.role)) {
-          console.log('[PostCreator] Adding child member (by role):', member.name, 'role:', member.role);
-          postAsOptions.push({
-            ...member,
-            name: member.name || member.email?.split('@')[0] || 'Family Member'
-          });
-        }
-      }
-
-      console.log('[PostCreator] Final post options:', postAsOptions.length);
-      setMembers(postAsOptions);
-      
-      // Set default selection to current user
-      if (postAsOptions.length > 0) {
-        const defaultMember = postAsOptions.find(m => user && (m.userId === user.id || m.id === user.id)) || postAsOptions[0];
-        console.log('[PostCreator] Setting default member:', defaultMember.name, 'id:', defaultMember.id);
-        setSelectedMemberId(defaultMember.id);
-      } else {
-        console.warn('[PostCreator] No post options available');
-        setSelectedMemberId('');
-      }
-
-    } catch (error) {
-      console.error('[PostCreator] Error loading members:', error);
-      onError?.('Unable to load family members for posting.');
-    } finally {
-      setLoadingMembers(false);
-    }
-  }, [familyId, familySlug, user?.id, initialMembers, families]);
-
-  useEffect(() => {
-    console.log('[PostCreator] useEffect triggered - isAuthenticated:', isAuthenticated, 'user:', user?.name, 'familyId:', familyId);
-    if (isAuthenticated && user) {
-      loadMembers();
-    }
-    
-    // Fallback timeout to prevent infinite loading
-    const timeout = setTimeout(() => {
-      if (loadingMembers) {
-        console.warn('[PostCreator] Member loading timeout, forcing completion with current user only');
-        if (user) {
-          setMembers([{
-            id: user.id,
-            userId: user.id,
-            name: user.name || 'Me',
-            email: user.email,
-            role: 'ADULT' as any,
-            avatarColor: user.avatarColor || '#3B82F6',
-            joinedAt: new Date().toISOString()
-          }]);
-          setSelectedMemberId(user.id);
-        }
-        setLoadingMembers(false);
-      }
-    }, 10000); // 10 second timeout
-    
-    return () => clearTimeout(timeout);
-  }, [isAuthenticated, user?.id, familyId, familySlug, loadMembers, loadingMembers]);
 
   const handleFileSelect = (files: FileList | null) => {
     if (fileInputRef.current) {
@@ -244,7 +108,7 @@ export function PostCreator({ familyId, familySlug, initialMembers = [], onPostC
     }
     
     // Check if we have a valid selection (child context or local selection)
-    const hasValidSelection = childContext?.selectedChild || selectedMemberId;
+    const hasValidSelection = true; // With child context, we always have a valid selection
     if (!hasValidSelection) {
       onError?.('Please select who you\'re posting as.');
       return;
@@ -286,7 +150,7 @@ export function PostCreator({ familyId, familySlug, initialMembers = [], onPostC
       
       // Use child context if available, otherwise fall back to local selection
       const actingChild = childContext?.selectedChild;
-      const selectedMember = actingChild || members.find(m => m.id === selectedMemberId);
+      const selectedMember = actingChild || user;
       
       // Always use the logged-in user's ID as the author_id for the database
       // The selected member/child info is for display purposes only
@@ -297,7 +161,8 @@ export function PostCreator({ familyId, familySlug, initialMembers = [], onPostC
       console.log('  Author ID (logged-in user):', authorId);
       console.log('  Acting as child:', actingChild?.name);
       console.log('  Posting as member:', selectedMember?.name);
-      console.log('  Selected member ID:', selectedMemberId);
+      console.log('  Selected member ID:', selectedMember?.id);
+      console.log('  Using child context:', !!actingChild);
       console.log('  Visibility:', visibility);
       
       const createdPost = await api.createPost({
@@ -311,7 +176,7 @@ export function PostCreator({ familyId, familySlug, initialMembers = [], onPostC
         postedAsMember: !actingChild && selectedMember ? {
           id: selectedMember.id,
           name: selectedMember.name,
-          role: selectedMember.role
+          role: 'role' in selectedMember ? selectedMember.role : 'ADULT'
         } : undefined
       });
       
@@ -357,18 +222,6 @@ export function PostCreator({ familyId, familySlug, initialMembers = [], onPostC
       fileInputRef.current.click();
     }
   };
-
-  // Show loading state while loading members
-  if (loadingMembers) {
-    return (
-      <div className={`bg-white rounded-xl border border-gray-200 shadow-sm ${className}`}>
-        <div className="p-6 text-center text-gray-500">
-          <div className="animate-spin w-6 h-6 border-2 border-blue-600 border-t-transparent rounded-full mx-auto mb-2"></div>
-          Loading...
-        </div>
-      </div>
-    );
-  }
 
   // Show authentication required if not logged in
   if (!isAuthenticated) {
@@ -429,8 +282,12 @@ export function PostCreator({ familyId, familySlug, initialMembers = [], onPostC
         {!mediaPreview && (
           <div
             className={`border-2 border-dashed rounded-lg p-6 text-center cursor-pointer transition-colors ${
-              dragOver ? 'border-blue-400 bg-blue-50' : 'border-gray-300 hover:border-gray-400'
-            } ${uploading ? 'pointer-events-none opacity-50' : ''}`}
+              uploading ? 'pointer-events-none opacity-50' : ''
+            }`}
+            style={{
+              borderColor: dragOver ? currentTheme.color : '#D1D5DB',
+              backgroundColor: dragOver ? currentTheme.color + '10' : 'transparent'
+            }}
             onDragOver={handleDragOver}
             onDragLeave={handleDragLeave}
             onDrop={handleDrop}
@@ -483,34 +340,8 @@ export function PostCreator({ familyId, familySlug, initialMembers = [], onPostC
           <p className="text-xs text-gray-500 mt-1">Example: birthday, vacation, milestone</p>
         </div>
 
-        {/* Member selector, visibility, and submit */}
+        {/* Visibility and submit */}
         <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between md:gap-6">
-          {/* Only show member selector if child context is not being used */}
-          {!childContext?.selectedChild && (
-            <div className="flex flex-col gap-2 w-full md:w-auto">
-              <label className="text-sm font-medium text-gray-700">Post as:</label>
-              <select
-                value={selectedMemberId}
-                onChange={e => setSelectedMemberId(e.target.value)}
-                className="border border-gray-300 rounded-lg px-3 py-1 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                disabled={uploading || members.length === 0}
-            >
-              {members.map(m => (
-                <option key={m.id} value={m.id}>
-                  {m.name} {user && (m.userId === user.id || m.id === user.id) ? '(Me)' : ''}
-                </option>
-              ))}
-              {members.length === 0 && (
-                <option value="">Loading members...</option>
-              )}
-            </select>
-            {members.length > 1 && (
-              <p className="text-xs text-gray-500">
-                Adults can post on behalf of children under 14
-              </p>
-            )}
-            </div>
-          )}
           
           <div className="flex flex-col gap-2 w-full md:w-auto">
             <label className="text-sm font-medium text-gray-700">Who can see this:</label>
@@ -527,8 +358,12 @@ export function PostCreator({ familyId, familySlug, initialMembers = [], onPostC
           
           <button
             type="submit"
-            disabled={uploading || (!content.trim() && !mediaPreview) || !isAuthenticated || (!childContext?.selectedChild && !selectedMemberId)}
-            className="bg-blue-600 text-white px-6 py-3 rounded-lg font-medium hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 w-full md:w-auto"
+            disabled={uploading || (!content.trim() && !mediaPreview) || !isAuthenticated}
+            className="text-white px-6 py-3 rounded-lg font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 w-full md:w-auto transition-colors"
+            style={{
+              backgroundColor: currentTheme.color,
+              '&:hover': { backgroundColor: currentTheme.color + 'CC' }
+            } as any}
             onClick={() => {
               console.log('[PostCreator] Submit button clicked - Debug info:');
               console.log('  uploading:', uploading);
@@ -536,8 +371,8 @@ export function PostCreator({ familyId, familySlug, initialMembers = [], onPostC
               console.log('  mediaPreview:', !!mediaPreview);
               console.log('  isAuthenticated:', isAuthenticated);
               console.log('  childContext?.selectedChild:', childContext?.selectedChild?.name);
-              console.log('  selectedMemberId:', selectedMemberId);
-              console.log('  members.length:', members.length);
+              console.log('  Using child context:', !!childContext?.selectedChild);
+              console.log('  User authenticated:', isAuthenticated);
             }}
           >
             {uploading && (
@@ -553,8 +388,11 @@ export function PostCreator({ familyId, familySlug, initialMembers = [], onPostC
         {uploading && (
           <div className="w-full bg-gray-200 rounded-full h-2">
             <div 
-              className="bg-blue-600 h-2 rounded-full transition-all duration-300"
-              style={{ width: `${uploadProgress}%` }}
+              className="h-2 rounded-full transition-all duration-300"
+              style={{ 
+                width: `${uploadProgress}%`,
+                backgroundColor: currentTheme.color
+              }}
             />
           </div>
         )}
