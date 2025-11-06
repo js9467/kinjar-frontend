@@ -184,24 +184,26 @@ export function ConnectedFamiliesFeed({ tenantSlug, limit = 20 }: ConnectedFamil
           <div className="p-4 sm:p-6 space-y-4">
             {/* Author Info */}
             <div className="flex items-center gap-3">
-              <div className="flex-shrink-0">
+              <Link href={`/profile/${post.postedAsId || post.authorId}`} className="flex-shrink-0">
                 {post.authorAvatarUrl ? (
                   <img
                     src={post.authorAvatarUrl}
                     alt={`${post.authorName}'s avatar`}
-                    className="w-10 h-10 rounded-full object-cover border"
+                    className="w-10 h-10 rounded-full object-cover border cursor-pointer hover:opacity-80 transition-opacity"
                   />
                 ) : (
                   <div
-                    className="w-10 h-10 rounded-full flex items-center justify-center text-white font-semibold"
+                    className="w-10 h-10 rounded-full flex items-center justify-center text-white font-semibold cursor-pointer hover:opacity-80 transition-opacity"
                     style={{ backgroundColor: post.authorAvatarColor }}
                   >
                     {post.authorName?.charAt(0)?.toUpperCase() || 'U'}
                   </div>
                 )}
-              </div>
+              </Link>
               <div>
-                <p className="font-medium text-gray-900">{post.authorName}</p>
+                <Link href={`/profile/${post.postedAsId || post.authorId}`} className="font-medium text-gray-900 hover:text-indigo-600 transition-colors">
+                  {post.authorName}
+                </Link>
                 <p className="text-sm text-gray-500">{formatDate(post.createdAt)}</p>
               </div>
             </div>

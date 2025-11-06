@@ -1,6 +1,7 @@
 'use client';
 
 import Image from 'next/image';
+import Link from 'next/link';
 import { useMemo, useState } from 'react';
 
 import { useAppState } from '@/lib/app-state';
@@ -251,7 +252,12 @@ export function FamilyFeed({ familyIds, highlightFamilyId, title = 'Family stori
                     <p className="text-xs font-semibold uppercase tracking-wide text-indigo-600">
                       {family.name} · {post.visibility === 'family_and_connections' ? 'Shared' : 'Family only'}
                     </p>
-                    <h5 className="mt-2 text-lg font-semibold text-slate-900">{post.authorName || 'User'}</h5>
+                    <Link 
+                      href={`/profile/${post.postedAsId || post.authorId}`}
+                      className="mt-2 text-lg font-semibold text-slate-900 hover:text-indigo-600 transition-colors inline-block"
+                    >
+                      {post.authorName || 'User'}
+                    </Link>
                     
                     {editingPostId === post.id ? (
                       <div className="mt-2 space-y-2">
@@ -301,16 +307,16 @@ export function FamilyFeed({ familyIds, highlightFamilyId, title = 'Family stori
                         </button>
                       </>
                     ) : null}
-                    <div className="flex-shrink-0">
+                    <Link href={`/profile/${post.postedAsId || post.authorId}`} className="flex-shrink-0">
                       {post.authorAvatarUrl ? (
                         <img
                           src={post.authorAvatarUrl}
                           alt={`${post.authorName}'s avatar`}
-                          className="h-10 w-10 rounded-full object-cover border"
+                          className="h-10 w-10 rounded-full object-cover border cursor-pointer hover:opacity-80 transition-opacity"
                         />
                       ) : (
                         <span
-                          className="flex h-10 w-10 items-center justify-center rounded-full text-sm font-semibold text-white"
+                          className="flex h-10 w-10 items-center justify-center rounded-full text-sm font-semibold text-white cursor-pointer hover:opacity-80 transition-opacity"
                           style={{ backgroundColor: post.authorAvatarColor }}
                         >
                           {(post.authorName || 'User')
@@ -319,7 +325,7 @@ export function FamilyFeed({ familyIds, highlightFamilyId, title = 'Family stori
                             .join('')}
                         </span>
                       )}
-                    </div>
+                    </Link>
                   </div>
                 </div>
                 {post.media ? (

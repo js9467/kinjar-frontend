@@ -608,6 +608,60 @@ class KinjarAPI {
     return frontendPosts;
   }
 
+  async getUserPosts(userId: string, familySlugOrId: string, limit: number = 20, offset: number = 0): Promise<FamilyPost[]> {
+    console.log(`[API] getUserPosts called for user: ${userId}, family: ${familySlugOrId}, limit: ${limit}, offset: ${offset}`);
+    
+    const response = await this.request(`/api/users/${userId}/posts?tenant=${familySlugOrId}&limit=${limit}&offset=${offset}`);
+    
+    // Transform backend posts to frontend format
+    const backendPosts = response.posts || response || [];
+    console.log(`[API] Raw backend user posts received: ${backendPosts.length}`);
+    
+    const frontendPosts: FamilyPost[] = [];
+    
+    // Process each post and load its comments
+    for (const backendPost of backendPosts) {
+      const post: FamilyPost = {
+        id: backendPost.id,
+        familyId: backendPost.tenantId || backendPost.tenant_id || familySlugOrId,
+        authorId: backendPost.authorId || backendPost.author_id,
+        // If posted_as_name exists, use it; otherwise use author_name
+        authorName: backendPost.posted_as_name || backendPost.authorName || 'User',
+        authorAvatarColor: backendPost.posted_as_avatar_color || backendPost.authorAvatarColor || '#3B82F6',
+        authorAvatarUrl: backendPost.posted_as_avatar || backendPost.authorAvatarUrl,
+        createdAt: backendPost.publishedAt || backendPost.published_at || backendPost.createdAt || backendPost.created_at,
+        content: backendPost.content,
+        media: (backendPost.media_filename || backendPost.media_url || backendPost.media_external_url || backendPost.mediaUrl) ? {
+          type: this.determineMediaType(
+            backendPost.media_content_type || backendPost.mediaType, 
+            backendPost.media_filename || backendPost.media_url || backendPost.media_external_url || backendPost.mediaUrl
+          ),
+          url: backendPost.media_url || backendPost.media_external_url || backendPost.mediaUrl || `/api/media/${backendPost.media_id}`,
+          alt: backendPost.title
+        } : undefined,
+        visibility: backendPost.visibility || (backendPost.is_public ? 'family_and_connections' : 'family_only'),
+        status: 'approved',
+        reactions: 0,
+        comments: [],
+        tags: []
+      };
+      
+      // Load comments for this post
+      try {
+        const comments = await this.getPostComments(post.id);
+        post.comments = comments;
+      } catch (error) {
+        console.warn(`[API] Failed to load comments for post ${post.id}:`, error);
+        post.comments = [];
+      }
+      
+      frontendPosts.push(post);
+    }
+
+    console.log(`[API] Transformed ${frontendPosts.length} user posts from backend with comments`);
+    return frontendPosts;
+  }
+
   async addComment(postId: string, content: string, actingAsChild?: { id: string; name: string; avatarColor: string; avatarUrl?: string }): Promise<PostComment> {
     console.log(`[API] Adding comment to post ${postId}:`, content);
     
