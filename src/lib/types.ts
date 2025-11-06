@@ -107,6 +107,7 @@ export interface FamilyPost {
   familyName?: string;  // For public feed
   familyThemeColor?: string;  // For public feed
   authorId: string;
+  postedAsId?: string;  // The child profile this was posted as (if applicable)
   authorName: string;
   authorAvatarColor: string;
   authorAvatarUrl?: string;

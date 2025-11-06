@@ -627,12 +627,19 @@ export function FamilyDashboard({ familySlug }: FamilyDashboardProps) {
                 </div>
               ) : (
                 filteredPosts.map((post) => {
-                  // When acting as a child, check against the child's ID specifically
-                  // Otherwise, check against user's ID or any of their children's IDs
-                  const ownsPost = childContext?.selectedChild
-                    ? post.authorId === childContext.selectedChild.userId
-                    : (post.authorId === user?.id ||
-                       user?.memberships?.some((membership) => membership.memberId === post.authorId));
+                  // Permission check logic:
+                  // When acting as a child, we need to match the posted_as_id
+                  // Otherwise, check if the user is the actual author
+                  const ownsPost = (() => {
+                    if (childContext?.selectedChild) {
+                      // When acting as a child, check if this post was posted as this specific child
+                      return post.postedAsId === childContext.selectedChild.userId;
+                    } else {
+                      // When not acting as a child, check if user is the actual author
+                      // OR if the post was posted as one of the user's child profiles (but user is not currently acting as child)
+                      return post.authorId === user?.id;
+                    }
+                  })();
                   
                   // Get user's role in their own family
                   const userRole = user?.memberships?.find(m => m.familySlug === effectiveFamilySlug)?.role;
@@ -641,10 +648,14 @@ export function FamilyDashboard({ familySlug }: FamilyDashboardProps) {
                   const postAuthorInUsersFamily = family.members.find(m => m.userId === post.authorId);
                   const postAuthorIsChild = postAuthorInUsersFamily?.role?.startsWith('CHILD');
                   
+                  // Check if the post was posted as a child in the user's family
+                  const postedAsInUsersFamily = post.postedAsId ? family.members.find(m => m.userId === post.postedAsId) : null;
+                  const postedAsIsChild = postedAsInUsersFamily?.role?.startsWith('CHILD');
+                  
                   // Edit permission logic:
-                  // - Users can edit their own posts
+                  // - Users can edit their own posts (matching posted_as context)
                   // - Admins/Adults can edit posts by children in their family (even on connected family posts)
-                  // - Children can ONLY edit their own posts
+                  // - Children can ONLY edit their own posts (must match posted_as_id)
                   const canEditPost = (() => {
                     if (!user || !userRole) return false;
                     
@@ -657,13 +668,16 @@ export function FamilyDashboard({ familySlug }: FamilyDashboardProps) {
                     if (ownsPost) return true;
                     
                     // Admins can edit posts by children in their family
-                    if (userRole === 'ADMIN' && postAuthorInUsersFamily && postAuthorIsChild) {
-                      return true;
+                    // Check both: if posted as a child OR if author is a child
+                    if (userRole === 'ADMIN') {
+                      if (postedAsInUsersFamily && postedAsIsChild) return true;
+                      if (postAuthorInUsersFamily && postAuthorIsChild) return true;
                     }
                     
                     // Adults can edit posts by children in their family
-                    if (userRole === 'ADULT' && postAuthorInUsersFamily && postAuthorIsChild) {
-                      return true;
+                    if (userRole === 'ADULT') {
+                      if (postedAsInUsersFamily && postedAsIsChild) return true;
+                      if (postAuthorInUsersFamily && postAuthorIsChild) return true;
                     }
                     
                     return false;
@@ -691,13 +705,16 @@ export function FamilyDashboard({ familySlug }: FamilyDashboardProps) {
                     }
                     
                     // Admins can delete posts by children in their family (even on connected family posts)
-                    if (userRole === 'ADMIN' && postAuthorInUsersFamily && postAuthorIsChild) {
-                      return true;
+                    // Check both: if posted as a child OR if author is a child
+                    if (userRole === 'ADMIN') {
+                      if (postedAsInUsersFamily && postedAsIsChild) return true;
+                      if (postAuthorInUsersFamily && postAuthorIsChild) return true;
                     }
                     
                     // Adults can delete posts by children in their family (even on connected family posts)
-                    if (userRole === 'ADULT' && postAuthorInUsersFamily && postAuthorIsChild) {
-                      return true;
+                    if (userRole === 'ADULT') {
+                      if (postedAsInUsersFamily && postedAsIsChild) return true;
+                      if (postAuthorInUsersFamily && postAuthorIsChild) return true;
                     }
                     
                     return false;
