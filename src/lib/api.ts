@@ -1,6 +1,6 @@
 'use client';
 
-import { AuthUser, CreateFamilyRequest, FamilyProfile, InviteMemberRequest, SubdomainInfo, FamilyPost, MediaAttachment, NotificationSettings, PostVisibility, PostComment } from './types';
+import { AuthUser, CreateFamilyRequest, FamilyProfile, InviteMemberRequest, SubdomainInfo, FamilyPost, MediaAttachment, NotificationSettings, PostVisibility, PostComment, Theme } from './types';
 
 // Export types that components might need
 export type Post = FamilyPost;

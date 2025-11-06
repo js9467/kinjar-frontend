@@ -7,7 +7,8 @@ import { api } from '@/lib/api';
 import { ChangePasswordModal } from '@/components/ui/ChangePasswordModal';
 import { AvatarUpload } from '@/components/ui/AvatarUpload';
 import { useOptionalChildContext } from '@/lib/child-context';
-import { useOptionalTheme, Theme } from '@/lib/theme-context';
+import { useOptionalTheme } from '@/lib/theme-context';
+import { Theme } from '@/lib/types';
 import Link from 'next/link';
 
 export default function ProfilePage() {

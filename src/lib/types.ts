@@ -48,6 +48,7 @@ export interface Theme {
   id: string;
   name: string;
   color: string;
+  description: string;
   secondary?: string;
 }
 
