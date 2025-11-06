@@ -633,6 +633,7 @@ class KinjarAPI {
     // Backend now returns camelCase fields directly
     const formattedComment: PostComment = {
       id: comment.id,
+      authorId: comment.author_id || comment.authorId || this.currentUser?.id || '',
       content: comment.content,
       createdAt: comment.createdAt || comment.created_at || new Date().toISOString(),
       // Use posted_as_* fields if available (when acting as child), otherwise fall back to author fields
@@ -663,6 +664,7 @@ class KinjarAPI {
     // Backend now returns camelCase fields directly
     const formattedComment: PostComment = {
       id: comment.id,
+      authorId: comment.author_id || comment.authorId || this.currentUser?.id || '',
       content: comment.content,
       createdAt: comment.createdAt || comment.created_at,
       authorName: comment.authorName || comment.author_name || this.currentUser?.name || 'User',
