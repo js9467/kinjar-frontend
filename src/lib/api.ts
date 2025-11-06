@@ -1,6 +1,6 @@
 'use client';
 
-import { AuthUser, CreateFamilyRequest, FamilyProfile, InviteMemberRequest, SubdomainInfo, FamilyPost, MediaAttachment, NotificationSettings, PostVisibility, PostComment, Theme } from './types';
+import { AuthUser, CreateFamilyRequest, FamilyProfile, FamilyMemberProfile, InviteMemberRequest, SubdomainInfo, FamilyPost, MediaAttachment, NotificationSettings, PostVisibility, PostComment, Theme } from './types';
 
 // Export types that components might need
 export type Post = FamilyPost;
@@ -408,6 +408,25 @@ class KinjarAPI {
       throw new Error('Not in a family context');
     }
     return this.getFamilyBySlug(subdomainInfo.familySlug);
+  }
+
+  async getUserProfile(userId: string): Promise<FamilyMemberProfile> {
+    console.log(`[API] getUserProfile called for: ${userId}`);
+    const response = await this.request(`/api/users/${userId}/profile`);
+    const profile = response.profile || response;
+    
+    // Transform to match frontend expectations
+    return {
+      ...profile,
+      id: profile.id || profile.userId || userId,
+      userId: profile.userId || profile.id || userId,
+      name: profile.name || profile.display_name || 'User',
+      avatarColor: profile.avatarColor || profile.avatar_color || '#3B82F6',
+      avatarUrl: profile.avatarUrl || profile.avatar_url,
+      role: profile.role || 'GUEST',
+      email: profile.email || '',
+      joinedAt: profile.joinedAt || profile.joined_at || new Date().toISOString()
+    };
   }
 
   async updateFamily(familyId: string, updates: Partial<FamilyProfile>): Promise<FamilyProfile> {

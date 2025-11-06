@@ -46,16 +46,24 @@ export default function UserProfilePage({ params }: UserProfilePageProps) {
           return;
         }
 
-        // Load the family profile to find the user
-        const family = await api.getFamilyBySlug(subdomainInfo.familySlug);
-        // Try to find by member id first, then by userId (for posts where authorId = userId)
-        const member = family.members.find(m => m.id === params.userId || m.userId === params.userId);
-
-        if (!member) {
-          console.log('[UserProfilePage] User not found:', params.userId);
-          console.log('[UserProfilePage] Available members:', family.members.map(m => ({ id: m.id, userId: m.userId, name: m.name })));
-          setError('User profile not found');
-          return;
+        // First, try to get the user profile directly from the API
+        let member: FamilyMemberProfile | null = null;
+        try {
+          member = await api.getUserProfile(params.userId);
+          console.log('[UserProfilePage] Got user profile directly from API:', member);
+        } catch (err) {
+          console.log('[UserProfilePage] Could not get user profile directly, checking family members');
+          
+          // Fall back to searching in family members
+          const family = await api.getFamilyBySlug(subdomainInfo.familySlug);
+          member = family.members.find(m => m.id === params.userId || m.userId === params.userId) || null;
+          
+          if (!member) {
+            console.log('[UserProfilePage] User not found:', params.userId);
+            console.log('[UserProfilePage] Available members:', family.members.map(m => ({ id: m.id, userId: m.userId, name: m.name })));
+            setError('User profile not found');
+            return;
+          }
         }
 
         console.log('[UserProfilePage] Profile loaded successfully', { memberId: member.id, userId: member.userId });
