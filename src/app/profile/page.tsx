@@ -91,19 +91,32 @@ export default function ProfilePage() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div 
+      className="min-h-screen bg-gray-50"
+      style={{ '--theme-color': currentTheme.color } as React.CSSProperties}
+    >
       {/* Header */}
-      <div className="bg-white border-b border-gray-200 shadow-sm">
+      <div 
+        className="bg-white border-b shadow-sm"
+        style={{ 
+          borderBottomColor: currentTheme.color + '20',
+          backgroundColor: currentTheme.color + '05'
+        }}
+      >
         <div className="max-w-4xl mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
-            <h1 className="text-2xl font-bold text-gray-900">
+            <h1 
+              className="text-2xl font-bold"
+              style={{ color: currentTheme.color }}
+            >
               {isChildProfile ? `${selectedChild?.name}'s Profile` : 'My Profile'}
             </h1>
             <Link
               href={user.memberships && user.memberships.length > 0 
                 ? '/families/select' 
                 : '/'}
-              className="text-blue-600 hover:text-blue-700 font-medium"
+              className="font-medium hover:opacity-80 transition-opacity"
+              style={{ color: currentTheme.color }}
             >
               Back to Families
             </Link>
@@ -163,7 +176,8 @@ export default function ProfilePage() {
             {!editMode && (
               <button
                 onClick={() => setEditMode(true)}
-                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                className="px-4 py-2 text-white rounded-lg hover:opacity-90 transition-opacity"
+                style={{ backgroundColor: currentTheme.color }}
               >
                 Edit Profile
               </button>
@@ -249,7 +263,8 @@ export default function ProfilePage() {
                 <button
                   onClick={handleSaveProfile}
                   disabled={saving}
-                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:bg-gray-400"
+                  className="px-4 py-2 text-white rounded-lg hover:opacity-90 transition-opacity disabled:bg-gray-400"
+                  style={{ backgroundColor: currentTheme.color }}
                 >
                   {saving ? 'Saving...' : 'Save Changes'}
                 </button>
