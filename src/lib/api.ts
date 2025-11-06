@@ -342,21 +342,30 @@ class KinjarAPI {
       const family = response.family;
       
       console.log('[API] Family members before transform:', family.members);
+      console.log('[API] First member raw data:', family.members?.[0]);
       
       // Transform members to match frontend expectations
-      const transformedMembers = (family.members || response.members || []).map((member: any) => ({
-        ...member,
-        // Backend returns user_id as 'id', but frontend expects both 'id' and 'userId'  
-        id: member.id, // Keep the original id (user_id from backend)
-        userId: member.id, // Also set userId to the same value for consistency
-        name: member.name || member.display_name || member.email?.split('@')[0] || 'User',
-        avatarColor: member.avatarColor || member.avatar_color || '#3B82F6',
-        avatarUrl: member.avatarUrl || member.avatar_url,
-        birthdate: member.birthdate,
-        joinedAt: member.joined_at || member.joinedAt || member.createdAt || new Date().toISOString()
-      }));
+      const transformedMembers = (family.members || response.members || []).map((member: any) => {
+        console.log('[API] Transforming member:', { 
+          originalId: member.id, 
+          userId: member.userId,
+          user_id: member.user_id,
+          name: member.name 
+        });
+        return {
+          ...member,
+          // Backend returns user_id as 'id', but frontend expects both 'id' and 'userId'  
+          id: member.id || member.userId || member.user_id, // Try all possible fields
+          userId: member.userId || member.id || member.user_id, // Also set userId
+          name: member.name || member.display_name || member.email?.split('@')[0] || 'User',
+          avatarColor: member.avatarColor || member.avatar_color || '#3B82F6',
+          avatarUrl: member.avatarUrl || member.avatar_url,
+          birthdate: member.birthdate,
+          joinedAt: member.joined_at || member.joinedAt || member.createdAt || new Date().toISOString()
+        };
+      });
       
-      console.log('[API] Transformed family members:', transformedMembers.map((m: any) => ({ id: m.id, name: m.name, avatarColor: m.avatarColor })));
+      console.log('[API] Transformed family members:', transformedMembers.map((m: any) => ({ id: m.id, userId: m.userId, name: m.name, avatarColor: m.avatarColor })));
       
       return {
         ...family,
