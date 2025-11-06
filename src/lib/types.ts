@@ -44,10 +44,18 @@ export interface NotificationSettings {
   };
 }
 
+export interface Theme {
+  id: string;
+  name: string;
+  color: string;
+  secondary?: string;
+}
+
 export interface FamilyMemberProfile {
   id: string;
   userId?: string;
   name: string;
+  theme?: Theme;
   email: string;
   role: FamilyRole;
   avatarColor: string;

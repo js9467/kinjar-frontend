@@ -39,6 +39,7 @@ function ChildProfilePageContent({ params }: { params: { childId: string } }) {
   // Edit state
   const [editMode, setEditMode] = useState(false);
   const [editBio, setEditBio] = useState('');
+  const [selectedTheme, setSelectedTheme] = useState<Theme | null>(null);
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState('');
 
@@ -231,9 +232,16 @@ function ChildProfilePageContent({ params }: { params: { childId: string } }) {
                           setSaving(true);
                           setSaveError('');
                           try {
-                            // Save bio via API
-                            await api.updateUserProfile({ bio: editBio });
-                            setChildProfile(prev => prev ? { ...prev, bio: editBio } : null);
+                            // Save bio via child profile API
+                            await api.updateChildProfile(params.childId, { 
+                              bio: editBio,
+                              theme: selectedTheme || undefined
+                            });
+                            setChildProfile(prev => prev ? { 
+                              ...prev, 
+                              bio: editBio,
+                              theme: selectedTheme || prev.theme
+                            } : null);
                             setEditMode(false);
                           } catch (err) {
                             setSaveError('Failed to save bio');

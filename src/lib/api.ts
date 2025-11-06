@@ -893,6 +893,20 @@ class KinjarAPI {
     });
   }
 
+  // Profile Management
+  async updateChildProfile(childId: string, data: {
+    bio?: string;
+    theme?: Theme;
+    avatarColor?: string;
+  }): Promise<void> {
+    console.log(`[API] Updating child profile for ${childId}:`, data);
+    
+    await this.request(`/api/child-profiles/${childId}`, {
+      method: 'PATCH',
+      body: JSON.stringify(data)
+    });
+  }
+
   // User Profile Management
   async updateUserProfile(data: {
     displayName?: string;
