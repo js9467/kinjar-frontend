@@ -925,6 +925,28 @@ class KinjarAPI {
     }, tenantSlug);
   }
 
+  async cancelInvitation(invitationId: string, tenantSlug: string): Promise<{
+    ok: boolean;
+    message: string;
+    type: 'member_invitation' | 'family_creation';
+  }> {
+    return this.request(`/api/families/invitations/${invitationId}`, {
+      method: 'DELETE',
+    }, tenantSlug);
+  }
+
+  async resendInvitation(invitationId: string, tenantSlug: string): Promise<{
+    ok: boolean;
+    message: string;
+    type: 'member_invitation' | 'family_creation';
+    emailSent: boolean;
+    expiresAt: string;
+  }> {
+    return this.request(`/api/families/invitations/${invitationId}/resend`, {
+      method: 'POST',
+    }, tenantSlug);
+  }
+
   async getFamilyCreationInvitationDetails(token: string): Promise<{
     invitation: {
       id: string;

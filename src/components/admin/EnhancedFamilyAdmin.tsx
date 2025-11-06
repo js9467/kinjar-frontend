@@ -453,7 +453,47 @@ export function EnhancedFamilyAdmin({ familyId, familySlug }: EnhancedFamilyAdmi
                           </div>
                         </div>
                         <div className="flex space-x-2">
-                          <span className="text-sm text-amber-600 font-medium">Invited</span>
+                          <button
+                            onClick={async () => {
+                              if (confirm(`Resend invitation to ${pendingMember.name}?`)) {
+                                try {
+                                  setLoading(true);
+                                  await api.resendInvitation(pendingMember.id, familySlug);
+                                  alert('Invitation resent successfully!');
+                                } catch (error) {
+                                  console.error('Failed to resend invitation:', error);
+                                  alert('Failed to resend invitation. Please try again.');
+                                } finally {
+                                  setLoading(false);
+                                }
+                              }
+                            }}
+                            className="px-3 py-1 text-sm font-medium text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded-md transition-colors"
+                            disabled={loading}
+                          >
+                            Resend
+                          </button>
+                          <button
+                            onClick={async () => {
+                              if (confirm(`Cancel invitation for ${pendingMember.name}?`)) {
+                                try {
+                                  setLoading(true);
+                                  await api.cancelInvitation(pendingMember.id, familySlug);
+                                  alert('Invitation cancelled successfully');
+                                  loadMembers(); // Refresh the list
+                                } catch (error) {
+                                  console.error('Failed to cancel invitation:', error);
+                                  alert('Failed to cancel invitation. Please try again.');
+                                } finally {
+                                  setLoading(false);
+                                }
+                              }
+                            }}
+                            className="px-3 py-1 text-sm font-medium text-red-600 hover:text-red-800 hover:bg-red-50 rounded-md transition-colors"
+                            disabled={loading}
+                          >
+                            Cancel
+                          </button>
                         </div>
                       </div>
                     ))}
