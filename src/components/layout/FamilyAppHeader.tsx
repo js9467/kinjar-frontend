@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
+import Link from 'next/link';
 import { AuthUser } from '@/lib/types';
 import { useOptionalChildContext } from '@/lib/child-context';
 import { useTheme } from '@/lib/theme-context';
@@ -273,12 +274,12 @@ export function FamilyAppHeader({
           {/* Navigation and Actions */}
           <div className="flex items-center gap-3">
             {/* Profile Button - shows current acting user's profile */}
-            <a
+            <Link
               href={childContext?.isActingAsChild ? `/profile/${currentActingUser.id}` : "/profile"}
               className="rounded-full border border-slate-300 px-4 py-2 text-sm font-medium text-slate-600 transition hover:border-slate-400 hover:text-slate-900"
             >
               {childContext?.isActingAsChild ? `${currentActingUser.name}'s Profile` : 'Profile'}
-            </a>
+            </Link>
             
             {/* Connections Button - hide in child mode */}
             {onConnectionsClick && !childContext?.isActingAsChild && (
