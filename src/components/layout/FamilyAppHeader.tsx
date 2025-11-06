@@ -30,6 +30,15 @@ interface FamilyAppHeaderProps {
   onLogout: () => void;
   actions?: React.ReactNode;
   showChildSelector?: boolean;
+  // Navigation props
+  stats?: {
+    members: number;
+    posts: number;
+    connections: number;
+  };
+  onConnectionsClick?: () => void;
+  onMembersClick?: () => void;
+  onChangePasswordClick?: () => void;
 }
 
 export function FamilyAppHeader({ 
@@ -38,7 +47,11 @@ export function FamilyAppHeader({
   user, 
   onLogout, 
   actions,
-  showChildSelector = true 
+  showChildSelector = true,
+  stats,
+  onConnectionsClick,
+  onMembersClick,
+  onChangePasswordClick
 }: FamilyAppHeaderProps) {
   const childContext = useOptionalChildContext();
   const [showChildDropdown, setShowChildDropdown] = useState(false);
@@ -64,7 +77,7 @@ export function FamilyAppHeader({
   };
 
   return (
-    <header className="border-b border-slate-200 bg-white/90 backdrop-blur">
+    <header className="sticky top-0 z-50 border-b border-slate-200 bg-white/95 backdrop-blur-sm shadow-sm">
       <div className="mx-auto flex max-w-7xl flex-col gap-4 px-4 py-6 sm:flex-row sm:items-center sm:justify-between sm:py-8 lg:px-8">
         <div>
           <p className="text-sm font-medium uppercase tracking-wide text-indigo-600">Kinjar Family Space</p>
@@ -72,9 +85,42 @@ export function FamilyAppHeader({
           {description && (
             <p className="mt-2 max-w-2xl text-sm text-slate-600 sm:text-base">{description}</p>
           )}
+          {/* Family Stats */}
+          {stats && (
+            <div className="mt-3 flex items-center gap-4 text-sm text-slate-600">
+              <button 
+                onClick={onMembersClick}
+                className="hover:text-slate-900 transition-colors"
+              >
+                {stats.members} member{stats.members === 1 ? '' : 's'}
+              </button>
+              <span>•</span>
+              <span>{stats.posts} post{stats.posts === 1 ? '' : 's'}</span>
+              <span>•</span>
+              <button 
+                onClick={onConnectionsClick}
+                className="hover:text-slate-900 transition-colors"
+              >
+                {stats.connections} connection{stats.connections === 1 ? '' : 's'}
+              </button>
+            </div>
+          )}
         </div>
         
         <div className="flex flex-col items-stretch gap-3 sm:flex-row sm:items-center sm:gap-4">
+          {/* Exit Child Mode Button - Prominent when in child mode */}
+          {childContext?.isActingAsChild && (
+            <button
+              onClick={handleReturnToParent}
+              className="flex items-center gap-2 rounded-lg bg-orange-100 border border-orange-300 px-4 py-2 text-sm font-medium text-orange-700 transition hover:bg-orange-200"
+            >
+              <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+              </svg>
+              Exit Child Mode
+            </button>
+          )}
+
           {/* Current User/Child Display */}
           <div className="flex items-center gap-3 rounded-full border border-slate-200 bg-white px-4 py-2 shadow-sm">
             <span
@@ -127,7 +173,9 @@ export function FamilyAppHeader({
               </button>
 
               {showChildDropdown && (
-                <div className="absolute right-0 top-full z-50 mt-2 w-64 rounded-lg border border-slate-200 bg-white py-2 shadow-lg">
+                <div className="absolute right-0 top-full z-[60] mt-2 w-64 rounded-lg border border-slate-200 bg-white py-2 shadow-xl"
+                  style={{ zIndex: 9999 }}
+                >
                   {/* Return to Parent Option */}
                   {childContext.isActingAsChild && (
                     <>
@@ -210,8 +258,36 @@ export function FamilyAppHeader({
             </div>
           )}
 
-          {/* Actions and Logout */}
+          {/* Navigation and Actions */}
           <div className="flex items-center gap-3">
+            {/* Profile Button */}
+            <a
+              href="/profile"
+              className="rounded-full border border-slate-300 px-4 py-2 text-sm font-medium text-slate-600 transition hover:border-slate-400 hover:text-slate-900"
+            >
+              Profile
+            </a>
+            
+            {/* Connections Button */}
+            {onConnectionsClick && (
+              <button
+                onClick={onConnectionsClick}
+                className="rounded-full border border-slate-300 px-4 py-2 text-sm font-medium text-slate-600 transition hover:border-slate-400 hover:text-slate-900"
+              >
+                Connections
+              </button>
+            )}
+            
+            {/* Change Password Button */}
+            {onChangePasswordClick && (
+              <button
+                onClick={onChangePasswordClick}
+                className="hidden sm:block rounded-full border border-slate-300 px-4 py-2 text-sm font-medium text-slate-600 transition hover:border-slate-400 hover:text-slate-900"
+              >
+                Password
+              </button>
+            )}
+            
             {actions}
             <button
               type="button"
@@ -227,8 +303,9 @@ export function FamilyAppHeader({
       {/* Click outside to close dropdown */}
       {showChildDropdown && (
         <div 
-          className="fixed inset-0 z-40" 
+          className="fixed inset-0 z-[55]" 
           onClick={() => setShowChildDropdown(false)}
+          style={{ zIndex: 9998 }}
         />
       )}
     </header>

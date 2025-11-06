@@ -509,6 +509,20 @@ export function FamilyDashboard({ familySlug }: FamilyDashboardProps) {
           title={family.name}
           description={family.description}
           user={user!}
+          stats={{
+            members: family.members.length,
+            posts: posts.length,
+            connections: (family.connectedFamilies || []).length,
+          }}
+          onConnectionsClick={() => setShowConnectionsModal(true)}
+          onMembersClick={() => {
+            // Scroll to members section or handle members view
+            const membersSection = document.getElementById('family-members');
+            if (membersSection) {
+              membersSection.scrollIntoView({ behavior: 'smooth' });
+            }
+          }}
+          onChangePasswordClick={() => setShowChangePasswordModal(true)}
           onLogout={async () => {
             await api.logout();
             window.location.href = '/auth/login';
@@ -516,124 +530,22 @@ export function FamilyDashboard({ familySlug }: FamilyDashboardProps) {
           actions={
             <div className="flex items-center gap-3">
               {canManageFamily(family.id) && (
-                <Link
-                  href="/family-admin"
-                  className="bg-indigo-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-indigo-700 transition-colors"
+                <button
+                  onClick={() => setShowAdminInterface(!showAdminInterface)}
+                  className={`rounded-lg px-4 py-2 text-sm font-medium transition-colors ${
+                    showAdminInterface
+                      ? 'bg-indigo-600 text-white hover:bg-indigo-700'
+                      : 'bg-indigo-100 text-indigo-700 hover:bg-indigo-200'
+                  }`}
                 >
-                  Manage Family
-                </Link>
+                  {showAdminInterface ? 'Hide Admin' : 'Manage Family'}
+                </button>
               )}
             </div>
           }
         />
 
-        {/* Family Hero Section */}
-        <div 
-          className="relative h-48 bg-gradient-to-r from-blue-600 to-purple-600"
-          style={{ backgroundColor: family.themeColor }}
-        >
-          {family.heroImage && (
-            <Image
-              src={family.heroImage}
-              alt={`${family.name} hero image`}
-              fill
-              className="object-cover"
-              priority
-            />
-          )}
-          <div className="absolute inset-0 bg-black bg-opacity-40"></div>
-          <div className="absolute bottom-0 left-0 right-0 p-6">
-            <div className="max-w-4xl mx-auto">
-            <h1 className="text-4xl font-bold text-white mb-2">{family.name}</h1>
-            <p className="text-xl text-gray-200">{family.description}</p>
-            <div className="mt-4 flex items-center gap-4 text-gray-200">
-              <span>{family.members.length} member{family.members.length === 1 ? '' : 's'}</span>
-              <span>•</span>
-              <span>{posts.length} post{posts.length === 1 ? '' : 's'}</span>
-              <span>•</span>
-              <span>{(family.connectedFamilies || []).length} connection{(family.connectedFamilies || []).length === 1 ? '' : 's'}</span>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* User Info Header */}
-      {user && (
-        <div className="bg-white border-b border-gray-200 shadow-sm">
-          <div className="max-w-4xl mx-auto px-4 py-4">
-            <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-              <div className="flex items-center gap-3">
-                <span
-                  className="inline-flex h-10 w-10 items-center justify-center rounded-full text-sm font-semibold text-white flex-shrink-0"
-                  style={{ backgroundColor: user.avatarColor }}
-                >
-                  {(user.name || 'User')
-                    .split(' ')
-                    .map((part) => part[0])
-                    .join('')}
-                </span>
-                <div className="min-w-0">
-                  <p className="text-sm font-semibold text-gray-900 truncate">{user.name}</p>
-                  <p className="text-xs text-gray-500 truncate">{user.email}</p>
-                </div>
-              </div>
-              <div className="flex flex-wrap items-center gap-2 w-full md:w-auto">
-                {/* Profile button */}
-                <Link
-                  href="/profile"
-                  className="px-3 py-2 text-xs md:text-sm font-medium text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors flex items-center gap-1.5"
-                >
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                  </svg>
-                  <span className="hidden sm:inline">Profile</span>
-                </Link>
-                {/* Connections button */}
-                <button
-                  onClick={() => setShowConnectionsModal(true)}
-                  className="px-3 py-2 text-xs md:text-sm font-medium text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors flex items-center gap-1.5"
-                >
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
-                  </svg>
-                  <span className="hidden sm:inline">Connections</span>
-                </button>
-                {/* Change Password button */}
-                <button
-                  onClick={() => setShowChangePasswordModal(true)}
-                  className="px-3 py-2 text-xs md:text-sm font-medium text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors hidden md:flex"
-                >
-                  Change Password
-                </button>
-                {/* Admin button for family managers */}
-                {(canManageFamily(family?.id) || canManageFamily(family?.slug)) && (
-                  <button
-                    onClick={() => setShowAdminInterface(!showAdminInterface)}
-                    className={`px-3 py-2 text-xs md:text-sm font-medium rounded-lg transition-colors ${
-                      showAdminInterface
-                        ? 'bg-blue-600 text-white hover:bg-blue-700'
-                        : 'bg-blue-100 text-blue-700 hover:bg-blue-200'
-                    }`}
-                  >
-                    {showAdminInterface ? 'Hide' : 'Manage Family'}
-                  </button>
-                )}
-                <button
-                  onClick={() => {
-                    api.logout();
-                    window.location.reload();
-                  }}
-                  className="px-3 py-2 text-xs md:text-sm font-medium text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
-                >
-                  Sign Out
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Main Content */}
+        {/* Main Content */}
       <div className="max-w-4xl mx-auto px-4 py-8">
         {/* Enhanced Family Admin Interface */}
         {showAdminInterface && loading && (
@@ -931,7 +843,7 @@ export function FamilyDashboard({ familySlug }: FamilyDashboardProps) {
             </div>
 
             {/* Family Members */}
-            <div className="bg-white rounded-lg border border-gray-200 p-6">
+            <div id="family-members" className="bg-white rounded-lg border border-gray-200 p-6">
               <h2 className="text-lg font-semibold text-gray-900 mb-4">Family Members</h2>
               <div className="space-y-3">
                 {family.members.map((member) => (
