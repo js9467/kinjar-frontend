@@ -14,6 +14,17 @@ export interface UploadResponse {
   url: string;
 }
 
+// Headers configuration function to include child mode
+function getHeaders(childId?: string) {
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+  };
+  if (childId) {
+    headers['x-acting-as-child'] = 'true';
+  }
+  return headers;
+}
+
 // Hardcode the API base URL to prevent any environment variable issues
 const API_BASE_URL = 'https://kinjar-api.fly.dev';
 
@@ -212,6 +223,12 @@ class KinjarAPI {
       if (subdomainInfo.isSubdomain && subdomainInfo.familySlug) {
         targetTenantSlug = subdomainInfo.familySlug;
       }
+    }
+
+    // Add child mode header if acting as child
+    if (this._actingAsChild) {
+      headers['x-acting-as-child'] = 'true';
+      console.log(`[API Request] Setting x-acting-as-child header for: ${this._actingAsChild.name}`);
     }
 
     if (targetTenantSlug) {

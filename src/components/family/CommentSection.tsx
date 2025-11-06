@@ -133,13 +133,15 @@ export function CommentSection({ post, onCommentAdded, onError }: CommentSection
   const canEditComment = (comment: PostComment): boolean => {
     if (!user) return false;
     
-    // User can edit their own comments
-    if (comment.authorName === user.name) return true;
-    
-    // Adults/admins can edit child comments
-    // For now, we'll allow editing if the user is an adult (this should match the backend logic)
-    // In a more complete implementation, we'd check if the comment author is a child
     const userRole = user.memberships?.find(m => m.familySlug === post.familySlug)?.role;
+    
+    // If in child mode, can only edit own comments
+    if (childContext?.isActingAsChild) {
+      const actingUser = childContext.getCurrentActingUser();
+      return comment.authorName === actingUser.name;
+    }
+    
+    // Adults/admins can edit any comment when not in child mode
     return userRole === 'ADMIN' || userRole === 'ADULT';
   };
 
@@ -149,18 +151,17 @@ export function CommentSection({ post, onCommentAdded, onError }: CommentSection
     
     const userRole = user.memberships?.find(m => m.familySlug === post.familySlug)?.role;
     
-    // ADMINs can delete any comment
+    // If in child mode, can only delete own comments
+    if (childContext?.isActingAsChild) {
+      const actingUser = childContext.getCurrentActingUser();
+      return comment.authorName === actingUser.name;
+    }
+    
+    // ADMINs can delete any comment when not in child mode
     if (userRole === 'ADMIN') return true;
     
-    // Adults can delete their own comments or child comments from their family
-    if (userRole === 'ADULT') {
-      // Can delete own comments
-      if (comment.authorName === user.name) return true;
-      
-      // Can delete child comments (this logic would need more sophisticated checking in a real app)
-      // For now, we'll be conservative and only allow deleting own comments unless admin
-      return false;
-    }
+    // Adults can delete any comment when not in child mode
+    if (userRole === 'ADULT') return true;
     
     return false;
   };
