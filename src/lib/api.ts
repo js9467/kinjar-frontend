@@ -910,9 +910,27 @@ class KinjarAPI {
   }): Promise<void> {
     console.log(`[API] Updating child profile for ${childId}:`, data);
     
-    await this.request(`/api/child-profiles/${childId}`, {
+    // Get the current family from subdomain to make the correct API call
+    const subdomainInfo = getSubdomainInfo();
+    const familySlug = subdomainInfo.familySlug;
+    
+    if (!familySlug) {
+      throw new Error('No family context found');
+    }
+    
+    // Get the family to find the tenant ID
+    const family = await this.getFamilyBySlug(familySlug);
+    
+    // Map the child profile data to the family member update format
+    const updateData: any = {};
+    if (data.bio !== undefined) {
+      updateData.quote = data.bio; // Backend expects 'quote' field, mapped to bio in profile
+    }
+    // Note: Theme and avatarColor updates may need additional handling
+    
+    await this.request(`/api/family/${family.id}/member/${childId}`, {
       method: 'PATCH',
-      body: JSON.stringify(data)
+      body: JSON.stringify(updateData)
     });
   }
 
