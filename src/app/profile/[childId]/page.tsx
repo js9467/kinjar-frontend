@@ -394,10 +394,15 @@ function ChildProfilePageContent({ params }: { params: { childId: string } }) {
 }
 
 function ChildProfileWrapper({ params }: { params: { childId: string } }) {
+  console.log('[ChildProfileWrapper] Rendering with childId:', params.childId);
+  
   const subdomainInfo = getSubdomainInfo();
   const familySlug = subdomainInfo.familySlug;
   
+  console.log('[ChildProfileWrapper] Subdomain info:', subdomainInfo);
+  
   if (!familySlug) {
+    console.log('[ChildProfileWrapper] No family slug, showing error');
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
@@ -407,6 +412,7 @@ function ChildProfileWrapper({ params }: { params: { childId: string } }) {
     );
   }
   
+  console.log('[ChildProfileWrapper] Rendering ChildProvider with familySlug:', familySlug);
   return (
     <ChildProvider familySlug={familySlug}>
       <ChildProfilePageContent params={params} />
