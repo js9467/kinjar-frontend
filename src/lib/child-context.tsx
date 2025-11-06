@@ -99,6 +99,28 @@ export const ChildProvider = ({ children, familyId, familySlug }: ChildProviderP
     loadAvailableChildren();
   }, [loadAvailableChildren]);
 
+  // Immediate restoration from sessionStorage (doesn't wait for availableChildren)
+  useEffect(() => {
+    if (!effectiveFamilySlug) return;
+    
+    const stored = sessionStorage.getItem(`selected-child-${effectiveFamilySlug}`);
+    if (stored) {
+      try {
+        const child = JSON.parse(stored);
+        setSelectedChild(child);
+        api.setActingAsChild({
+          id: child.id,
+          name: child.name,
+          avatarColor: child.avatarColor,
+          avatarUrl: child.avatarUrl,
+        });
+        console.log('[ChildProvider] Restored child from sessionStorage:', child.name);
+      } catch (error) {
+        console.error('Failed to restore selected child:', error);
+      }
+    }
+  }, [effectiveFamilySlug]);
+
   const selectChild = useCallback((child: FamilyMemberProfile | null) => {
     setSelectedChild(child);
     
@@ -122,36 +144,18 @@ export const ChildProvider = ({ children, familyId, familySlug }: ChildProviderP
     }
   }, [effectiveFamilySlug]);
 
-  // Restore selected child from sessionStorage on mount
+  // Validate selected child when available children are loaded
   useEffect(() => {
-    if (!effectiveFamilySlug) return;
+    if (!effectiveFamilySlug || !selectedChild || availableChildren.length === 0) return;
     
-    const stored = sessionStorage.getItem(`selected-child-${effectiveFamilySlug}`);
-    if (stored) {
-      try {
-        const child = JSON.parse(stored);
-        // Verify this child is still available
-        setSelectedChild(prev => {
-          const isValid = availableChildren.some(ac => ac.id === child.id);
-          const validChild = isValid ? child : prev;
-          
-          // Update API with restored child
-          if (validChild) {
-            api.setActingAsChild({
-              id: validChild.id,
-              name: validChild.name,
-              avatarColor: validChild.avatarColor,
-              avatarUrl: validChild.avatarUrl,
-            });
-          }
-          
-          return validChild;
-        });
-      } catch (error) {
-        console.error('Failed to restore selected child:', error);
-      }
+    const isValid = availableChildren.some(ac => ac.id === selectedChild.id);
+    if (!isValid) {
+      console.log('[ChildProvider] Selected child is no longer valid, clearing selection');
+      setSelectedChild(null);
+      api.setActingAsChild(null);
+      sessionStorage.removeItem(`selected-child-${effectiveFamilySlug}`);
     }
-  }, [effectiveFamilySlug, availableChildren]);
+  }, [availableChildren, selectedChild, effectiveFamilySlug]);
 
   const getCurrentActingUser = useCallback(() => {
     if (selectedChild) {

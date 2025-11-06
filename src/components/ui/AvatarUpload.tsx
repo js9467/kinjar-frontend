@@ -9,6 +9,7 @@ interface AvatarUploadProps {
   userName: string;
   onUploadSuccess: (avatarUrl: string) => void;
   onError: (error: string) => void;
+  disabled?: boolean;
 }
 
 export function AvatarUpload({ 
@@ -16,14 +17,15 @@ export function AvatarUpload({
   currentAvatarColor, 
   userName, 
   onUploadSuccess, 
-  onError 
+  onError,
+  disabled = false
 }: AvatarUploadProps) {
   const [uploading, setUploading] = useState(false);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleFileSelect = async (files: FileList | null) => {
-    if (!files || files.length === 0) return;
+    if (disabled || !files || files.length === 0) return;
 
     const file = files[0];
 
@@ -97,11 +99,12 @@ export function AvatarUpload({
         accept="image/*"
         onChange={(e) => handleFileSelect(e.target.files)}
         className="hidden"
+        disabled={disabled}
       />
 
       <div 
-        className="relative w-24 h-24 rounded-full overflow-hidden cursor-pointer group"
-        onClick={() => fileInputRef.current?.click()}
+        className={`relative w-24 h-24 rounded-full overflow-hidden ${disabled ? 'cursor-default' : 'cursor-pointer'} group`}
+        onClick={disabled ? undefined : () => fileInputRef.current?.click()}
       >
         {previewUrl || currentAvatarUrl ? (
           <img
@@ -119,17 +122,19 @@ export function AvatarUpload({
         )}
 
         {/* Overlay on hover */}
-        <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-50 transition-all flex items-center justify-center">
-          <svg 
-            className="w-8 h-8 text-white opacity-0 group-hover:opacity-100 transition-opacity" 
-            fill="none" 
-            stroke="currentColor" 
-            viewBox="0 0 24 24"
-          >
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
-          </svg>
-        </div>
+        {!disabled && (
+          <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-50 transition-all flex items-center justify-center">
+            <svg 
+              className="w-8 h-8 text-white opacity-0 group-hover:opacity-100 transition-opacity" 
+              fill="none" 
+              stroke="currentColor" 
+              viewBox="0 0 24 24"
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+            </svg>
+          </div>
+        )}
 
         {uploading && (
           <div className="absolute inset-0 bg-black bg-opacity-70 flex items-center justify-center">
@@ -138,13 +143,15 @@ export function AvatarUpload({
         )}
       </div>
 
-      <button
-        onClick={() => fileInputRef.current?.click()}
-        disabled={uploading}
-        className="mt-2 text-sm text-blue-600 hover:text-blue-700 font-medium disabled:opacity-50"
-      >
-        {currentAvatarUrl ? 'Change Photo' : 'Upload Photo'}
-      </button>
+      {!disabled && (
+        <button
+          onClick={() => fileInputRef.current?.click()}
+          disabled={uploading}
+          className="mt-2 text-sm text-blue-600 hover:text-blue-700 font-medium disabled:opacity-50"
+        >
+          {currentAvatarUrl ? 'Change Photo' : 'Upload Photo'}
+        </button>
+      )}
     </div>
   );
 }

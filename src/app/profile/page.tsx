@@ -8,9 +8,14 @@ import { ChangePasswordModal } from '@/components/ui/ChangePasswordModal';
 import { AvatarUpload } from '@/components/ui/AvatarUpload';
 import { useOptionalChildContext } from '@/lib/child-context';
 import { useOptionalTheme, Theme } from '@/lib/theme-context';
+import { FamilyMemberProfile } from '@/lib/types';
 import Link from 'next/link';
 
-export default function ProfilePage() {
+interface ProfilePageProps {
+  childProfile?: FamilyMemberProfile;
+}
+
+export default function ProfilePage({ childProfile }: ProfilePageProps) {
   const { user } = useAuth();
   const childContext = useOptionalChildContext();
   const selectedChild = childContext?.selectedChild;
@@ -26,8 +31,8 @@ export default function ProfilePage() {
   const [success, setSuccess] = useState('');
 
   // Determine if we're viewing/editing a child profile
-  const isChildProfile = !!selectedChild;
-  const currentProfile = selectedChild || user;
+  const isChildProfile = !!(selectedChild || childProfile);
+  const currentProfile = childProfile || selectedChild || user;
 
   // Initialize form fields when user/child is loaded
   useEffect(() => {
@@ -60,6 +65,10 @@ export default function ProfilePage() {
 
       if (isChildProfile && selectedChild) {
         setSuccess('Child profile updated successfully!');
+      } else if (childProfile) {
+        // External child profile - not editable
+        setError('You cannot edit this profile');
+        return;
       } else {
         // Update user profile
         await api.updateUserProfile({ 
@@ -109,7 +118,12 @@ export default function ProfilePage() {
               className="text-2xl font-bold"
               style={{ color: currentTheme.color }}
             >
-              {isChildProfile ? `${selectedChild?.name}'s Profile` : 'My Profile'}
+              {childProfile 
+                ? `${childProfile.name}'s Profile`
+                : isChildProfile 
+                  ? `${selectedChild?.name}'s Profile` 
+                  : 'My Profile'
+              }
             </h1>
             <Link
               href={user.memberships && user.memberships.length > 0 
@@ -146,13 +160,14 @@ export default function ProfilePage() {
               userName={currentProfile?.name || 'User'}
               onUploadSuccess={handleAvatarUploadSuccess}
               onError={handleAvatarUploadError}
+              disabled={!!childProfile}
             />
             <div className="flex-1">
               <div className="flex items-center gap-3 mb-2">
                 <h2 className="text-2xl font-bold text-gray-900">{currentProfile?.name}</h2>
-                {isChildProfile && (
+                {(isChildProfile || childProfile) && (
                   <span className="px-3 py-1 bg-blue-100 text-blue-800 text-sm rounded-full font-medium">
-                    Child Profile
+                    {childProfile ? 'Family Member' : 'Child Profile'}
                   </span>
                 )}
               </div>
@@ -173,7 +188,7 @@ export default function ProfilePage() {
                 </span>
               </div>
             </div>
-            {!editMode && (
+            {!editMode && !childProfile && (
               <button
                 onClick={() => setEditMode(true)}
                 className="px-4 py-2 text-white rounded-lg hover:opacity-90 transition-opacity"

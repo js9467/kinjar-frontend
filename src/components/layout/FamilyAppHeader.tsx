@@ -274,14 +274,14 @@ export function FamilyAppHeader({
           <div className="flex items-center gap-3">
             {/* Profile Button - shows current acting user's profile */}
             <a
-              href="/profile"
+              href={childContext?.isActingAsChild ? `/profile/${currentActingUser.id}` : "/profile"}
               className="rounded-full border border-slate-300 px-4 py-2 text-sm font-medium text-slate-600 transition hover:border-slate-400 hover:text-slate-900"
             >
               {childContext?.isActingAsChild ? `${currentActingUser.name}'s Profile` : 'Profile'}
             </a>
             
-            {/* Connections Button */}
-            {onConnectionsClick && (
+            {/* Connections Button - hide in child mode */}
+            {onConnectionsClick && !childContext?.isActingAsChild && (
               <button
                 onClick={onConnectionsClick}
                 className="rounded-full border border-slate-300 px-4 py-2 text-sm font-medium text-slate-600 transition hover:border-slate-400 hover:text-slate-900"
