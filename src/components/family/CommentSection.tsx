@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import Link from 'next/link';
 import { PostComment, FamilyPost } from '@/lib/types';
 import { api } from '@/lib/api';
 import { useAuth } from '@/lib/auth';
@@ -259,16 +260,16 @@ export function CommentSection({ post, onCommentAdded, onError, familyMembers = 
         <div className="space-y-3 bg-gray-50 rounded-lg p-4">
           {comments.map((comment) => (
             <div key={comment.id} className="flex items-start gap-3">
-              <div className="flex-shrink-0">
+              <Link href={`/profile/${comment.authorId}`} className="flex-shrink-0">
                 {comment.authorAvatarUrl ? (
                   <img
                     src={comment.authorAvatarUrl}
                     alt={`${comment.authorName}'s avatar`}
-                    className="w-8 h-8 rounded-full object-cover border"
+                    className="w-8 h-8 rounded-full object-cover border cursor-pointer hover:opacity-80 transition-opacity"
                   />
                 ) : (
                   <div 
-                    className="w-8 h-8 rounded-full flex items-center justify-center text-white text-sm font-semibold"
+                    className="w-8 h-8 rounded-full flex items-center justify-center text-white text-sm font-semibold cursor-pointer hover:opacity-80 transition-opacity"
                     style={{ backgroundColor: comment.authorAvatarColor }}
                   >
                     {comment.authorName
@@ -278,12 +279,14 @@ export function CommentSection({ post, onCommentAdded, onError, familyMembers = 
                       .slice(0, 2)}
                   </div>
                 )}
-              </div>
+              </Link>
               <div className="flex-1 min-w-0">
                 <div className="bg-white rounded-lg p-3 shadow-sm">
                     <div className="flex items-center justify-between mb-1">
                     <div className="flex items-center gap-2">
-                      <span className="font-semibold text-gray-900 text-sm">{comment.authorName}</span>
+                      <Link href={`/profile/${comment.authorId}`} className="font-semibold text-gray-900 text-sm hover:text-indigo-600 transition-colors">
+                        {comment.authorName}
+                      </Link>
                       <span className="text-xs text-gray-500">
                         {new Date(comment.createdAt).toLocaleDateString()} at{' '}
                         {new Date(comment.createdAt).toLocaleTimeString([], { 

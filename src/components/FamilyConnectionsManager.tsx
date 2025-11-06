@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import Link from 'next/link';
 import { api } from '@/lib/api';
 import { useAuth } from '@/lib/auth';
 
@@ -457,7 +458,11 @@ export function FamilyConnectionsManager({ tenantSlug }: FamilyConnectionsManage
                   </h4>
                   <div className="space-y-2">
                     {selectedFamily.members.map((member) => (
-                      <div key={member.id} className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
+                      <Link 
+                        key={member.id} 
+                        href={`/profile/${member.id}`}
+                        className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
+                      >
                         <div
                           className="w-10 h-10 rounded-full flex items-center justify-center text-white font-semibold text-sm"
                           style={{ backgroundColor: member.avatarColor }}
@@ -470,7 +475,7 @@ export function FamilyConnectionsManager({ tenantSlug }: FamilyConnectionsManage
                             {member.age ? `${member.age} years old` : 'Age not specified'}
                           </p>
                         </div>
-                      </div>
+                      </Link>
                     ))}
                   </div>
                 </div>

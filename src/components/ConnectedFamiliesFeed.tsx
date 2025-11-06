@@ -249,16 +249,16 @@ export function ConnectedFamiliesFeed({ tenantSlug, limit = 20 }: ConnectedFamil
                 <div className="space-y-3">
                   {post.comments.slice(0, 3).map((comment) => (
                     <div key={comment.id} className="flex items-start gap-3">
-                      <div className="flex-shrink-0">
+                      <Link href={`/profile/${comment.authorId}`} className="flex-shrink-0">
                         {comment.authorAvatarUrl ? (
                           <img
                             src={comment.authorAvatarUrl}
                             alt={`${comment.authorName}'s avatar`}
-                            className="w-6 h-6 rounded-full object-cover border"
+                            className="w-6 h-6 rounded-full object-cover border cursor-pointer hover:opacity-80 transition-opacity"
                           />
                         ) : (
                           <div 
-                            className="w-6 h-6 rounded-full flex items-center justify-center text-white text-xs font-semibold"
+                            className="w-6 h-6 rounded-full flex items-center justify-center text-white text-xs font-semibold cursor-pointer hover:opacity-80 transition-opacity"
                             style={{ backgroundColor: comment.authorAvatarColor }}
                           >
                             {comment.authorName
@@ -268,11 +268,13 @@ export function ConnectedFamiliesFeed({ tenantSlug, limit = 20 }: ConnectedFamil
                               .slice(0, 2)}
                           </div>
                         )}
-                      </div>
+                      </Link>
                       <div className="flex-1 min-w-0">
                         <div className="bg-gray-50 rounded-lg p-2">
                           <div className="flex items-center gap-2 mb-1">
-                            <span className="font-medium text-gray-900 text-sm">{comment.authorName}</span>
+                            <Link href={`/profile/${comment.authorId}`} className="font-medium text-gray-900 text-sm hover:text-indigo-600 transition-colors">
+                              {comment.authorName}
+                            </Link>
                             <span className="text-xs text-gray-500">
                               {formatDate(comment.createdAt)}
                             </span>
