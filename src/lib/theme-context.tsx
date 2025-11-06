@@ -58,12 +58,34 @@ export function useTheme() {
 export function useOptionalTheme() {
   const context = useContext(ThemeContext);
   if (context === undefined) {
-    // Return default theme context when not available
+    // When not in a ThemeProvider, create a minimal implementation
+    const { user } = useAuth();
+    const [currentTheme, setCurrentTheme] = useState<Theme>(ADULT_THEMES[0]);
+
+    // Load theme from localStorage on mount
+    useEffect(() => {
+      if (user) {
+        const themeKey = `userTheme_${user.id}`;
+        const savedThemeId = localStorage.getItem(themeKey) || 'blue';
+        const theme = ADULT_THEMES.find(t => t.id === savedThemeId) || ADULT_THEMES[0];
+        setCurrentTheme(theme);
+      }
+    }, [user]);
+
+    const setTheme = useCallback((themeId: string) => {
+      if (user) {
+        // Save user's theme to localStorage
+        localStorage.setItem(`userTheme_${user.id}`, themeId);
+        const theme = ADULT_THEMES.find(t => t.id === themeId);
+        if (theme) setCurrentTheme(theme);
+      }
+    }, [user]);
+
     return {
-      currentTheme: ADULT_THEMES[0],
+      currentTheme,
       allThemes: ADULT_THEMES,
       isChildTheme: false,
-      setTheme: () => {},
+      setTheme,
     };
   }
   return context;

@@ -272,9 +272,9 @@ export function FamilyAppHeader({
 
           {/* Navigation and Actions */}
           <div className="flex items-center gap-3">
-            {/* Profile Button - goes to child profile when in child mode */}
+            {/* Profile Button - shows current acting user's profile */}
             <a
-              href={childContext?.isActingAsChild ? `/profile/${childContext.selectedChild?.id}` : "/profile"}
+              href="/profile"
               className="rounded-full border border-slate-300 px-4 py-2 text-sm font-medium text-slate-600 transition hover:border-slate-400 hover:text-slate-900"
             >
               {childContext?.isActingAsChild ? `${currentActingUser.name}'s Profile` : 'Profile'}
