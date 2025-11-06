@@ -950,10 +950,10 @@ export function FamilyDashboard({ familySlug }: FamilyDashboardProps) {
               <div className="space-y-3">
                 {user.memberships && user.memberships.length > 0 && (
                   <Link
-                    href={`/families/${user.memberships[0].familySlug}`}
+                    href="/families/select"
                     className="block w-full bg-blue-600 text-white py-2 px-4 rounded-lg font-medium hover:bg-blue-700 transition-colors"
                   >
-                    Go to My Family ({user.memberships[0].familyName})
+                    Go to My Families
                   </Link>
                 )}
                 <Link

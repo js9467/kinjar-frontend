@@ -52,10 +52,10 @@ export default function HomePage() {
                 <div className="space-y-3">
                   {user.memberships && user.memberships.length > 0 ? (
                     <Link
-                      href={`/families/${user.memberships[0].familySlug}`}
+                      href="/families/select"
                       className="block w-full bg-blue-600 text-white py-2 px-4 rounded-lg font-medium hover:bg-blue-700 transition-colors"
                     >
-                      Go to My Family ({user.memberships[0].familyName})
+                      Go to My Families
                     </Link>
                   ) : (
                     <Link
@@ -98,10 +98,10 @@ export default function HomePage() {
                 <>
                   {user.memberships && user.memberships.length > 0 && (
                     <Link
-                      href={`/families/${user.memberships[0].familySlug}`}
+                      href="/families/select"
                       className="text-gray-700 hover:text-blue-600 font-medium"
                     >
-                      My Family
+                      My Families
                     </Link>
                   )}
                   <span className="text-gray-600">Hi, {user.name}!</span>
@@ -146,10 +146,10 @@ export default function HomePage() {
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             {user && user.memberships && user.memberships.length > 0 ? (
               <Link
-                href={`/families/${user.memberships[0].familySlug}`}
+                href="/families/select"
                 className="bg-blue-600 text-white px-8 py-3 rounded-lg font-medium hover:bg-blue-700 transition-colors text-lg"
               >
-                Go to My Family
+                Go to My Families
               </Link>
             ) : (
               <>

@@ -36,8 +36,9 @@ export default function LoginPage() {
         // On a family subdomain, redirect to family page
         router.replace('/');
       } else {
-        // On root domain, redirect to family selection
-        router.replace('/families');
+        // On root domain, redirect to family selection page
+        // The family selection page will handle single family vs multiple families logic
+        router.replace('/families/select');
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Login failed');

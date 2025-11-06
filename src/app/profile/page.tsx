@@ -100,11 +100,11 @@ export default function ProfilePage() {
             </h1>
             <Link
               href={user.memberships && user.memberships.length > 0 
-                ? `/families/${user.memberships[0].familySlug}` 
+                ? '/families/select' 
                 : '/'}
               className="text-blue-600 hover:text-blue-700 font-medium"
             >
-              Back to Family
+              Back to Families
             </Link>
           </div>
         </div>
