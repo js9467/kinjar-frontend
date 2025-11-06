@@ -630,35 +630,62 @@ export function FamilyDashboard({ familySlug }: FamilyDashboardProps) {
                     post.authorId === user?.id ||
                     user?.memberships?.some((membership) => membership.memberId === post.authorId);
                   
-                  // Get user's role in this family
-                  const userRole = user?.memberships?.find(m => m.familySlug === family.slug)?.role;
+                  // Get user's role in their own family
+                  const userRole = user?.memberships?.find(m => m.familySlug === effectiveFamilySlug)?.role;
                   
-                  // Edit permission: authors can edit their own posts, adults/admins can edit child posts
+                  // Check if the post author is a child in the user's family
+                  const postAuthorInUsersFamily = family.members.find(m => m.userId === post.authorId);
+                  const postAuthorIsChild = postAuthorInUsersFamily?.role?.startsWith('CHILD');
+                  
+                  // Edit permission logic:
+                  // - Users can edit their own posts
+                  // - Admins/Adults can edit posts by children in their family (even on connected family posts)
+                  // - Children can only edit their own posts
                   const canEditPost = (() => {
                     if (!user || !userRole) return false;
                     
                     // User can edit their own posts
                     if (ownsPost) return true;
                     
-                    // Adults/admins can edit child posts (simplified logic - in real app would check if author is child)
-                    // For now, we'll be conservative and only allow editing own posts unless admin
-                    if (userRole === 'ADMIN') return true;
+                    // Admins can edit posts by children in their family
+                    if (userRole === 'ADMIN' && postAuthorInUsersFamily && postAuthorIsChild) {
+                      return true;
+                    }
+                    
+                    // Adults can edit posts by children in their family
+                    if (userRole === 'ADULT' && postAuthorInUsersFamily && postAuthorIsChild) {
+                      return true;
+                    }
                     
                     return false;
                   })();
                   
-                  // Delete permission: admins can delete any post, adults can delete own posts and child posts
+                  // Delete permission logic:
+                  // - Users can delete their own posts
+                  // - Admins can delete any post in their family, or children's posts on connected families
+                  // - Adults can delete posts by children in their family (even on connected family posts)
+                  // - Children can only delete their own posts
                   const canDeletePost = (() => {
                     if (!user || !userRole) return false;
                     
-                    // ADMINs can delete any post
-                    if (userRole === 'ADMIN') return true;
+                    // User can delete their own posts
+                    if (ownsPost) return true;
                     
-                    // Adults can delete their own posts
-                    if (userRole === 'ADULT' && ownsPost) return true;
+                    // Admins can delete any post in their own family
+                    if (userRole === 'ADMIN' && post.familySlug === effectiveFamilySlug) {
+                      return true;
+                    }
                     
-                    // Adults can delete child posts (simplified logic)
-                    // For now, we'll be conservative and only allow deleting own posts unless admin
+                    // Admins can delete posts by children in their family (even on connected family posts)
+                    if (userRole === 'ADMIN' && postAuthorInUsersFamily && postAuthorIsChild) {
+                      return true;
+                    }
+                    
+                    // Adults can delete posts by children in their family (even on connected family posts)
+                    if (userRole === 'ADULT' && postAuthorInUsersFamily && postAuthorIsChild) {
+                      return true;
+                    }
+                    
                     return false;
                   })();
 
@@ -817,6 +844,11 @@ export function FamilyDashboard({ familySlug }: FamilyDashboardProps) {
                           post={post}
                           onCommentAdded={(comment) => handleCommentAdded(post.id, comment)}
                           onError={setError}
+                          familyMembers={family.members.map(m => ({
+                            userId: m.userId || m.id,
+                            name: m.name,
+                            role: m.role
+                          }))}
                         />
                       </div>
                     </article>

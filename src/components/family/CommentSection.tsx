@@ -10,9 +10,10 @@ interface CommentSectionProps {
   post: FamilyPost;
   onCommentAdded?: (comment: PostComment) => void;
   onError?: (error: string) => void;
+  familyMembers?: Array<{ userId: string; name: string; role: string }>;
 }
 
-export function CommentSection({ post, onCommentAdded, onError }: CommentSectionProps) {
+export function CommentSection({ post, onCommentAdded, onError, familyMembers = [] }: CommentSectionProps) {
   const { user } = useAuth();
   const childContext = useOptionalChildContext();
   const [newComment, setNewComment] = useState('');
@@ -129,39 +130,94 @@ export function CommentSection({ post, onCommentAdded, onError }: CommentSection
     }
   };
 
-  // Check if user can edit a comment (same logic as backend)
+  // Check if user can edit a comment
+  // Logic mirrors backend:
+  // - Users can edit their own comments
+  // - Admins/Adults can edit comments by children in their family (even on other families' posts)
+  // - When acting as child, can only edit that child's comments
   const canEditComment = (comment: PostComment): boolean => {
     if (!user) return false;
     
-    const userRole = user.memberships?.find(m => m.familySlug === post.familySlug)?.role;
+    // Get user's role in their own family (not the post's family)
+    const userMembership = user.memberships?.[0]; // User's primary family
+    const userRole = userMembership?.role;
     
-    // If in child mode, can only edit own comments
+    if (!userRole) return false;
+    
+    // If acting as a child, can only edit that child's comments
     if (childContext?.isActingAsChild) {
       const actingUser = childContext.getCurrentActingUser();
       return comment.authorName === actingUser.name;
     }
     
-    // Adults/admins can edit any comment when not in child mode
-    return userRole === 'ADMIN' || userRole === 'ADULT';
+    // Check if comment author is in user's family
+    const commentAuthorInUsersFamily = familyMembers.find(
+      m => m.name === comment.authorName
+    );
+    
+    // Admins can edit comments by children in their family
+    if (userRole === 'ADMIN' && commentAuthorInUsersFamily?.role.startsWith('CHILD')) {
+      return true;
+    }
+    
+    // Adults can edit comments by children in their family
+    if (userRole === 'ADULT' && commentAuthorInUsersFamily?.role.startsWith('CHILD')) {
+      return true;
+    }
+    
+    // Users can edit their own comments
+    if (comment.authorName === user.name || comment.authorName === currentActingUser?.name) {
+      return true;
+    }
+    
+    return false;
   };
 
   // Check if user can delete a comment
+  // Logic mirrors backend:
+  // - Users can delete their own comments
+  // - Admins can delete any comment in their family, or children's comments on other families
+  // - Adults can delete comments by children in their family (even on other families' posts)
+  // - When acting as child, can only delete that child's comments
   const canDeleteComment = (comment: PostComment): boolean => {
     if (!user) return false;
     
-    const userRole = user.memberships?.find(m => m.familySlug === post.familySlug)?.role;
+    // Get user's role in their own family (not the post's family)
+    const userMembership = user.memberships?.[0]; // User's primary family
+    const userRole = userMembership?.role;
     
-    // If in child mode, can only delete own comments
+    if (!userRole) return false;
+    
+    // If acting as a child, can only delete that child's comments
     if (childContext?.isActingAsChild) {
       const actingUser = childContext.getCurrentActingUser();
       return comment.authorName === actingUser.name;
     }
     
-    // ADMINs can delete any comment when not in child mode
-    if (userRole === 'ADMIN') return true;
+    // Check if comment author is in user's family
+    const commentAuthorInUsersFamily = familyMembers.find(
+      m => m.name === comment.authorName
+    );
     
-    // Adults can delete any comment when not in child mode
-    if (userRole === 'ADULT') return true;
+    // Admins can delete any comment in their own family's posts
+    if (userRole === 'ADMIN' && post.familySlug === userMembership.familySlug) {
+      return true;
+    }
+    
+    // Admins can delete comments by children in their family (even on other families' posts)
+    if (userRole === 'ADMIN' && commentAuthorInUsersFamily?.role.startsWith('CHILD')) {
+      return true;
+    }
+    
+    // Adults can delete comments by children in their family (even on other families' posts)
+    if (userRole === 'ADULT' && commentAuthorInUsersFamily?.role.startsWith('CHILD')) {
+      return true;
+    }
+    
+    // Users can delete their own comments
+    if (comment.authorName === user.name || comment.authorName === currentActingUser?.name) {
+      return true;
+    }
     
     return false;
   };
