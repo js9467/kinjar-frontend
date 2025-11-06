@@ -134,6 +134,7 @@ export function CommentSection({ post, onCommentAdded, onError, familyMembers = 
   // Logic mirrors backend:
   // - Users can edit their own comments
   // - Admins/Adults can edit comments by children in their family (even on other families' posts)
+  // - Children can ONLY edit their own comments
   // - When acting as child, can only edit that child's comments
   const canEditComment = (comment: PostComment): boolean => {
     if (!user) return false;
@@ -148,6 +149,11 @@ export function CommentSection({ post, onCommentAdded, onError, familyMembers = 
     if (childContext?.isActingAsChild) {
       const actingUser = childContext.getCurrentActingUser();
       return comment.authorName === actingUser.name;
+    }
+    
+    // Children can ONLY edit their own comments
+    if (userRole.startsWith('CHILD')) {
+      return comment.authorName === user.name || comment.authorName === currentActingUser?.name;
     }
     
     // Check if comment author is in user's family
@@ -178,6 +184,7 @@ export function CommentSection({ post, onCommentAdded, onError, familyMembers = 
   // - Users can delete their own comments
   // - Admins can delete any comment in their family, or children's comments on other families
   // - Adults can delete comments by children in their family (even on other families' posts)
+  // - Children can ONLY delete their own comments
   // - When acting as child, can only delete that child's comments
   const canDeleteComment = (comment: PostComment): boolean => {
     if (!user) return false;
@@ -192,6 +199,11 @@ export function CommentSection({ post, onCommentAdded, onError, familyMembers = 
     if (childContext?.isActingAsChild) {
       const actingUser = childContext.getCurrentActingUser();
       return comment.authorName === actingUser.name;
+    }
+    
+    // Children can ONLY delete their own comments
+    if (userRole.startsWith('CHILD')) {
+      return comment.authorName === user.name || comment.authorName === currentActingUser?.name;
     }
     
     // Check if comment author is in user's family

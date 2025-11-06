@@ -640,9 +640,14 @@ export function FamilyDashboard({ familySlug }: FamilyDashboardProps) {
                   // Edit permission logic:
                   // - Users can edit their own posts
                   // - Admins/Adults can edit posts by children in their family (even on connected family posts)
-                  // - Children can only edit their own posts
+                  // - Children can ONLY edit their own posts
                   const canEditPost = (() => {
                     if (!user || !userRole) return false;
+                    
+                    // Children can ONLY edit their own posts
+                    if (userRole.startsWith('CHILD')) {
+                      return ownsPost;
+                    }
                     
                     // User can edit their own posts
                     if (ownsPost) return true;
@@ -664,9 +669,14 @@ export function FamilyDashboard({ familySlug }: FamilyDashboardProps) {
                   // - Users can delete their own posts
                   // - Admins can delete any post in their family, or children's posts on connected families
                   // - Adults can delete posts by children in their family (even on connected family posts)
-                  // - Children can only delete their own posts
+                  // - Children can ONLY delete their own posts
                   const canDeletePost = (() => {
                     if (!user || !userRole) return false;
+                    
+                    // Children can ONLY delete their own posts
+                    if (userRole.startsWith('CHILD')) {
+                      return ownsPost;
+                    }
                     
                     // User can delete their own posts
                     if (ownsPost) return true;
