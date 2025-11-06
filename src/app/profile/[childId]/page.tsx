@@ -1,3 +1,4 @@
+// Child Profile Page - Dynamic route for viewing child profiles
 'use client';
 
 import { useEffect, useState } from 'react';
