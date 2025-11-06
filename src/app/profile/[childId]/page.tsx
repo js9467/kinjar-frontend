@@ -35,6 +35,8 @@ function ChildProfilePageContent({ params }: { params: { childId: string } }) {
   const [saveError, setSaveError] = useState('');
 
   useEffect(() => {
+    console.log('[ChildProfilePage] useEffect triggered', { user: !!user, childId: params.childId, selectedChild: childContext?.selectedChild?.id });
+    
     if (!user) {
       router.replace('/auth/login');
       return;
@@ -47,6 +49,7 @@ function ChildProfilePageContent({ params }: { params: { childId: string } }) {
         // Get the current family from the subdomain
         const subdomainInfo = getSubdomainInfo();
         if (!subdomainInfo.familySlug) {
+          console.log('[ChildProfilePage] No family context found');
           setError('No family context found');
           return;
         }
@@ -56,6 +59,7 @@ function ChildProfilePageContent({ params }: { params: { childId: string } }) {
         const child = family.members.find(m => m.id === params.childId);
 
         if (!child) {
+          console.log('[ChildProfilePage] Child not found:', params.childId);
           setError('Child profile not found');
           return;
         }
@@ -65,15 +69,25 @@ function ChildProfilePageContent({ params }: { params: { childId: string } }) {
         const isActingAsThisSpecificChild = childContext?.selectedChild?.id === params.childId;
         const canAccess = userRole === 'ADMIN' || userRole === 'ADULT' || child.userId === user.id || isActingAsThisSpecificChild;
 
+        console.log('[ChildProfilePage] Permission check:', { 
+          userRole, 
+          isActingAsThisSpecificChild, 
+          childUserId: child.userId, 
+          currentUserId: user.id,
+          canAccess 
+        });
+
         if (!canAccess) {
+          console.log('[ChildProfilePage] Access denied');
           setError('Access denied');
           return;
         }
 
+        console.log('[ChildProfilePage] Profile loaded successfully');
         setChildProfile(child);
         setEditBio(child.bio || '');
       } catch (err) {
-        console.error('Error loading child profile:', err);
+        console.error('[ChildProfilePage] Error loading child profile:', err);
         setError('Failed to load child profile');
       } finally {
         setLoading(false);
@@ -81,7 +95,7 @@ function ChildProfilePageContent({ params }: { params: { childId: string } }) {
     };
 
     loadChildProfile();
-  }, [user, router, params.childId]);
+  }, [user, router, params.childId, childContext?.selectedChild?.id]);
 
   if (loading) {
     return (
