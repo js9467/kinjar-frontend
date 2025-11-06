@@ -242,31 +242,38 @@ export default function UserProfilePage({ params }: UserProfilePageProps) {
               {userPosts.map((post) => (
                 <article
                   key={post.id}
-                  className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm"
+                  className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
                 >
                   <div className="flex items-start justify-between gap-3">
                     <div className="flex-1">
-                      <h5 className="text-lg font-semibold text-slate-900">{post.authorName || 'User'}</h5>
+                      <Link 
+                        href={`/profile/${post.postedAsId || post.authorId}`}
+                        className="text-lg font-semibold text-slate-900 hover:text-indigo-600 transition-colors inline-block"
+                      >
+                        {post.authorName || 'User'}
+                      </Link>
                       <p className="mt-2 whitespace-pre-wrap text-sm text-slate-600">{post.content}</p>
                     </div>
                     <div className="flex-shrink-0">
-                      {post.authorAvatarUrl ? (
-                        <img
-                          src={post.authorAvatarUrl}
-                          alt={`${post.authorName}'s avatar`}
-                          className="h-10 w-10 rounded-full object-cover border"
-                        />
-                      ) : (
-                        <span
-                          className="flex h-10 w-10 items-center justify-center rounded-full text-sm font-semibold text-white"
-                          style={{ backgroundColor: post.authorAvatarColor }}
-                        >
-                          {(post.authorName || 'User')
-                            .split(' ')
-                            .map((part) => part[0])
-                            .join('')}
-                        </span>
-                      )}
+                      <Link href={`/profile/${post.postedAsId || post.authorId}`}>
+                        {post.authorAvatarUrl ? (
+                          <img
+                            src={post.authorAvatarUrl}
+                            alt={`${post.authorName}'s avatar`}
+                            className="h-10 w-10 rounded-full object-cover border cursor-pointer hover:opacity-80 transition-opacity"
+                          />
+                        ) : (
+                          <span
+                            className="flex h-10 w-10 items-center justify-center rounded-full text-sm font-semibold text-white cursor-pointer hover:opacity-80 transition-opacity"
+                            style={{ backgroundColor: post.authorAvatarColor }}
+                          >
+                            {(post.authorName || 'User')
+                              .split(' ')
+                              .map((part) => part[0])
+                              .join('')}
+                          </span>
+                        )}
+                      </Link>
                     </div>
                   </div>
                   {post.media && (
