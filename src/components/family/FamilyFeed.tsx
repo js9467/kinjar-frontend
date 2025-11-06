@@ -248,13 +248,13 @@ export function FamilyFeed({ familyIds, highlightFamilyId, title = 'Family stori
                 }`}
               >
                 <div className="flex items-start justify-between gap-3">
-                  <div>
+                  <div className="flex-1">
                     <p className="text-xs font-semibold uppercase tracking-wide text-indigo-600">
                       {family.name} · {post.visibility === 'family_and_connections' ? 'Shared' : 'Family only'}
                     </p>
                     <Link 
                       href={`/profile/${post.postedAsId || post.authorId}`}
-                      className="mt-2 text-lg font-semibold text-slate-900 hover:text-indigo-600 transition-colors inline-block"
+                      className="mt-2 text-lg font-semibold text-slate-900 hover:text-indigo-600 transition-colors inline-block cursor-pointer"
                     >
                       {post.authorName || 'User'}
                     </Link>

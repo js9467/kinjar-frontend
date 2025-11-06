@@ -261,10 +261,10 @@ export default function UserProfilePage({ params }: UserProfilePageProps) {
                   className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
                 >
                   <div className="flex items-start justify-between gap-3">
-                    <div>
+                    <div className="flex-1">
                       <Link 
                         href={`/profile/${post.postedAsId || post.authorId}`}
-                        className="text-lg font-semibold text-slate-900 hover:text-indigo-600 transition-colors inline-block"
+                        className="text-lg font-semibold text-slate-900 hover:text-indigo-600 transition-colors inline-block cursor-pointer"
                       >
                         {post.authorName || 'User'}
                       </Link>
