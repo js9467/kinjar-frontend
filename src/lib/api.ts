@@ -677,6 +677,9 @@ class KinjarAPI {
       // Handle both regular comments and comments posted as children
       const formattedComments: PostComment[] = backendComments.map((comment: any) => {
         console.log(`[API] Processing comment:`, comment);
+        console.log(`[API] Comment has posted_as_name:`, comment.posted_as_name);
+        console.log(`[API] Comment has posted_as_avatar_color:`, comment.posted_as_avatar_color);
+        console.log(`[API] Comment has posted_as_avatar:`, comment.posted_as_avatar);
         
         const formattedComment = {
           id: comment.id,
@@ -689,6 +692,7 @@ class KinjarAPI {
         };
         
         console.log(`[API] Formatted comment:`, formattedComment);
+        console.log(`[API] Final comment authorName:`, formattedComment.authorName);
         return formattedComment;
       });
       

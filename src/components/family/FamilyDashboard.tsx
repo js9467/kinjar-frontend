@@ -66,42 +66,12 @@ export function FamilyDashboard({ familySlug }: FamilyDashboardProps) {
   const [loginLoading, setLoginLoading] = useState(false);
   const [loginError, setLoginError] = useState('');
 
-  // Add state to track child context restoration
-  const [childContextRestored, setChildContextRestored] = useState(false);
-  
   // Admin interface state
   const [showAdminInterface, setShowAdminInterface] = useState(false);
 
   // Determine family context - memoize to prevent infinite loops
   const subdomainInfo = useMemo(() => getSubdomainInfo(), []);
   const effectiveFamilySlug = useMemo(() => familySlug || subdomainInfo.familySlug, [familySlug, subdomainInfo.familySlug]);
-
-  // Early restoration of child context from sessionStorage
-  useEffect(() => {
-    if (!effectiveFamilySlug) return;
-    
-    console.log('[FamilyDashboard] Checking for stored child context before loading data...');
-    const stored = sessionStorage.getItem(`selected-child-${effectiveFamilySlug}`);
-    if (stored) {
-      try {
-        const child = JSON.parse(stored);
-        console.log('[FamilyDashboard] Found stored child, setting API context early:', child.name);
-        api.setActingAsChild({
-          id: child.id,
-          name: child.name,
-          avatarColor: child.avatarColor,
-          avatarUrl: child.avatarUrl,
-        });
-      } catch (error) {
-        console.error('[FamilyDashboard] Failed to restore child context early:', error);
-      }
-    } else {
-      console.log('[FamilyDashboard] No stored child found, proceeding with parent context');
-    }
-    
-    // Mark child context restoration as complete
-    setChildContextRestored(true);
-  }, [effectiveFamilySlug]);
 
   const loadFamilyData = useCallback(async () => {
     if (!effectiveFamilySlug) {
@@ -198,14 +168,9 @@ export function FamilyDashboard({ familySlug }: FamilyDashboardProps) {
   }, [effectiveFamilySlug]);
 
   useEffect(() => {
-    console.log('[FamilyDashboard] useEffect triggered, effectiveFamilySlug:', effectiveFamilySlug, 'childContextRestored:', childContextRestored);
-    
-    // Only load family data after child context has been restored
-    if (childContextRestored) {
-      console.log('[FamilyDashboard] Loading family data after child context restoration');
-      loadFamilyData();
-    }
-  }, [loadFamilyData, childContextRestored]);
+    console.log('[FamilyDashboard] useEffect triggered, effectiveFamilySlug:', effectiveFamilySlug);
+    loadFamilyData();
+  }, [loadFamilyData]);
 
   // Initialize localStorage posts when familySlug is available
   useEffect(() => {
