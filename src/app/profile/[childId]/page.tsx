@@ -6,17 +6,29 @@ import { useAuth } from '@/lib/auth';
 import { api } from '@/lib/api';
 import { FamilyMemberProfile } from '@/lib/types';
 import { AvatarUpload } from '@/components/ui/AvatarUpload';
-import { useOptionalTheme } from '@/lib/theme-context';
+import { useOptionalTheme, Theme } from '@/lib/theme-context';
+import { useOptionalChildContext } from '@/lib/child-context';
 import { getMemberAgeDisplay } from '@/lib/age-utils';
 import Link from 'next/link';
 
 export default function ChildProfilePage({ params }: { params: { childId: string } }) {
   const { user } = useAuth();
   const router = useRouter();
-  const { currentTheme } = useOptionalTheme();
+  const { currentTheme, allThemes, setTheme } = useOptionalTheme();
+  const childContext = useOptionalChildContext();
   const [childProfile, setChildProfile] = useState<FamilyMemberProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  
+  // Check if the current user is acting as this specific child
+  const isActingAsThisChild = childContext?.selectedChild?.id === params.childId;
+  const isEditable = isActingAsThisChild;
+  
+  // Edit state
+  const [editMode, setEditMode] = useState(false);
+  const [editBio, setEditBio] = useState('');
+  const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState('');
 
   useEffect(() => {
     if (!user) {
@@ -142,7 +154,7 @@ export default function ChildProfilePage({ params }: { params: { childId: string
               userName={childProfile.name || 'User'}
               onUploadSuccess={() => {}}
               onError={() => {}}
-              disabled={true}
+              disabled={!isEditable}
             />
             <div className="flex-1">
               <div className="flex items-center gap-3 mb-2">
@@ -169,14 +181,78 @@ export default function ChildProfilePage({ params }: { params: { childId: string
               </div>
             </div>
 
-            {childProfile.bio && (
+            {childProfile.bio || isEditable ? (
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Bio
-                </label>
-                <div className="p-3 bg-gray-50 rounded-lg border border-gray-200">
-                  {childProfile.bio}
+                <div className="flex items-center justify-between mb-1">
+                  <label className="block text-sm font-medium text-gray-700">
+                    Bio
+                  </label>
+                  {isEditable && (
+                    <button
+                      onClick={() => {
+                        if (editMode) {
+                          setEditMode(false);
+                          setEditBio(childProfile.bio || '');
+                        } else {
+                          setEditMode(true);
+                          setEditBio(childProfile.bio || '');
+                        }
+                      }}
+                      className="text-sm text-blue-600 hover:text-blue-700 font-medium"
+                    >
+                      {editMode ? 'Cancel' : 'Edit'}
+                    </button>
+                  )}
                 </div>
+                {editMode ? (
+                  <div className="space-y-2">
+                    <textarea
+                      value={editBio}
+                      onChange={(e) => setEditBio(e.target.value)}
+                      className="w-full p-3 border border-gray-300 rounded-lg focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                      rows={3}
+                      placeholder="Tell us about yourself..."
+                    />
+                    <div className="flex gap-2">
+                      <button
+                        onClick={async () => {
+                          setSaving(true);
+                          setSaveError('');
+                          try {
+                            // Save bio via API
+                            await api.updateUserProfile({ bio: editBio });
+                            setChildProfile(prev => prev ? { ...prev, bio: editBio } : null);
+                            setEditMode(false);
+                          } catch (err) {
+                            setSaveError('Failed to save bio');
+                          } finally {
+                            setSaving(false);
+                          }
+                        }}
+                        disabled={saving}
+                        className="px-3 py-1 bg-blue-600 text-white text-sm rounded font-medium hover:bg-blue-700 disabled:opacity-50"
+                      >
+                        {saving ? 'Saving...' : 'Save'}
+                      </button>
+                      <button
+                        onClick={() => {
+                          setEditMode(false);
+                          setEditBio(childProfile.bio || '');
+                        }}
+                        className="px-3 py-1 border border-gray-300 text-gray-700 text-sm rounded font-medium hover:bg-gray-50"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                    {saveError && (
+                      <p className="text-red-600 text-sm">{saveError}</p>
+                    )}
+                  </div>
+                ) : (
+                  <div className="p-3 bg-gray-50 rounded-lg border border-gray-200">
+                    {childProfile.bio || (isEditable ? 'Click Edit to add a bio' : 'No bio available')}
+                  </div>
+                )}
               </div>
             )}
 
@@ -201,17 +277,60 @@ export default function ChildProfilePage({ params }: { params: { childId: string
             )}
           </div>
 
-          {/* Read-only notice */}
-          <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-            <div className="flex items-center gap-2">
-              <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-              <p className="text-sm text-blue-800">
-                This is a read-only view of {childProfile.name}'s profile from a connected family.
-              </p>
+          {/* Theme Selector - only show if editable */}
+          {isEditable && (
+            <div className="mt-6 p-4 bg-white border border-gray-200 rounded-lg">
+              <h3 className="text-lg font-medium text-gray-900 mb-4">Choose Your Theme</h3>
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                {allThemes?.map((theme: Theme) => (
+                  <button
+                    key={theme.id}
+                    onClick={() => setTheme?.(theme.id)}
+                    className={`p-4 rounded-lg border-2 transition-all hover:scale-105 ${
+                      currentTheme.id === theme.id
+                        ? 'border-gray-900 bg-gray-50'
+                        : 'border-gray-200 hover:border-gray-300'
+                    }`}
+                    style={{
+                      backgroundColor: currentTheme.id === theme.id ? `${theme.color}10` : 'white',
+                    }}
+                  >
+                    <div
+                      className="w-8 h-8 rounded-full mx-auto mb-2"
+                      style={{ backgroundColor: theme.color }}
+                    />
+                    <div className="text-sm font-medium text-gray-900">{theme.name}</div>
+                    <div className="text-xs text-gray-500 mt-1">{theme.description}</div>
+                  </button>
+                ))}
+              </div>
             </div>
-          </div>
+          )}
+
+          {/* Read-only notice or edit notice */}
+          {!isEditable ? (
+            <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+              <div className="flex items-center gap-2">
+                <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <p className="text-sm text-blue-800">
+                  This is a read-only view of {childProfile.name}'s profile from a connected family.
+                </p>
+              </div>
+            </div>
+          ) : (
+            <div className="mt-6 p-4 bg-green-50 border border-green-200 rounded-lg">
+              <div className="flex items-center gap-2">
+                <svg className="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <p className="text-sm text-green-800">
+                  You can edit your profile information, including bio and avatar.
+                </p>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </div>
