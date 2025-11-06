@@ -48,21 +48,24 @@ export default function UserProfilePage({ params }: UserProfilePageProps) {
 
         // Load the family profile to find the user
         const family = await api.getFamilyBySlug(subdomainInfo.familySlug);
-        const member = family.members.find(m => m.id === params.userId);
+        // Try to find by member id first, then by userId (for posts where authorId = userId)
+        const member = family.members.find(m => m.id === params.userId || m.userId === params.userId);
 
         if (!member) {
           console.log('[UserProfilePage] User not found:', params.userId);
+          console.log('[UserProfilePage] Available members:', family.members.map(m => ({ id: m.id, userId: m.userId, name: m.name })));
           setError('User profile not found');
           return;
         }
 
-        console.log('[UserProfilePage] Profile loaded successfully');
+        console.log('[UserProfilePage] Profile loaded successfully', { memberId: member.id, userId: member.userId });
         setUserProfile(member);
         
-        // Load user's posts
+        // Load user's posts - use the userId (not member id) for the backend query
+        const userIdForPosts = member.userId || member.id;
         setLoadingPosts(true);
         try {
-          const posts = await api.getUserPosts(params.userId, subdomainInfo.familySlug);
+          const posts = await api.getUserPosts(userIdForPosts, subdomainInfo.familySlug);
           setUserPosts(posts);
           console.log(`[UserProfilePage] Loaded ${posts.length} posts for user`);
         } catch (err) {
