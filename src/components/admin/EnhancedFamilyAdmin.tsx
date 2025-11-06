@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { api } from '@/lib/api';
 import { FamilyPost, AuthUser, FamilyMemberProfile, RolePermissions } from '@/lib/types';
+import { PendingInvitationsManager } from './PendingInvitationsManager';
 
 interface EnhancedFamilyAdminProps {
   familyId: string;
@@ -175,6 +176,7 @@ export function EnhancedFamilyAdmin({ familyId, familySlug }: EnhancedFamilyAdmi
 
   const tabs = [
     { id: 'members', label: 'Members', icon: '👥' },
+    { id: 'pending', label: 'Pending Invitations', icon: '📧' },
     { id: 'settings', label: 'Family Settings', icon: '⚙️' }
   ];
 
@@ -500,6 +502,15 @@ export function EnhancedFamilyAdmin({ familyId, familySlug }: EnhancedFamilyAdmi
                   </div>
                 )}
               </div>
+            </div>
+          )}
+
+          {/* Pending Invitations Tab */}
+          {activeTab === 'pending' && (
+            <div className="space-y-6">
+              <h2 className="text-xl font-semibold text-gray-900">Pending Invitations</h2>
+              
+              <PendingInvitationsManager familySlug={familySlug} />
             </div>
           )}
 

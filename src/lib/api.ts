@@ -911,13 +911,14 @@ class KinjarAPI {
   async getPendingInvitations(tenantSlug: string): Promise<{
     invitations: Array<{
       id: string;
-      type: 'family_creation' | 'connection_request';
+      type: 'member_invitation' | 'family_creation';
       recipientEmail: string;
       recipientName: string;
       message?: string;
       sentAt: string;
       expiresAt?: string;
       status: 'pending' | 'accepted' | 'declined' | 'expired';
+      invitedBy: string;
     }>;
   }> {
     return this.request('/api/families/pending-invitations', {
