@@ -259,10 +259,13 @@ function ChildProfilePageContent({ params }: { params: { childId: string } }) {
                           setSaveError('');
                           try {
                             // Save bio via child profile API
-                            await api.updateChildProfile(params.childId, { 
-                              bio: editBio,
-                              theme: selectedTheme || undefined
-                            });
+                            const updateData: { bio?: string; theme?: Theme } = { 
+                              bio: editBio
+                            };
+                            if (selectedTheme) {
+                              updateData.theme = selectedTheme;
+                            }
+                            await api.updateChildProfile(params.childId, updateData);
                             setChildProfile(prev => prev ? { 
                               ...prev, 
                               bio: editBio,
