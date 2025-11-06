@@ -794,6 +794,7 @@ class KinjarAPI {
         
         const formattedComment = {
           id: comment.id,
+          authorId: comment.authorId || comment.author_id || '',
           content: comment.content,
           createdAt: comment.createdAt || comment.created_at || new Date().toISOString(),
           // Use posted_as_* fields if available (when comment was made as child), otherwise fall back to author fields
