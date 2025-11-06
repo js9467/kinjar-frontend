@@ -11,6 +11,8 @@ import { getMemberAgeDisplay } from '@/lib/age-utils';
 import { getSubdomainInfo } from '@/lib/api';
 import Link from 'next/link';
 import { AuthenticatedImage } from '@/components/ui/AuthenticatedImage';
+import { CommentSection } from '@/components/family/CommentSection';
+import { PostComment } from '@/lib/types';
 
 interface UserProfilePageProps {
   params: { userId: string };
@@ -102,6 +104,20 @@ export default function UserProfilePage({ params }: UserProfilePageProps) {
 
   const handlePostDelete = (postId: string) => {
     setUserPosts(prevPosts => prevPosts.filter(p => p.id !== postId));
+  };
+
+  const handleCommentAdded = (postId: string, comment: PostComment) => {
+    setUserPosts(prevPosts => 
+      prevPosts.map(p => {
+        if (p.id === postId) {
+          return {
+            ...p,
+            comments: [...(p.comments || []), comment]
+          };
+        }
+        return p;
+      })
+    );
   };
 
   if (loading) {
@@ -238,14 +254,14 @@ export default function UserProfilePage({ params }: UserProfilePageProps) {
               <p className="text-gray-600">No posts yet</p>
             </div>
           ) : (
-            <div className="space-y-4">
+            <div className="grid gap-6">
               {userPosts.map((post) => (
                 <article
                   key={post.id}
                   className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
                 >
                   <div className="flex items-start justify-between gap-3">
-                    <div className="flex-1">
+                    <div>
                       <Link 
                         href={`/profile/${post.postedAsId || post.authorId}`}
                         className="text-lg font-semibold text-slate-900 hover:text-indigo-600 transition-colors inline-block"
@@ -254,29 +270,27 @@ export default function UserProfilePage({ params }: UserProfilePageProps) {
                       </Link>
                       <p className="mt-2 whitespace-pre-wrap text-sm text-slate-600">{post.content}</p>
                     </div>
-                    <div className="flex-shrink-0">
-                      <Link href={`/profile/${post.postedAsId || post.authorId}`}>
-                        {post.authorAvatarUrl ? (
-                          <img
-                            src={post.authorAvatarUrl}
-                            alt={`${post.authorName}'s avatar`}
-                            className="h-10 w-10 rounded-full object-cover border cursor-pointer hover:opacity-80 transition-opacity"
-                          />
-                        ) : (
-                          <span
-                            className="flex h-10 w-10 items-center justify-center rounded-full text-sm font-semibold text-white cursor-pointer hover:opacity-80 transition-opacity"
-                            style={{ backgroundColor: post.authorAvatarColor }}
-                          >
-                            {(post.authorName || 'User')
-                              .split(' ')
-                              .map((part) => part[0])
-                              .join('')}
-                          </span>
-                        )}
-                      </Link>
-                    </div>
+                    <Link href={`/profile/${post.postedAsId || post.authorId}`} className="flex-shrink-0">
+                      {post.authorAvatarUrl ? (
+                        <img
+                          src={post.authorAvatarUrl}
+                          alt={`${post.authorName}'s avatar`}
+                          className="h-10 w-10 rounded-full object-cover border cursor-pointer hover:opacity-80 transition-opacity"
+                        />
+                      ) : (
+                        <span
+                          className="flex h-10 w-10 items-center justify-center rounded-full text-sm font-semibold text-white cursor-pointer hover:opacity-80 transition-opacity"
+                          style={{ backgroundColor: post.authorAvatarColor }}
+                        >
+                          {(post.authorName || 'User')
+                            .split(' ')
+                            .map((part) => part[0])
+                            .join('')}
+                        </span>
+                      )}
+                    </Link>
                   </div>
-                  {post.media && (
+                  {post.media ? (
                     <div className="mt-4 overflow-hidden rounded-2xl">
                       {post.media.type === 'image' ? (
                         <div className="relative h-64 w-full">
@@ -300,18 +314,28 @@ export default function UserProfilePage({ params }: UserProfilePageProps) {
                         </video>
                       )}
                     </div>
-                  )}
+                  ) : null}
                   <div className="mt-4 flex flex-wrap items-center gap-3 text-xs text-slate-500">
-                    <time dateTime={post.createdAt}>
-                      {new Date(post.createdAt).toLocaleDateString('en-US', {
-                        month: 'short',
-                        day: 'numeric',
-                        year: 'numeric',
-                      })}
-                    </time>
-                    {post.comments && post.comments.length > 0 && (
-                      <span>{post.comments.length} {post.comments.length === 1 ? 'comment' : 'comments'}</span>
-                    )}
+                    <span>{new Date(post.createdAt).toLocaleString()}</span>
+                    <button 
+                      className="flex items-center gap-1 px-2 py-1 rounded text-blue-600 hover:bg-blue-50"
+                    >
+                      👍 {post.reactions}
+                    </button>
+                    {post.tags && post.tags.map((tag) => (
+                      <span key={tag} className="rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-600">
+                        #{tag}
+                      </span>
+                    ))}
+                  </div>
+                  
+                  {/* Comments */}
+                  <div className="mt-4">
+                    <CommentSection 
+                      post={post} 
+                      onCommentAdded={(comment) => handleCommentAdded(post.id, comment)}
+                      onError={(error) => console.error('Comment error:', error)}
+                    />
                   </div>
                 </article>
               ))}
