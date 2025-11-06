@@ -181,7 +181,7 @@ export default function ChildProfilePage({ params }: { params: { childId: string
               </div>
             </div>
 
-            {childProfile.bio || isEditable ? (
+            {(childProfile.bio || isEditable) && (
               <div>
                 <div className="flex items-center justify-between mb-1">
                   <label className="block text-sm font-medium text-gray-700">
