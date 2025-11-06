@@ -264,7 +264,7 @@ export default function UserProfilePage({ params }: UserProfilePageProps) {
                     <div className="flex-1">
                       <Link 
                         href={`/profile/${post.postedAsId || post.authorId}`}
-                        className="text-lg font-semibold text-slate-900 hover:text-indigo-600 transition-colors inline-block cursor-pointer"
+                        className="text-lg font-semibold text-slate-900 hover:text-indigo-600 transition-colors inline-block cursor-pointer relative z-10"
                       >
                         {post.authorName || 'User'}
                       </Link>
@@ -293,15 +293,13 @@ export default function UserProfilePage({ params }: UserProfilePageProps) {
                   {post.media ? (
                     <div className="mt-4 overflow-hidden rounded-2xl">
                       {post.media.type === 'image' ? (
-                        <div className="relative h-64 w-full">
-                          <AuthenticatedImage
-                            src={post.media.url}
-                            alt={post.media.alt ?? 'Family moment'}
-                            fill
-                            className="object-cover"
-                            sizes="(min-width: 768px) 60vw, 100vw"
-                          />
-                        </div>
+                        <AuthenticatedImage
+                          src={post.media.url}
+                          alt={post.media.alt ?? 'Family moment'}
+                          fill={false}
+                          className="w-full h-64 object-cover"
+                          sizes="(min-width: 768px) 60vw, 100vw"
+                        />
                       ) : (
                         <video
                           controls

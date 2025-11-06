@@ -254,7 +254,7 @@ export function FamilyFeed({ familyIds, highlightFamilyId, title = 'Family stori
                     </p>
                     <Link 
                       href={`/profile/${post.postedAsId || post.authorId}`}
-                      className="mt-2 text-lg font-semibold text-slate-900 hover:text-indigo-600 transition-colors inline-block cursor-pointer"
+                      className="mt-2 text-lg font-semibold text-slate-900 hover:text-indigo-600 transition-colors inline-block cursor-pointer relative z-10"
                     >
                       {post.authorName || 'User'}
                     </Link>
@@ -331,15 +331,13 @@ export function FamilyFeed({ familyIds, highlightFamilyId, title = 'Family stori
                 {post.media ? (
                   <div className="mt-4 overflow-hidden rounded-2xl">
                     {post.media.type === 'image' ? (
-                      <div className="relative h-64 w-full">
-                        <AuthenticatedImage
-                          src={post.media.url}
-                          alt={post.media.alt ?? 'Family moment'}
-                          fill
-                          className="object-cover"
-                          sizes="(min-width: 768px) 60vw, 100vw"
-                        />
-                      </div>
+                      <AuthenticatedImage
+                        src={post.media.url}
+                        alt={post.media.alt ?? 'Family moment'}
+                        fill={false}
+                        className="w-full h-64 object-cover"
+                        sizes="(min-width: 768px) 60vw, 100vw"
+                      />
                     ) : (
                       <video
                         controls
