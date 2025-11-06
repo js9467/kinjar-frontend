@@ -107,7 +107,14 @@ export const ChildProvider = ({ children, familyId, familySlug }: ChildProviderP
     }
     
     console.log('[ChildProvider] Checking sessionStorage for child:', effectiveFamilySlug);
-    const stored = sessionStorage.getItem(`selected-child-${effectiveFamilySlug}`);
+    let stored = sessionStorage.getItem(`selected-child-${effectiveFamilySlug}`);
+    
+    // Fallback: try checking for 'slaughterbeck' specifically if not found
+    if (!stored && effectiveFamilySlug !== 'slaughterbeck') {
+      console.log('[ChildProvider] Trying fallback key: slaughterbeck');
+      stored = sessionStorage.getItem('selected-child-slaughterbeck');
+    }
+    
     if (stored) {
       try {
         const child = JSON.parse(stored);

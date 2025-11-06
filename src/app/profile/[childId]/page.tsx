@@ -7,11 +7,12 @@ import { api } from '@/lib/api';
 import { FamilyMemberProfile } from '@/lib/types';
 import { AvatarUpload } from '@/components/ui/AvatarUpload';
 import { useOptionalTheme, Theme } from '@/lib/theme-context';
-import { useOptionalChildContext } from '@/lib/child-context';
+import { useOptionalChildContext, ChildProvider } from '@/lib/child-context';
 import { getMemberAgeDisplay } from '@/lib/age-utils';
+import { getSubdomainInfo } from '@/lib/api';
 import Link from 'next/link';
 
-export default function ChildProfilePage({ params }: { params: { childId: string } }) {
+function ChildProfilePageContent({ params }: { params: { childId: string } }) {
   const { user } = useAuth();
   const router = useRouter();
   const { currentTheme, allThemes, setTheme } = useOptionalTheme();
@@ -23,6 +24,17 @@ export default function ChildProfilePage({ params }: { params: { childId: string
   // Check if the current user is acting as this specific child
   const isActingAsThisChild = childContext?.selectedChild?.id === params.childId;
   const isEditable = isActingAsThisChild;
+  
+  // Debug logging
+  useEffect(() => {
+    console.log('[ChildProfile] Debug info:');
+    console.log('[ChildProfile] childContext:', childContext);
+    console.log('[ChildProfile] selectedChild:', childContext?.selectedChild);
+    console.log('[ChildProfile] selectedChild.id:', childContext?.selectedChild?.id);
+    console.log('[ChildProfile] params.childId:', params.childId);
+    console.log('[ChildProfile] isActingAsThisChild:', isActingAsThisChild);
+    console.log('[ChildProfile] isEditable:', isEditable);
+  }, [childContext, params.childId, isActingAsThisChild, isEditable]);
   
   // Edit state
   const [editMode, setEditMode] = useState(false);
@@ -334,5 +346,17 @@ export default function ChildProfilePage({ params }: { params: { childId: string
         </div>
       </div>
     </div>
+  );
+}
+
+export default function ChildProfilePage({ params }: { params: { childId: string } }) {
+  // Get the family slug from subdomain detection or URL
+  const subdomainInfo = getSubdomainInfo();
+  const familySlug = subdomainInfo.familySlug || 'slaughterbeck'; // fallback
+  
+  return (
+    <ChildProvider familySlug={familySlug}>
+      <ChildProfilePageContent params={params} />
+    </ChildProvider>
   );
 }
