@@ -228,7 +228,8 @@ class KinjarAPI {
     // Add child mode header if acting as child
     if (this._actingAsChild) {
       headers['x-acting-as-child'] = 'true';
-      console.log(`[API Request] Setting x-acting-as-child header for: ${this._actingAsChild.name}`);
+      headers['x-posted-as-id'] = this._actingAsChild.id;
+      console.log(`[API Request] Setting x-acting-as-child header for: ${this._actingAsChild.name} (ID: ${this._actingAsChild.id})`);
     }
 
     if (targetTenantSlug) {
