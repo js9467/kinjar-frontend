@@ -176,7 +176,7 @@ export function EnhancedFamilyAdmin({ familyId, familySlug }: EnhancedFamilyAdmi
 
   const tabs = [
     { id: 'members', label: 'Members', icon: '👥' },
-    { id: 'pending', label: 'Pending Invitations', icon: '📧' },
+    { id: 'pending', label: 'Member Invitations', icon: '📧' },
     { id: 'settings', label: 'Family Settings', icon: '⚙️' }
   ];
 
@@ -505,10 +505,10 @@ export function EnhancedFamilyAdmin({ familyId, familySlug }: EnhancedFamilyAdmi
             </div>
           )}
 
-          {/* Pending Invitations Tab */}
+          {/* Pending Member Invitations Tab */}
           {activeTab === 'pending' && (
             <div className="space-y-6">
-              <h2 className="text-xl font-semibold text-gray-900">Pending Invitations</h2>
+              <h2 className="text-xl font-semibold text-gray-900">Pending Member Invitations</h2>
               
               <PendingInvitationsManager familySlug={familySlug} />
             </div>

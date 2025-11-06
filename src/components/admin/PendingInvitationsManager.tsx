@@ -29,7 +29,11 @@ export function PendingInvitationsManager({ familySlug }: PendingInvitationsMana
       setLoading(true);
       setError(null);
       const response = await api.getPendingInvitations(familySlug);
-      setInvitations(response.invitations || []);
+      // Filter to only show family member invitations - family creation invitations belong in Connections
+      const memberInvitations = (response.invitations || []).filter(
+        invitation => invitation.type === 'member_invitation'
+      );
+      setInvitations(memberInvitations);
     } catch (error) {
       console.error('Failed to load pending invitations:', error);
       setError('Failed to load pending invitations');
@@ -108,25 +112,13 @@ export function PendingInvitationsManager({ familySlug }: PendingInvitationsMana
   };
 
   const getTypeLabel = (type: string) => {
-    switch (type) {
-      case 'member_invitation':
-        return 'Family Member';
-      case 'family_creation':
-        return 'Family Creation';
-      default:
-        return type;
-    }
+    // Only member invitations are shown here - family creation invitations are in Connections
+    return 'Family Member';
   };
 
   const getTypeColor = (type: string) => {
-    switch (type) {
-      case 'member_invitation':
-        return 'bg-blue-100 text-blue-800';
-      case 'family_creation':
-        return 'bg-purple-100 text-purple-800';
-      default:
-        return 'bg-gray-100 text-gray-800';
-    }
+    // Only member invitations are shown here
+    return 'bg-blue-100 text-blue-800';
   };
 
   if (loading && invitations.length === 0) {
@@ -168,28 +160,32 @@ export function PendingInvitationsManager({ familySlug }: PendingInvitationsMana
         <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-5.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-5.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H1" />
         </svg>
-        <h3 className="mt-2 text-sm font-medium text-gray-900">No pending invitations</h3>
-        <p className="mt-1 text-sm text-gray-500">All invitations have been accepted or expired.</p>
+        <h3 className="mt-2 text-sm font-medium text-gray-900">No pending member invitations</h3>
+        <p className="mt-1 text-sm text-gray-500">All family member invitations have been accepted or expired.</p>
+        <p className="mt-1 text-xs text-gray-400">Family creation invitations are managed in the Connections section.</p>
       </div>
     );
   }
 
   return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <h3 className="text-lg font-medium text-gray-900">
-          Pending Invitations ({invitations.length})
-        </h3>
-        <button
-          onClick={loadPendingInvitations}
-          disabled={loading}
-          className="px-3 py-2 text-sm font-medium text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded-md transition-colors disabled:opacity-50"
-        >
-          {loading ? 'Refreshing...' : 'Refresh'}
-        </button>
-      </div>
-
-      <div className="space-y-3">
+      <div className="space-y-4">
+        <div className="flex items-center justify-between">
+          <div>
+            <h3 className="text-lg font-medium text-gray-900">
+              Pending Member Invitations ({invitations.length})
+            </h3>
+            <p className="text-sm text-gray-500 mt-1">
+              People invited to join your family. Family creation invitations are managed in Connections.
+            </p>
+          </div>
+          <button
+            onClick={loadPendingInvitations}
+            disabled={loading}
+            className="px-3 py-2 text-sm font-medium text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded-md transition-colors disabled:opacity-50"
+          >
+            {loading ? 'Refreshing...' : 'Refresh'}
+          </button>
+        </div>      <div className="space-y-3">
         {invitations.map((invitation) => (
           <div key={invitation.id} className="bg-white border border-gray-200 rounded-lg p-4 shadow-sm">
             <div className="flex items-start justify-between">

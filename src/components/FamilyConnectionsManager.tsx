@@ -109,7 +109,11 @@ export function FamilyConnectionsManager({ tenantSlug }: FamilyConnectionsManage
       setError(null);
       
       const response = await api.getPendingInvitations(tenantSlug);
-      setPendingInvitations(response.invitations);
+      // Filter to only show family creation invitations - member invitations are in Family Admin
+      const familyCreationInvitations = response.invitations.filter(
+        invitation => invitation.type === 'family_creation'
+      );
+      setPendingInvitations(familyCreationInvitations);
     } catch (error) {
       console.error('Failed to load pending invitations:', error);
       // Don't show error to user if API endpoint doesn't exist yet (404)
@@ -207,6 +211,55 @@ export function FamilyConnectionsManager({ tenantSlug }: FamilyConnectionsManage
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString();
+  };
+
+  const handleResendInvitation = async (invitation: any) => {
+    if (!confirm(`Resend invitation to ${invitation.recipientName} (${invitation.recipientEmail})?`)) {
+      return;
+    }
+
+    try {
+      setLoading(true);
+      const result = await api.resendInvitation(invitation.id, tenantSlug);
+      
+      if (result.ok) {
+        alert(`Invitation resent successfully! ${result.emailSent ? 'Email sent.' : 'Email sending failed - check logs.'}`);
+        // Refresh the pending invitations list
+        await loadPendingInvitations();
+      } else {
+        alert('Failed to resend invitation. Please try again.');
+      }
+    } catch (error) {
+      console.error('Failed to resend invitation:', error);
+      alert('Failed to resend invitation. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleCancelInvitation = async (invitation: any) => {
+    if (!confirm(`Cancel invitation for ${invitation.recipientName} (${invitation.recipientEmail})? This action cannot be undone.`)) {
+      return;
+    }
+
+    try {
+      setLoading(true);
+      const result = await api.cancelInvitation(invitation.id, tenantSlug);
+      
+      if (result.ok) {
+        alert('Invitation cancelled successfully');
+        // Remove from list immediately and refresh
+        setPendingInvitations(prev => prev.filter(inv => inv.id !== invitation.id));
+        await loadPendingInvitations();
+      } else {
+        alert('Failed to cancel invitation. Please try again.');
+      }
+    } catch (error) {
+      console.error('Failed to cancel invitation:', error);
+      alert('Failed to cancel invitation. Please try again.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -552,34 +605,67 @@ export function FamilyConnectionsManager({ tenantSlug }: FamilyConnectionsManage
         {activeTab === 'pending' && (
           <div className="space-y-6">
             <div>
-              <h3 className="text-lg font-semibold text-gray-900 mb-2">Pending Invitations</h3>
+              <h3 className="text-lg font-semibold text-gray-900 mb-2">Pending Family Creation Invitations</h3>
               <p className="text-gray-600 mb-4">
-                Track family creation invitations and connection requests you've sent that are still pending.
+                Track family creation invitations you've sent that are still pending. Member invitations are managed in Family Admin.
               </p>
             </div>
 
             {pendingInvitations.length > 0 ? (
               <div className="space-y-4">
                 {pendingInvitations.map((invitation, index) => (
-                  <div key={index} className="border border-gray-200 rounded-lg p-4">
-                    <div className="flex items-center justify-between">
-                      <div>
+                  <div key={invitation.id || index} className="border border-gray-200 rounded-lg p-4">
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1">
+                        <div className="flex items-center space-x-2 mb-2">
+                          <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${
+                            invitation.type === 'family_creation' 
+                              ? 'bg-purple-100 text-purple-800' 
+                              : 'bg-blue-100 text-blue-800'
+                          }`}>
+                            {invitation.type === 'family_creation' ? 'Family Creation' : 'Connection Request'}
+                          </span>
+                          <span className="text-xs text-gray-500">
+                            Sent by {invitation.invitedBy || 'You'}
+                          </span>
+                        </div>
+                        
                         <h4 className="font-semibold text-gray-900">{invitation.recipientName}</h4>
                         <p className="text-sm text-gray-500">{invitation.recipientEmail}</p>
-                        <p className="text-sm text-gray-600 mt-1">
-                          Sent on {formatDate(invitation.sentAt)}
-                        </p>
+                        
                         {invitation.message && (
-                          <p className="text-sm text-gray-600 mt-1">"{invitation.message}"</p>
+                          <p className="text-sm text-gray-600 mt-1 italic">"{invitation.message}"</p>
                         )}
+                        
+                        <div className="flex items-center space-x-4 mt-2 text-xs text-gray-500">
+                          <span>Sent: {formatDate(invitation.sentAt)}</span>
+                          {invitation.expiresAt && (
+                            <span>Expires: {formatDate(invitation.expiresAt)}</span>
+                          )}
+                        </div>
                       </div>
-                      <div className="text-right">
+                      
+                      <div className="flex flex-col items-end space-y-2 ml-4">
                         <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
                           Pending
                         </span>
-                        <p className="text-xs text-gray-500 mt-1">
-                          {invitation.type === 'family_creation' ? 'Family Creation' : 'Connection Request'}
-                        </p>
+                        
+                        <div className="flex space-x-2">
+                          <button
+                            onClick={() => handleResendInvitation(invitation)}
+                            disabled={loading}
+                            className="px-3 py-1 text-sm font-medium text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                          >
+                            Resend
+                          </button>
+                          <button
+                            onClick={() => handleCancelInvitation(invitation)}
+                            disabled={loading}
+                            className="px-3 py-1 text-sm font-medium text-red-600 hover:text-red-800 hover:bg-red-50 rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                          >
+                            Cancel
+                          </button>
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -592,9 +678,12 @@ export function FamilyConnectionsManager({ tenantSlug }: FamilyConnectionsManage
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 8l7.89 4.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
                   </svg>
                 </div>
-                <h3 className="text-lg font-medium text-gray-900 mb-2">Pending Invitations Coming Soon</h3>
+                <h3 className="text-lg font-medium text-gray-900 mb-2">No Pending Family Creation Invitations</h3>
                 <p className="text-gray-600 mb-4">
-                  This feature is being developed and will show your sent invitations and their status.
+                  You haven't sent any family creation invitations yet, or all have been accepted.
+                </p>
+                <p className="text-sm text-gray-500 mb-4">
+                  Member invitations are managed in the Family Admin section.
                 </p>
                 <div className="flex gap-2 justify-center">
                   <button
