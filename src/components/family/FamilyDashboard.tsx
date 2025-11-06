@@ -686,6 +686,12 @@ export function FamilyDashboard({ familySlug }: FamilyDashboardProps) {
                     
                     // Adults and Admins can edit posts by/as children in their family
                     if (userRole === 'ADULT' || userRole === 'ADMIN') {
+                      // If we don't know the author's role (connected family post), deny permission
+                      if (!postAuthorMember && !postedAsMember) {
+                        console.log(`[Edit] Unknown author/postedAs (connected family), denying`);
+                        return false;
+                      }
+                      
                       // Check if this post was posted as a child (prioritize this check)
                       if (postedAsMember && postedAsIsChild) {
                         console.log(`[Edit] Adult can edit post made as child ${postedAsMember.name}`);
@@ -737,6 +743,13 @@ export function FamilyDashboard({ familySlug }: FamilyDashboardProps) {
                     
                     // Adults and Admins can delete posts by/as children in their family
                     if (userRole === 'ADULT' || userRole === 'ADMIN') {
+                      // If we don't know the author's role (connected family post), deny permission
+                      // Exception: Admins already handled above for own family
+                      if (!postAuthorMember && !postedAsMember) {
+                        console.log(`[Delete] Unknown author/postedAs (connected family), denying`);
+                        return false;
+                      }
+                      
                       // Check if this post was posted as a child (prioritize this check)
                       if (postedAsMember && postedAsIsChild) {
                         console.log(`[Delete] Adult can delete post made as child ${postedAsMember.name}`);
