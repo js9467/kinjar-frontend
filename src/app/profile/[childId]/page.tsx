@@ -1,6 +1,5 @@
 'use client';
 
-import type { ReactElement } from 'react';
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/auth';
@@ -27,37 +26,6 @@ function ChildProfilePageContent({ params }: { params: { childId: string } }) {
   // Check if the current user is acting as this specific child or has permission to view
   const isActingAsThisChild = childContext?.selectedChild?.id === params.childId;
   const isEditable = isActingAsThisChild;
-  
-  // Edit state
-  const [editMode, setEditMode] = useState(false);
-  const [editBio, setEditBio] = useState('');
-  const [selectedTheme, setSelectedTheme] = useState<Theme | null>(null);
-  const [saving, setSaving] = useState(false);
-  const [saveError, setSaveError] = useState('');
-
-function ChildProfilePageContent({ params }: { params: { childId: string } }) {
-  const { user } = useAuth();
-  const router = useRouter();
-  const { currentTheme, allThemes, setTheme } = useOptionalTheme();
-  const childContext = useOptionalChildContext();
-  const [childProfile, setChildProfile] = useState<FamilyMemberProfile | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  // Check if the current user is acting as this specific child or has permission to view
-  const isActingAsThisChild = childContext?.selectedChild?.id === params.childId;
-  const isEditable = isActingAsThisChild;
-  
-  // Debug logging
-  useEffect(() => {
-    console.log('[ChildProfile] Debug info:');
-    console.log('[ChildProfile] childContext:', childContext);
-    console.log('[ChildProfile] selectedChild:', childContext?.selectedChild);
-    console.log('[ChildProfile] selectedChild.id:', childContext?.selectedChild?.id);
-    console.log('[ChildProfile] params.childId:', params.childId);
-    console.log('[ChildProfile] isActingAsThisChild:', isActingAsThisChild);
-    console.log('[ChildProfile] isEditable:', isEditable);
-  }, [childContext, params.childId, isActingAsThisChild, isEditable]);
   
   // Edit state
   const [editMode, setEditMode] = useState(false);
@@ -102,6 +70,7 @@ function ChildProfilePageContent({ params }: { params: { childId: string } }) {
         }
 
         setChildProfile(child);
+        setEditBio(child.bio || '');
       } catch (err) {
         console.error('Error loading child profile:', err);
         setError('Failed to load child profile');
@@ -201,8 +170,13 @@ function ChildProfilePageContent({ params }: { params: { childId: string } }) {
               currentAvatarUrl={childProfile.avatarUrl || undefined}
               currentAvatarColor={childProfile.avatarColor || '#3B82F6'}
               userName={childProfile.name || 'User'}
-              onUploadSuccess={() => {}}
-              onError={() => {}}
+              onUploadSuccess={() => {
+                // TODO: Update avatar URL when API supports it
+                console.log('Avatar upload not implemented');
+              }}
+              onError={() => {
+                console.error('Avatar upload failed');
+              }}
               disabled={!isEditable}
             />
             <div className="flex-1">
@@ -341,21 +315,32 @@ function ChildProfilePageContent({ params }: { params: { childId: string } }) {
                 {allThemes?.map((theme: Theme) => (
                   <button
                     key={theme.id}
-                    onClick={() => setTheme?.(theme.id)}
-                    className={`p-4 rounded-lg border-2 transition-all hover:scale-105 ${
-                      currentTheme.id === theme.id
-                        ? 'border-gray-900 bg-gray-50'
-                        : 'border-gray-200 hover:border-gray-300'
+                    onClick={async () => {
+                      setSelectedTheme(theme);
+                      try {
+                        await api.updateChildProfile(params.childId, { theme });
+                        setTheme(theme.id); // Use theme.id since setTheme expects a string
+                        setChildProfile(prev => prev ? { ...prev, theme } : null);
+                      } catch (error) {
+                        console.error('Failed to update theme:', error);
+                      }
+                    }}
+                    className={`p-4 rounded-lg flex flex-col items-center gap-2 transition-all ${
+                      theme.id === currentTheme?.id
+                        ? 'border-2 border-blue-500 shadow-sm'
+                        : 'border border-gray-200 hover:border-blue-300'
                     }`}
                     style={{
-                      backgroundColor: currentTheme.id === theme.id ? `${theme.color}10` : 'white',
+                      background: `linear-gradient(135deg, ${theme.color}20 0%, ${theme.color}10 100%)`
                     }}
                   >
                     <div
-                      className="w-8 h-8 rounded-full mx-auto mb-2"
-                      style={{ backgroundColor: theme.color }}
+                      className="w-full h-12 rounded-lg"
+                      style={{
+                        background: `linear-gradient(135deg, ${theme.color} 0%, ${theme.color}dd 100%)`
+                      }}
                     />
-                    <div className="text-sm font-medium text-gray-900">{theme.name}</div>
+                    <span className="text-sm font-medium text-gray-700">{theme.name}</span>
                     <div className="text-xs text-gray-500 mt-1">{theme.description}</div>
                   </button>
                 ))}
@@ -393,7 +378,7 @@ function ChildProfilePageContent({ params }: { params: { childId: string } }) {
   );
 }
 
-function WrappedChildProfilePage({ params }: { params: { childId: string } }) {
+function ChildProfileWrapper({ params }: { params: { childId: string } }) {
   const subdomainInfo = getSubdomainInfo();
   const familySlug = subdomainInfo.familySlug;
   
@@ -414,7 +399,4 @@ function WrappedChildProfilePage({ params }: { params: { childId: string } }) {
   );
 }
 
-export type PageProps = { params: { childId: string } };
-export default function Page(props: PageProps): ReactElement {
-  return <WrappedChildProfilePage {...props} />;
-}
+export default ChildProfileWrapper;
