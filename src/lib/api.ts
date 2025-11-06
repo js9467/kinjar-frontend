@@ -104,9 +104,18 @@ class KinjarAPI {
   private baseURL: string;
   private token: string | null = null;
   private _currentUser: AuthUser | null = null;
+  private _actingAsChild: { id: string; name: string; avatarColor: string; avatarUrl?: string } | null = null;
 
   get currentUser(): AuthUser | null {
     return this._currentUser;
+  }
+
+  get actingAsChild(): { id: string; name: string; avatarColor: string; avatarUrl?: string } | null {
+    return this._actingAsChild;
+  }
+
+  setActingAsChild(child: { id: string; name: string; avatarColor: string; avatarUrl?: string } | null) {
+    this._actingAsChild = child;
   }
 
   constructor() {
@@ -425,7 +434,16 @@ class KinjarAPI {
     name: string;
     role: string;
   };
+  actingAsChild?: { id: string; name: string; avatarColor: string; avatarUrl?: string };
   }): Promise<FamilyPost> {
+    // Use actingAsChild if provided, otherwise use postedAsMember for backwards compatibility, or fallback to instance child
+    const childToActAs = postData.actingAsChild || this._actingAsChild;
+    const memberToPostAs = childToActAs ? {
+      id: childToActAs.id,
+      name: childToActAs.name,
+      role: 'CHILD' // This will be corrected by backend
+    } : postData.postedAsMember;
+
     // Transform frontend data to backend format
     const backendData: any = {
       content: postData.content,
@@ -434,10 +452,11 @@ class KinjarAPI {
       tenant_id: postData.familyId, // Explicitly set tenant_id
       // author_id is always the logged-in user (backend handles this from JWT)
       // posted_as_id is the member being posted as (can be different)
-      posted_as_id: postData.postedAsMember?.id || postData.authorId
+      posted_as_id: memberToPostAs?.id || postData.authorId
     };
 
-    console.log('[API] Posted as member:', postData.postedAsMember);
+    console.log('[API] Acting as child:', childToActAs);
+    console.log('[API] Posted as member:', memberToPostAs);
     console.log('[API] Sending posted_as_id:', backendData.posted_as_id);
 
     // Handle media transformation
@@ -560,11 +579,21 @@ class KinjarAPI {
     return frontendPosts;
   }
 
-  async addComment(postId: string, content: string): Promise<PostComment> {
+  async addComment(postId: string, content: string, actingAsChild?: { id: string; name: string; avatarColor: string; avatarUrl?: string }): Promise<PostComment> {
     console.log(`[API] Adding comment to post ${postId}:`, content);
+    
+    const requestBody: any = { content };
+    
+    // Use provided actingAsChild or the instance-level one
+    const childToActAs = actingAsChild || this._actingAsChild;
+    if (childToActAs) {
+      requestBody.posted_as_id = childToActAs.id;
+      console.log(`[API] Adding comment as child:`, childToActAs);
+    }
+    
     const response = await this.request(`/api/posts/${postId}/comments`, {
       method: 'POST',
-      body: JSON.stringify({ content }),
+      body: JSON.stringify(requestBody),
     });
     
     console.log(`[API] Comment response:`, response);
@@ -577,9 +606,10 @@ class KinjarAPI {
       id: comment.id,
       content: comment.content,
       createdAt: comment.createdAt || comment.created_at || new Date().toISOString(),
-      authorName: comment.authorName || comment.author_name || this.currentUser?.name || 'User',
-      authorAvatarColor: comment.authorAvatarColor || comment.author_avatar_color || this.currentUser?.avatarColor || '#3B82F6',
-      authorAvatarUrl: comment.authorAvatarUrl || comment.author_avatar || this.currentUser?.avatarUrl
+      // Use posted_as_* fields if available (when acting as child), otherwise fall back to author fields
+      authorName: comment.posted_as_name || comment.authorName || comment.author_name || this.currentUser?.name || 'User',
+      authorAvatarColor: comment.posted_as_avatar_color || comment.authorAvatarColor || comment.author_avatar_color || this.currentUser?.avatarColor || '#3B82F6',
+      authorAvatarUrl: comment.posted_as_avatar || comment.authorAvatarUrl || comment.author_avatar || this.currentUser?.avatarUrl
     };
     
     console.log(`[API] Formatted comment:`, formattedComment);

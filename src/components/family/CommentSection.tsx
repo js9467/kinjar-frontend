@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { PostComment, FamilyPost } from '@/lib/types';
 import { api } from '@/lib/api';
 import { useAuth } from '@/lib/auth';
+import { useOptionalChildContext } from '@/lib/child-context';
 
 interface CommentSectionProps {
   post: FamilyPost;
@@ -13,6 +14,7 @@ interface CommentSectionProps {
 
 export function CommentSection({ post, onCommentAdded, onError }: CommentSectionProps) {
   const { user } = useAuth();
+  const childContext = useOptionalChildContext();
   const [newComment, setNewComment] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [comments, setComments] = useState<PostComment[]>(post.comments || []);
@@ -20,6 +22,8 @@ export function CommentSection({ post, onCommentAdded, onError }: CommentSection
   const [editingCommentId, setEditingCommentId] = useState<string | null>(null);
   const [editContent, setEditContent] = useState('');
   const [savingEdit, setSavingEdit] = useState(false);
+
+  const currentActingUser = childContext?.getCurrentActingUser();
 
   // Update comments when post.comments changes
   useEffect(() => {
@@ -42,8 +46,12 @@ export function CommentSection({ post, onCommentAdded, onError }: CommentSection
       console.log('[CommentSection] Adding comment to post:', post.id);
       console.log('[CommentSection] Comment content:', newComment.trim());
       
-      // Add comment via API
-      const comment = await api.addComment(post.id, newComment.trim());
+      // Add comment via API (with child context if applicable)
+      const comment = await api.addComment(
+        post.id, 
+        newComment.trim(), 
+        childContext?.selectedChild || undefined
+      );
       console.log('[CommentSection] Comment added successfully:', comment);
       
       // Update local comments immediately
@@ -279,21 +287,30 @@ export function CommentSection({ post, onCommentAdded, onError }: CommentSection
 
       {/* Add comment form */}
       <form onSubmit={handleSubmitComment} className="space-y-3">
+        {/* Acting as indicator for comments */}
+        {childContext?.isActingAsChild && currentActingUser && (
+          <div className="flex items-center gap-2 px-3 py-2 bg-blue-50 rounded-lg border border-blue-200">
+            <span className="text-sm text-blue-700">
+              Commenting as <span className="font-medium">{currentActingUser.name}</span>
+            </span>
+          </div>
+        )}
+        
         <div className="flex gap-3">
           <div className="flex-shrink-0">
-            {user?.avatarUrl ? (
+            {currentActingUser?.avatarUrl ? (
               <img
-                src={user.avatarUrl}
-                alt={`${user.name}'s avatar`}
+                src={currentActingUser.avatarUrl}
+                alt={`${currentActingUser.name}'s avatar`}
                 className="w-8 h-8 rounded-full object-cover border"
               />
             ) : (
               <div 
                 className="w-8 h-8 rounded-full flex items-center justify-center text-white text-sm font-semibold"
-                style={{ backgroundColor: user?.avatarColor || '#3B82F6' }}
+                style={{ backgroundColor: currentActingUser?.avatarColor || user?.avatarColor || '#3B82F6' }}
               >
-                {user?.name
-                  ? user.name.split(' ').map(part => part[0]).join('').slice(0, 2)
+                {currentActingUser?.name || user?.name
+                  ? (currentActingUser?.name || user?.name || '').split(' ').map(part => part[0]).join('').slice(0, 2)
                   : 'CU'}
               </div>
             )}
@@ -302,7 +319,7 @@ export function CommentSection({ post, onCommentAdded, onError }: CommentSection
             <textarea
               value={newComment}
               onChange={(e) => setNewComment(e.target.value)}
-              placeholder="Add a comment..."
+              placeholder={`Add a comment${childContext?.isActingAsChild ? ` as ${currentActingUser?.name}` : ''}...`}
               className="w-full p-3 border border-gray-300 rounded-lg resize-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900 placeholder-gray-500"
               rows={2}
               disabled={submitting}

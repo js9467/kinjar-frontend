@@ -4,6 +4,7 @@ import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { api } from '@/lib/api';
 import { useAuth } from '@/lib/auth';
 import { useAppState } from '@/lib/app-state';
+import { useOptionalChildContext } from '@/lib/child-context';
 import { FamilyPost, MediaAttachment, PostVisibility, FamilyMemberProfile } from '@/lib/types';
 
 interface PostCreatorProps {
@@ -43,6 +44,7 @@ const calculateAge = (birthdate: string): number => {
 export function PostCreator({ familyId, familySlug, initialMembers = [], onPostCreated, onError, className = '' }: PostCreatorProps) {
   const { user, isAuthenticated } = useAuth();
   const { families } = useAppState();
+  const childContext = useOptionalChildContext();
 
   const [members, setMembers] = useState<FamilyMemberProfile[]>([]);
   const [selectedMemberId, setSelectedMemberId] = useState<string>('');
@@ -241,7 +243,9 @@ export function PostCreator({ familyId, familySlug, initialMembers = [], onPostC
       return;
     }
     
-    if (!selectedMemberId) {
+    // Check if we have a valid selection (child context or local selection)
+    const hasValidSelection = childContext?.selectedChild || selectedMemberId;
+    if (!hasValidSelection) {
       onError?.('Please select who you\'re posting as.');
       return;
     }
@@ -280,15 +284,18 @@ export function PostCreator({ familyId, familySlug, initialMembers = [], onPostC
         .map(tag => tag.trim())
         .filter(tag => tag.length > 0);
       
-      const selectedMember = members.find(m => m.id === selectedMemberId);
+      // Use child context if available, otherwise fall back to local selection
+      const actingChild = childContext?.selectedChild;
+      const selectedMember = actingChild || members.find(m => m.id === selectedMemberId);
       
       // Always use the logged-in user's ID as the author_id for the database
-      // The selected member info is for display purposes only
+      // The selected member/child info is for display purposes only
       const authorId = user.id;
       
       console.log('[PostCreator] Creating post with:');
       console.log('  Family ID:', familyId);
       console.log('  Author ID (logged-in user):', authorId);
+      console.log('  Acting as child:', actingChild?.name);
       console.log('  Posting as member:', selectedMember?.name);
       console.log('  Selected member ID:', selectedMemberId);
       console.log('  Visibility:', visibility);
@@ -300,8 +307,14 @@ export function PostCreator({ familyId, familySlug, initialMembers = [], onPostC
         media,
         visibility,
         tags: postTags,
-        // Add the selected member info for the backend to handle display
-        postedAsMember: selectedMember ? {
+        // Use actingAsChild if available, otherwise fall back to postedAsMember
+        actingAsChild: actingChild ? {
+          id: actingChild.id,
+          name: actingChild.name,
+          avatarColor: actingChild.avatarColor,
+          avatarUrl: actingChild.avatarUrl
+        } : undefined,
+        postedAsMember: !actingChild && selectedMember ? {
           id: selectedMember.id,
           name: selectedMember.name,
           role: selectedMember.role
@@ -478,13 +491,15 @@ export function PostCreator({ familyId, familySlug, initialMembers = [], onPostC
 
         {/* Member selector, visibility, and submit */}
         <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between md:gap-6">
-          <div className="flex flex-col gap-2 w-full md:w-auto">
-            <label className="text-sm font-medium text-gray-700">Post as:</label>
-            <select
-              value={selectedMemberId}
-              onChange={e => setSelectedMemberId(e.target.value)}
-              className="border border-gray-300 rounded-lg px-3 py-1 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              disabled={uploading || members.length === 0}
+          {/* Only show member selector if child context is not being used */}
+          {!childContext?.selectedChild && (
+            <div className="flex flex-col gap-2 w-full md:w-auto">
+              <label className="text-sm font-medium text-gray-700">Post as:</label>
+              <select
+                value={selectedMemberId}
+                onChange={e => setSelectedMemberId(e.target.value)}
+                className="border border-gray-300 rounded-lg px-3 py-1 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                disabled={uploading || members.length === 0}
             >
               {members.map(m => (
                 <option key={m.id} value={m.id}>
@@ -500,7 +515,8 @@ export function PostCreator({ familyId, familySlug, initialMembers = [], onPostC
                 Adults can post on behalf of children under 14
               </p>
             )}
-          </div>
+            </div>
+          )}
           
           <div className="flex flex-col gap-2 w-full md:w-auto">
             <label className="text-sm font-medium text-gray-700">Who can see this:</label>
@@ -517,7 +533,7 @@ export function PostCreator({ familyId, familySlug, initialMembers = [], onPostC
           
           <button
             type="submit"
-            disabled={uploading || (!content.trim() && !mediaPreview) || !isAuthenticated || !selectedMemberId}
+            disabled={uploading || (!content.trim() && !mediaPreview) || !isAuthenticated || (!childContext?.selectedChild && !selectedMemberId)}
             className="bg-blue-600 text-white px-6 py-3 rounded-lg font-medium hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 w-full md:w-auto"
             onClick={() => {
               console.log('[PostCreator] Submit button clicked - Debug info:');
@@ -525,6 +541,7 @@ export function PostCreator({ familyId, familySlug, initialMembers = [], onPostC
               console.log('  content.trim():', content.trim());
               console.log('  mediaPreview:', !!mediaPreview);
               console.log('  isAuthenticated:', isAuthenticated);
+              console.log('  childContext?.selectedChild:', childContext?.selectedChild?.name);
               console.log('  selectedMemberId:', selectedMemberId);
               console.log('  members.length:', members.length);
             }}

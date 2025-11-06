@@ -2,6 +2,7 @@
 
 import React, { useState, useRef } from 'react';
 import { api, UploadResponse, Post } from '../lib/api';
+import { useOptionalChildContext } from '../lib/child-context';
 
 interface UploadComponentProps {
   familyId?: number | null;
@@ -22,6 +23,9 @@ export default function UploadComponent({
   const [postContent, setPostContent] = useState('');
   const [visibility, setVisibility] = useState<'family_only' | 'family_and_connections'>('family_and_connections');
   const fileInputRef = useRef<HTMLInputElement>(null);
+  
+  const childContext = useOptionalChildContext();
+  const currentActingUser = childContext?.getCurrentActingUser();
 
   const isFamilyReady = typeof familyId === 'number';
 
@@ -119,6 +123,7 @@ export default function UploadComponent({
         familyId: resolvedFamilyId.toString(),
         authorId: api.currentUser?.id || 'current-user',
         visibility,
+        actingAsChild: childContext?.selectedChild || undefined,
         media: {
           type: mediaKind,
           url: uploadResponse.url,
@@ -179,6 +184,37 @@ export default function UploadComponent({
 
   return (
     <div className={`bg-white rounded-lg shadow-sm border p-4 ${className}`}>
+      {/* Posting As Indicator */}
+      {childContext?.isActingAsChild && currentActingUser && (
+        <div className="mb-4 flex items-center gap-3 p-3 bg-blue-50 rounded-lg border border-blue-200">
+          <span
+            className="inline-flex h-8 w-8 items-center justify-center rounded-full text-sm font-semibold text-white"
+            style={{ backgroundColor: currentActingUser.avatarColor }}
+          >
+            {currentActingUser.avatarUrl ? (
+              <img 
+                src={currentActingUser.avatarUrl} 
+                alt={currentActingUser.name}
+                className="h-8 w-8 rounded-full object-cover"
+              />
+            ) : (
+              currentActingUser.name
+                .split(' ')
+                .map((part) => part[0])
+                .join('')
+            )}
+          </span>
+          <div className="flex-1">
+            <p className="text-sm font-medium text-blue-900">
+              Posting as {currentActingUser.name}
+            </p>
+            <p className="text-xs text-blue-700">
+              Others will see this post is from {currentActingUser.name}
+            </p>
+          </div>
+        </div>
+      )}
+
       {/* Post content input */}
       <div className="mb-4">
         <textarea
@@ -317,6 +353,7 @@ export default function UploadComponent({
                   familyId: resolvedFamilyId.toString(),
                   authorId: api.currentUser?.id || 'current-user',
                   visibility,
+                  actingAsChild: childContext?.selectedChild || undefined,
                 });
                 onUploadSuccess?.(createdPost);
                 setPostContent('');
