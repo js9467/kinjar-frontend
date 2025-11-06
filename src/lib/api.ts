@@ -518,6 +518,7 @@ class KinjarAPI {
 
   async getFamilyPosts(familySlugOrId: string, limit: number = 20, offset: number = 0): Promise<FamilyPost[]> {
     console.log(`[API] getFamilyPosts called for: ${familySlugOrId}, limit: ${limit}, offset: ${offset}`);
+    console.log(`[API] Current acting as child during getFamilyPosts:`, this._actingAsChild?.name || 'none');
     
     // Try the API endpoint first (uses slug)
     let response;
@@ -564,6 +565,7 @@ class KinjarAPI {
       
       // Load comments for this post
       try {
+        console.log(`[API] About to load comments for post ${post.id}, acting as child:`, this._actingAsChild?.name || 'none');
         const comments = await this.getPostComments(post.id);
         post.comments = comments;
         console.log(`[API] Loaded ${comments.length} comments for post ${post.id}`);
@@ -661,9 +663,11 @@ class KinjarAPI {
   async getPostComments(postId: string): Promise<PostComment[]> {
     try {
       console.log(`[API] Loading comments for post ${postId}`);
+      console.log(`[API] Current acting as child:`, this._actingAsChild?.name || 'none');
+      
       const response = await this.request(`/api/posts/${postId}/comments`);
       
-      console.log(`[API] Comments response:`, response);
+      console.log(`[API] Raw comments response:`, response);
       
       // Backend returns { ok: true, comments: [...] }
       const backendComments = response.comments || [];
@@ -671,15 +675,22 @@ class KinjarAPI {
       // Transform backend comments to frontend format
       // Backend now returns camelCase (authorName, authorAvatarColor, authorAvatarUrl, createdAt)
       // Handle both regular comments and comments posted as children
-      const formattedComments: PostComment[] = backendComments.map((comment: any) => ({
-        id: comment.id,
-        content: comment.content,
-        createdAt: comment.createdAt || comment.created_at || new Date().toISOString(),
-        // Use posted_as_* fields if available (when comment was made as child), otherwise fall back to author fields
-        authorName: comment.posted_as_name || comment.authorName || comment.author_name || 'User',
-        authorAvatarColor: comment.posted_as_avatar_color || comment.authorAvatarColor || comment.author_avatar_color || '#3B82F6',
-        authorAvatarUrl: comment.posted_as_avatar || comment.authorAvatarUrl || comment.author_avatar
-      }));
+      const formattedComments: PostComment[] = backendComments.map((comment: any) => {
+        console.log(`[API] Processing comment:`, comment);
+        
+        const formattedComment = {
+          id: comment.id,
+          content: comment.content,
+          createdAt: comment.createdAt || comment.created_at || new Date().toISOString(),
+          // Use posted_as_* fields if available (when comment was made as child), otherwise fall back to author fields
+          authorName: comment.posted_as_name || comment.authorName || comment.author_name || 'User',
+          authorAvatarColor: comment.posted_as_avatar_color || comment.authorAvatarColor || comment.author_avatar_color || '#3B82F6',
+          authorAvatarUrl: comment.posted_as_avatar || comment.authorAvatarUrl || comment.author_avatar
+        };
+        
+        console.log(`[API] Formatted comment:`, formattedComment);
+        return formattedComment;
+      });
       
       console.log(`[API] Loaded ${formattedComments.length} comments for post ${postId}`);
       return formattedComments;

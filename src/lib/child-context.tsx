@@ -101,12 +101,17 @@ export const ChildProvider = ({ children, familyId, familySlug }: ChildProviderP
 
   // Immediate restoration from sessionStorage (doesn't wait for availableChildren)
   useEffect(() => {
-    if (!effectiveFamilySlug) return;
+    if (!effectiveFamilySlug) {
+      console.log('[ChildProvider] No effective family slug yet');
+      return;
+    }
     
+    console.log('[ChildProvider] Checking sessionStorage for child:', effectiveFamilySlug);
     const stored = sessionStorage.getItem(`selected-child-${effectiveFamilySlug}`);
     if (stored) {
       try {
         const child = JSON.parse(stored);
+        console.log('[ChildProvider] Found stored child:', child);
         setSelectedChild(child);
         api.setActingAsChild({
           id: child.id,
@@ -114,10 +119,12 @@ export const ChildProvider = ({ children, familyId, familySlug }: ChildProviderP
           avatarColor: child.avatarColor,
           avatarUrl: child.avatarUrl,
         });
-        console.log('[ChildProvider] Restored child from sessionStorage:', child.name);
+        console.log('[ChildProvider] Restored child from sessionStorage and set API context:', child.name);
       } catch (error) {
-        console.error('Failed to restore selected child:', error);
+        console.error('[ChildProvider] Failed to restore selected child:', error);
       }
+    } else {
+      console.log('[ChildProvider] No stored child found for:', effectiveFamilySlug);
     }
   }, [effectiveFamilySlug]);
 
