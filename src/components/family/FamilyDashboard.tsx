@@ -40,14 +40,10 @@ export function FamilyDashboard({ familySlug }: FamilyDashboardProps) {
   // Family connections modal
   const [showConnectionsModal, setShowConnectionsModal] = useState(false);
   
-  // Hover tooltip for connected families
-  const [hoveredFamily, setHoveredFamily] = useState<string | null>(null);
-  const [hoveredFamilyData, setHoveredFamilyData] = useState<FamilyProfile | null>(null);
-  const [loadingHoveredFamily, setLoadingHoveredFamily] = useState(false);
-  
-  // Connected family modal state
-  const [selectedConnectedFamily, setSelectedConnectedFamily] = useState<FamilyProfile | null>(null);
-  const [showConnectedFamilyModal, setShowConnectedFamilyModal] = useState(false);
+  // Expanded connected family state (for inline display)
+  const [expandedFamilySlug, setExpandedFamilySlug] = useState<string | null>(null);
+  const [expandedFamilyData, setExpandedFamilyData] = useState<FamilyProfile | null>(null);
+  const [loadingExpandedFamily, setLoadingExpandedFamily] = useState(false);
   
   // Add a backup for posts to prevent data loss
   const [postsBackup, setPostsBackup] = useState<FamilyPost[]>([]);
@@ -331,43 +327,28 @@ export function FamilyDashboard({ familySlug }: FamilyDashboardProps) {
     }
   };
 
-  // Handle hovering over connected family to show members
-  const handleFamilyHover = async (familySlug: string) => {
-    if (hoveredFamily === familySlug) return; // Already loaded
-    
-    setHoveredFamily(familySlug);
-    setLoadingHoveredFamily(true);
-    
-    try {
-      const familyData = await api.getFamilyBySlug(familySlug);
-      setHoveredFamilyData(familyData);
-    } catch (err) {
-      console.error('Failed to load family data for hover:', err);
-    } finally {
-      setLoadingHoveredFamily(false);
-    }
-  };
-
-  const handleFamilyHoverEnd = () => {
-    // Delay clearing to allow mouse to move to tooltip
-    setTimeout(() => {
-      setHoveredFamily(null);
-      setHoveredFamilyData(null);
-    }, 300);
-  };
-
-  // Handle clicking on connected family to show members modal
+  // Handle toggling connected family expansion to show members and bio
   const handleConnectedFamilyClick = async (familySlug: string) => {
+    // If already expanded, collapse it
+    if (expandedFamilySlug === familySlug) {
+      setExpandedFamilySlug(null);
+      setExpandedFamilyData(null);
+      return;
+    }
+    
+    // Load and expand the family
+    setExpandedFamilySlug(familySlug);
+    setLoadingExpandedFamily(true);
+    
     try {
-      setLoadingHoveredFamily(true);
       const familyData = await api.getFamilyBySlug(familySlug);
-      setSelectedConnectedFamily(familyData);
-      setShowConnectedFamilyModal(true);
+      setExpandedFamilyData(familyData);
     } catch (err) {
-      console.error('Failed to load family data for modal:', err);
+      console.error('Failed to load family data:', err);
       setError('Failed to load family information');
+      setExpandedFamilySlug(null);
     } finally {
-      setLoadingHoveredFamily(false);
+      setLoadingExpandedFamily(false);
     }
   };
 
@@ -887,54 +868,104 @@ export function FamilyDashboard({ familySlug }: FamilyDashboardProps) {
                 <h2 className="text-lg font-semibold text-gray-900 mb-4">Connected Families</h2>
                 <div className="space-y-3">
                   {family.connectedFamilies.map((connection) => (
-                    <div 
-                      key={connection.id} 
-                      className="flex items-center gap-3 relative group cursor-pointer hover:bg-gray-50 rounded-lg p-2 transition-colors"
-                      onMouseEnter={() => handleFamilyHover(connection.familySlug)}
-                      onMouseLeave={handleFamilyHoverEnd}
-                      onClick={() => handleConnectedFamilyClick(connection.familySlug)}
-                    >
-                      <div className="w-8 h-8 rounded-full bg-purple-600 flex items-center justify-center text-white text-sm font-semibold">
-                        {connection.familyName[0]}
+                    <div key={connection.id} className="space-y-2">
+                      {/* Family Header - Clickable */}
+                      <div 
+                        className="flex items-center gap-3 cursor-pointer hover:bg-gray-50 rounded-lg p-2 transition-colors"
+                        onClick={() => handleConnectedFamilyClick(connection.familySlug)}
+                      >
+                        <div className="w-8 h-8 rounded-full bg-purple-600 flex items-center justify-center text-white text-sm font-semibold">
+                          {connection.familyName[0]}
+                        </div>
+                        <div className="flex-1">
+                          <p className="text-sm font-medium text-gray-900">{connection.familyName}</p>
+                          <p className="text-xs text-gray-500">
+                            Connected {new Date(connection.connectedAt).toLocaleDateString()}
+                          </p>
+                        </div>
+                        <div className={`text-gray-400 transition-transform ${expandedFamilySlug === connection.familySlug ? 'rotate-90' : ''}`}>
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                          </svg>
+                        </div>
                       </div>
-                      <div className="flex-1">
-                        <p className="text-sm font-medium text-gray-900">{connection.familyName}</p>
-                        <p className="text-xs text-gray-500">
-                          Connected {new Date(connection.connectedAt).toLocaleDateString()}
-                        </p>
-                      </div>
-                      <div className="text-gray-400 group-hover:text-gray-600">
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                        </svg>
-                      </div>
-                      
-                      {/* Hover tooltip showing family members */}
-                      {hoveredFamily === connection.familySlug && (
-                        <div className="absolute left-full ml-2 top-0 z-50 w-64 bg-white rounded-lg shadow-xl border border-gray-200 p-4 pointer-events-none group-hover:pointer-events-auto">
-                          <h3 className="font-semibold text-gray-900 mb-3">{connection.familyName} Members</h3>
-                          {loadingHoveredFamily ? (
-                            <p className="text-sm text-gray-500">Loading...</p>
-                          ) : hoveredFamilyData ? (
-                            <div className="space-y-2 max-h-48 overflow-y-auto">
-                              {hoveredFamilyData.members.map((member) => (
-                                <div key={member.id} className="flex items-center gap-2">
-                                  <div
-                                    className="w-6 h-6 rounded-full flex items-center justify-center text-white text-xs font-semibold"
-                                    style={{ backgroundColor: member.avatarColor }}
-                                  >
-                                    {(member.name || 'U')[0]}
-                                  </div>
-                                  <div className="flex-1 min-w-0">
-                                    <p className="text-xs font-medium text-gray-900 truncate">{member.name}</p>
-                                    <p className="text-xs text-gray-500">{getMemberAgeDisplay(member.birthdate, member.role)}</p>
-                                  </div>
-                                </div>
-                              ))}
+
+                      {/* Expanded Content - Family Bio and Members */}
+                      {expandedFamilySlug === connection.familySlug && (
+                        <div className="ml-11 pl-4 border-l-2 border-gray-200 space-y-4 pb-3">
+                          {loadingExpandedFamily ? (
+                            <div className="py-4">
+                              <div className="animate-pulse space-y-3">
+                                <div className="h-4 bg-gray-200 rounded w-3/4"></div>
+                                <div className="h-4 bg-gray-200 rounded w-1/2"></div>
+                              </div>
                             </div>
-                          ) : (
-                            <p className="text-sm text-gray-500">Click to view family members</p>
-                          )}
+                          ) : expandedFamilyData ? (
+                            <>
+                              {/* Family Bio */}
+                              {expandedFamilyData.description && (
+                                <div className="bg-gray-50 rounded-lg p-3">
+                                  <h4 className="text-xs font-semibold text-gray-700 mb-1">About</h4>
+                                  <p className="text-sm text-gray-600">{expandedFamilyData.description}</p>
+                                </div>
+                              )}
+
+                              {/* Family Members */}
+                              <div>
+                                <h4 className="text-xs font-semibold text-gray-700 mb-2">
+                                  Members ({expandedFamilyData.members.length})
+                                </h4>
+                                <div className="space-y-2 max-h-64 overflow-y-auto">
+                                  {expandedFamilyData.members.map((member) => (
+                                    <Link
+                                      key={member.id}
+                                      href={`/profile/${member.id}`}
+                                      className="flex items-center gap-2 p-2 hover:bg-gray-50 rounded-lg transition-colors group"
+                                    >
+                                      {member.avatarUrl ? (
+                                        <img 
+                                          src={member.avatarUrl} 
+                                          alt={member.name}
+                                          className="w-8 h-8 rounded-full object-cover"
+                                        />
+                                      ) : (
+                                        <div
+                                          className="w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-semibold"
+                                          style={{ backgroundColor: member.avatarColor }}
+                                        >
+                                          {(member.name || 'U')[0]}
+                                        </div>
+                                      )}
+                                      <div className="flex-1 min-w-0">
+                                        <p className="text-sm font-medium text-gray-900 truncate group-hover:text-blue-600">
+                                          {member.name}
+                                        </p>
+                                        <p className="text-xs text-gray-500">
+                                          {getMemberAgeDisplay(member.birthdate, member.role)}
+                                        </p>
+                                      </div>
+                                      <div className="text-gray-400 group-hover:text-blue-600">
+                                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                                        </svg>
+                                      </div>
+                                    </Link>
+                                  ))}
+                                  {expandedFamilyData.members.length === 0 && (
+                                    <p className="text-sm text-gray-500 py-2">No members found</p>
+                                  )}
+                                </div>
+                              </div>
+
+                              {/* Visit Family Link */}
+                              <Link
+                                href={`/families/${connection.familySlug}`}
+                                className="block text-center py-2 px-4 bg-blue-50 hover:bg-blue-100 text-blue-600 rounded-lg text-sm font-medium transition-colors"
+                              >
+                                Visit Family Page →
+                              </Link>
+                            </>
+                          ) : null}
                         </div>
                       )}
                     </div>
@@ -1016,64 +1047,6 @@ export function FamilyDashboard({ familySlug }: FamilyDashboardProps) {
         isOpen={showChangePasswordModal}
         onClose={() => setShowChangePasswordModal(false)}
       />
-
-      {/* Connected Family Members Modal */}
-      {showConnectedFamilyModal && selectedConnectedFamily && (
-        <div className="fixed inset-0 z-50 overflow-y-auto">
-          <div className="flex min-h-full items-center justify-center p-4">
-            <div className="fixed inset-0 bg-black bg-opacity-25" onClick={() => setShowConnectedFamilyModal(false)}></div>
-            <div className="relative bg-white rounded-lg shadow-xl max-w-2xl w-full p-6">
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="text-xl font-semibold text-gray-900">{selectedConnectedFamily.name} Family Members</h2>
-                <button
-                  onClick={() => setShowConnectedFamilyModal(false)}
-                  className="text-gray-400 hover:text-gray-600"
-                >
-                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
-                  </svg>
-                </button>
-              </div>
-              
-              <div className="space-y-4 max-h-96 overflow-y-auto">
-                {selectedConnectedFamily.members.map((member) => (
-                  <div key={member.id} className="flex items-center gap-4 p-3 hover:bg-gray-50 rounded-lg cursor-pointer transition-colors"
-                       onClick={() => window.open(`/profile/${member.id}`, '_blank')}>
-                    <div
-                      className="w-12 h-12 rounded-full flex items-center justify-center text-white text-lg font-semibold"
-                      style={{ backgroundColor: member.avatarColor }}
-                    >
-                      {member.avatarUrl ? (
-                        <img 
-                          src={member.avatarUrl} 
-                          alt={member.name}
-                          className="w-12 h-12 rounded-full object-cover"
-                        />
-                      ) : (
-                        (member.name || 'U')[0]
-                      )}
-                    </div>
-                    <div className="flex-1">
-                      <h3 className="font-semibold text-gray-900">{member.name}</h3>
-                      <p className="text-sm text-gray-600">{getMemberAgeDisplay(member.birthdate, member.role)}</p>
-                      <p className="text-xs text-gray-500 capitalize">{member.role.toLowerCase().replace(/_/g, ' ')}</p>
-                    </div>
-                    <div className="text-gray-400 hover:text-gray-600">
-                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-                      </svg>
-                    </div>
-                  </div>
-                ))}
-                
-                {selectedConnectedFamily.members.length === 0 && (
-                  <p className="text-gray-500 text-center py-8">No family members found.</p>
-                )}
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* Family Connections Modal */}
       {showConnectionsModal && (
