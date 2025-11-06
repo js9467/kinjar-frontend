@@ -27,6 +27,7 @@ export function FamilyDashboard({ familySlug }: FamilyDashboardProps) {
     console.log('[FamilyDashboard] ===== COMPONENT LOADED - VERSION 2.0 =====');
   const { user, isAuthenticated, canManageFamily, isRootAdmin } = useAuth();
   const { families } = useAppState();
+  const childContext = useOptionalChildContext();
   const [family, setFamily] = useState<FamilyProfile | null>(null);
   const [posts, setPosts] = useState<FamilyPost[]>([]);
   const [loading, setLoading] = useState(true);
@@ -626,9 +627,12 @@ export function FamilyDashboard({ familySlug }: FamilyDashboardProps) {
                 </div>
               ) : (
                 filteredPosts.map((post) => {
-                  const ownsPost =
-                    post.authorId === user?.id ||
-                    user?.memberships?.some((membership) => membership.memberId === post.authorId);
+                  // When acting as a child, check against the child's ID specifically
+                  // Otherwise, check against user's ID or any of their children's IDs
+                  const ownsPost = childContext?.selectedChild
+                    ? post.authorId === childContext.selectedChild.userId
+                    : (post.authorId === user?.id ||
+                       user?.memberships?.some((membership) => membership.memberId === post.authorId));
                   
                   // Get user's role in their own family
                   const userRole = user?.memberships?.find(m => m.familySlug === effectiveFamilySlug)?.role;

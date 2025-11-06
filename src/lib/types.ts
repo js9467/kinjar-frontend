@@ -92,6 +92,7 @@ export type PostStatus = 'approved' | 'pending' | 'flagged';
 
 export interface PostComment {
   id: string;
+  authorId: string;
   authorName: string;
   authorAvatarColor: string;
   authorAvatarUrl?: string;

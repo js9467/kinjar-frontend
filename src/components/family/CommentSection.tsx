@@ -145,20 +145,20 @@ export function CommentSection({ post, onCommentAdded, onError, familyMembers = 
     
     if (!userRole) return false;
     
-    // If acting as a child, can only edit that child's comments
-    if (childContext?.isActingAsChild) {
-      const actingUser = childContext.getCurrentActingUser();
-      return comment.authorName === actingUser.name;
-    }
+    // Check ownership based on whether acting as child
+    const ownsComment = childContext?.selectedChild
+      ? comment.authorId === childContext.selectedChild.userId
+      : (comment.authorId === user.id ||
+         user.memberships?.some((membership) => membership.memberId === comment.authorId));
     
     // Children can ONLY edit their own comments
     if (userRole.startsWith('CHILD')) {
-      return comment.authorName === user.name || comment.authorName === currentActingUser?.name;
+      return ownsComment;
     }
     
     // Check if comment author is in user's family
     const commentAuthorInUsersFamily = familyMembers.find(
-      m => m.name === comment.authorName
+      m => m.userId === comment.authorId
     );
     
     // Admins can edit comments by children in their family
@@ -172,7 +172,7 @@ export function CommentSection({ post, onCommentAdded, onError, familyMembers = 
     }
     
     // Users can edit their own comments
-    if (comment.authorName === user.name || comment.authorName === currentActingUser?.name) {
+    if (ownsComment) {
       return true;
     }
     
@@ -195,20 +195,20 @@ export function CommentSection({ post, onCommentAdded, onError, familyMembers = 
     
     if (!userRole) return false;
     
-    // If acting as a child, can only delete that child's comments
-    if (childContext?.isActingAsChild) {
-      const actingUser = childContext.getCurrentActingUser();
-      return comment.authorName === actingUser.name;
-    }
+    // Check ownership based on whether acting as child
+    const ownsComment = childContext?.selectedChild
+      ? comment.authorId === childContext.selectedChild.userId
+      : (comment.authorId === user.id ||
+         user.memberships?.some((membership) => membership.memberId === comment.authorId));
     
     // Children can ONLY delete their own comments
     if (userRole.startsWith('CHILD')) {
-      return comment.authorName === user.name || comment.authorName === currentActingUser?.name;
+      return ownsComment;
     }
     
     // Check if comment author is in user's family
     const commentAuthorInUsersFamily = familyMembers.find(
-      m => m.name === comment.authorName
+      m => m.userId === comment.authorId
     );
     
     // Admins can delete any comment in their own family's posts
@@ -227,7 +227,7 @@ export function CommentSection({ post, onCommentAdded, onError, familyMembers = 
     }
     
     // Users can delete their own comments
-    if (comment.authorName === user.name || comment.authorName === currentActingUser?.name) {
+    if (ownsComment) {
       return true;
     }
     
