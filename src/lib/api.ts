@@ -670,13 +670,15 @@ class KinjarAPI {
       
       // Transform backend comments to frontend format
       // Backend now returns camelCase (authorName, authorAvatarColor, authorAvatarUrl, createdAt)
+      // Handle both regular comments and comments posted as children
       const formattedComments: PostComment[] = backendComments.map((comment: any) => ({
         id: comment.id,
         content: comment.content,
         createdAt: comment.createdAt || comment.created_at || new Date().toISOString(),
-        authorName: comment.authorName || comment.author_name || 'User',
-        authorAvatarColor: comment.authorAvatarColor || comment.author_avatar_color || '#3B82F6',
-        authorAvatarUrl: comment.authorAvatarUrl || comment.author_avatar
+        // Use posted_as_* fields if available (when comment was made as child), otherwise fall back to author fields
+        authorName: comment.posted_as_name || comment.authorName || comment.author_name || 'User',
+        authorAvatarColor: comment.posted_as_avatar_color || comment.authorAvatarColor || comment.author_avatar_color || '#3B82F6',
+        authorAvatarUrl: comment.posted_as_avatar || comment.authorAvatarUrl || comment.author_avatar
       }));
       
       console.log(`[API] Loaded ${formattedComments.length} comments for post ${postId}`);
