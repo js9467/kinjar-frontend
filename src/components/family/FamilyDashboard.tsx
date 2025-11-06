@@ -633,11 +633,15 @@ export function FamilyDashboard({ familySlug }: FamilyDashboardProps) {
                   const ownsPost = (() => {
                     if (childContext?.selectedChild) {
                       // When acting as a child, check if this post was posted as this specific child
-                      return post.postedAsId === childContext.selectedChild.userId;
+                      const matches = post.postedAsId === childContext.selectedChild.userId;
+                      console.log(`[Permission Check] Acting as child ${childContext.selectedChild.name}. Post postedAsId: ${post.postedAsId}, Child userId: ${childContext.selectedChild.userId}, Matches: ${matches}`);
+                      return matches;
                     } else {
                       // When not acting as a child, check if user is the actual author
                       // OR if the post was posted as one of the user's child profiles (but user is not currently acting as child)
-                      return post.authorId === user?.id;
+                      const isAuthor = post.authorId === user?.id;
+                      console.log(`[Permission Check] Not acting as child. Post authorId: ${post.authorId}, User id: ${user?.id}, Is author: ${isAuthor}`);
+                      return isAuthor;
                     }
                   })();
                   
@@ -719,6 +723,8 @@ export function FamilyDashboard({ familySlug }: FamilyDashboardProps) {
                     
                     return false;
                   })();
+                  
+                  console.log(`[Permission Result] Post ${post.id.substring(0, 8)}... by ${post.authorName}, canEdit: ${canEditPost}, canDelete: ${canDeletePost}`);
 
                   return (
                     <article key={post.id} className="bg-white rounded-lg border border-gray-200 shadow-sm">
