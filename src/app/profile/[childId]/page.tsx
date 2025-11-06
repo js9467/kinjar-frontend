@@ -62,7 +62,8 @@ function ChildProfilePageContent({ params }: { params: { childId: string } }) {
 
         // Check if user has permission to view this profile
         const userRole = user.memberships?.find(m => m.familySlug === subdomainInfo.familySlug)?.role;
-        const canAccess = userRole === 'ADMIN' || userRole === 'ADULT' || child.userId === user.id;
+        const isActingAsThisSpecificChild = childContext?.selectedChild?.id === params.childId;
+        const canAccess = userRole === 'ADMIN' || userRole === 'ADULT' || child.userId === user.id || isActingAsThisSpecificChild;
 
         if (!canAccess) {
           setError('Access denied');
