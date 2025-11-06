@@ -272,8 +272,9 @@ function ChildProfilePageContent({ params }: { params: { childId: string } }) {
                               theme: selectedTheme || prev.theme
                             } : null);
                             setEditMode(false);
-                          } catch (err) {
-                            setSaveError('Failed to save bio');
+                          } catch (err: any) {
+                            console.error('Failed to save child profile:', err);
+                            setSaveError(err?.message || 'Failed to save bio');
                           } finally {
                             setSaving(false);
                           }
