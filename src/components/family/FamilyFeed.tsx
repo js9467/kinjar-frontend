@@ -252,12 +252,17 @@ export function FamilyFeed({ familyIds, highlightFamilyId, title = 'Family stori
                     <p className="text-xs font-semibold uppercase tracking-wide text-indigo-600">
                       {family.name} · {post.visibility === 'family_and_connections' ? 'Shared' : 'Family only'}
                     </p>
-                    <Link 
+                    <a 
                       href={`/profile/${post.postedAsId || post.authorId}`}
-                      className="mt-2 text-lg font-semibold text-slate-900 hover:text-indigo-600 transition-colors inline-block cursor-pointer relative z-10"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        window.location.href = `/profile/${post.postedAsId || post.authorId}`;
+                      }}
+                      className="mt-2 text-lg font-semibold text-slate-900 hover:text-indigo-600 transition-colors block cursor-pointer"
+                      style={{ pointerEvents: 'auto' }}
                     >
                       {post.authorName || 'User'}
-                    </Link>
+                    </a>
                     
                     {editingPostId === post.id ? (
                       <div className="mt-2 space-y-2">

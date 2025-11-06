@@ -262,12 +262,17 @@ export default function UserProfilePage({ params }: UserProfilePageProps) {
                 >
                   <div className="flex items-start justify-between gap-3">
                     <div className="flex-1">
-                      <Link 
+                      <a 
                         href={`/profile/${post.postedAsId || post.authorId}`}
-                        className="text-lg font-semibold text-slate-900 hover:text-indigo-600 transition-colors inline-block cursor-pointer relative z-10"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          window.location.href = `/profile/${post.postedAsId || post.authorId}`;
+                        }}
+                        className="text-lg font-semibold text-slate-900 hover:text-indigo-600 transition-colors block cursor-pointer"
+                        style={{ pointerEvents: 'auto' }}
                       >
                         {post.authorName || 'User'}
-                      </Link>
+                      </a>
                       <p className="mt-2 whitespace-pre-wrap text-sm text-slate-600">{post.content}</p>
                     </div>
                     <Link href={`/profile/${post.postedAsId || post.authorId}`} className="flex-shrink-0">
