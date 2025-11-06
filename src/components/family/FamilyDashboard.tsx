@@ -633,36 +633,26 @@ export function FamilyDashboard({ familySlug }: FamilyDashboardProps) {
                   // Determine ownership based on context
                   const ownsPost = (() => {
                     if (childContext?.selectedChild) {
-                      // When acting as a child, check if this post was posted as this specific child
-                      const matches = post.postedAsId === childContext.selectedChild.userId;
-                      console.log(`[Permission] Acting as child ${childContext.selectedChild.name}. Post postedAsId: ${post.postedAsId}, matches: ${matches}`);
-                      return matches;
+                      // When acting as a child, only own posts posted as this specific child
+                      return post.postedAsId === childContext.selectedChild.userId;
                     } else {
-                      // When not acting as a child:
-                      // - If post has postedAsId, user doesn't own it (it's posted as a child)
-                      // - If post has no postedAsId, check if user is the actual author
-                      if (post.postedAsId) {
-                        console.log(`[Permission] Post has postedAsId (${post.postedAsId}), not owned by parent acting as parent`);
-                        return false; // Parent doesn't "own" posts made as children when not acting as that child
-                      }
-                      const isAuthor = post.authorId === user?.id;
-                      console.log(`[Permission] No postedAsId. Post authorId: ${post.authorId}, User id: ${user?.id}, owns: ${isAuthor}`);
-                      return isAuthor;
+                      // When not acting as a child: only own posts without postedAsId
+                      return !post.postedAsId && post.authorId === user?.id;
                     }
                   })();
                   
                   // Check if the post author is in the user's family and their role
                   const postAuthorMember = family.members.find(m => m.userId === post.authorId);
-                  const postAuthorRole = postAuthorMember?.role;
-                  const postAuthorIsChild = postAuthorRole?.startsWith('CHILD');
-                  const postAuthorIsAdult = postAuthorRole === 'ADULT' || postAuthorRole === 'ADMIN';
+                  const postAuthorIsChild = postAuthorMember?.role?.startsWith('CHILD');
                   
                   // Check if the post was posted as someone in the user's family
                   const postedAsMember = post.postedAsId ? family.members.find(m => m.userId === post.postedAsId) : null;
-                  const postedAsRole = postedAsMember?.role;
-                  const postedAsIsChild = postedAsRole?.startsWith('CHILD');
+                  const postedAsIsChild = postedAsMember?.role?.startsWith('CHILD');
                   
-                  console.log(`[Permission] Post by ${post.authorName}: authorRole=${postAuthorRole}, postedAsRole=${postedAsRole}, postAuthorIsChild=${postAuthorIsChild}, postedAsIsChild=${postedAsIsChild}`);
+                  // Debug: Log when postedAsId exists but member not found
+                  if (post.postedAsId && !postedAsMember) {
+                    console.log(`[DEBUG] Post ${post.id.substring(0,8)} has postedAsId=${post.postedAsId} but not found in members. Family members userIds:`, family.members.map(m => m.userId));
+                  }
                   
                   // Edit permission logic:
                   // 1. Children can ONLY edit posts where they are the posted_as (when acting as that child)
@@ -672,40 +662,25 @@ export function FamilyDashboard({ familySlug }: FamilyDashboardProps) {
                   const canEditPost = (() => {
                     if (!user || !userRole) return false;
                     
-                    // If user is a child, they can ONLY edit their own posts
+                    // Children can ONLY edit their own posts
                     if (userRole.startsWith('CHILD')) {
-                      console.log(`[Edit] User is child, ownsPost=${ownsPost}`);
                       return ownsPost;
                     }
                     
-                    // If user owns this post (they created it, not as a child), they can edit
+                    // User owns this post
                     if (ownsPost) {
-                      console.log(`[Edit] User owns post (no posted_as), can edit`);
                       return true;
                     }
                     
                     // Adults and Admins can edit posts by/as children in their family
                     if (userRole === 'ADULT' || userRole === 'ADMIN') {
-                      // If we don't know the author's role (connected family post), deny permission
-                      if (!postAuthorMember && !postedAsMember) {
-                        console.log(`[Edit] Unknown author/postedAs (connected family), denying`);
-                        return false;
-                      }
-                      
                       // Check if this post was posted as a child (prioritize this check)
                       if (postedAsMember && postedAsIsChild) {
-                        console.log(`[Edit] Adult can edit post made as child ${postedAsMember.name}`);
                         return true;
                       }
                       // Check if the author is a child (fallback for old posts without posted_as)
                       if (postAuthorMember && postAuthorIsChild) {
-                        console.log(`[Edit] Adult can edit post by child author ${postAuthorMember.name}`);
                         return true;
-                      }
-                      // If it's another adult's post, cannot edit
-                      if (postAuthorIsAdult || (postAuthorRole && !postAuthorIsChild)) {
-                        console.log(`[Edit] Adult cannot edit another adult's post`);
-                        return false;
                       }
                     }
                     
@@ -721,49 +696,30 @@ export function FamilyDashboard({ familySlug }: FamilyDashboardProps) {
                   const canDeletePost = (() => {
                     if (!user || !userRole) return false;
                     
-                    // If user is a child, they can ONLY delete their own posts
+                    // Children can ONLY delete their own posts
                     if (userRole.startsWith('CHILD')) {
-                      console.log(`[Delete] User is child, ownsPost=${ownsPost}`);
                       return ownsPost;
                     }
                     
-                    // If user owns this post (they created it, not as a child), they can delete
+                    // User owns this post
                     if (ownsPost) {
-                      console.log(`[Delete] User owns post (no posted_as), can delete`);
                       return true;
                     }
                     
                     // Admins can delete any post in their own family
-                    if (userRole === 'ADMIN') {
-                      if (post.familySlug === effectiveFamilySlug) {
-                        console.log(`[Delete] Admin can delete any post in their own family`);
-                        return true;
-                      }
+                    if (userRole === 'ADMIN' && post.familySlug === effectiveFamilySlug) {
+                      return true;
                     }
                     
                     // Adults and Admins can delete posts by/as children in their family
                     if (userRole === 'ADULT' || userRole === 'ADMIN') {
-                      // If we don't know the author's role (connected family post), deny permission
-                      // Exception: Admins already handled above for own family
-                      if (!postAuthorMember && !postedAsMember) {
-                        console.log(`[Delete] Unknown author/postedAs (connected family), denying`);
-                        return false;
-                      }
-                      
                       // Check if this post was posted as a child (prioritize this check)
                       if (postedAsMember && postedAsIsChild) {
-                        console.log(`[Delete] Adult can delete post made as child ${postedAsMember.name}`);
                         return true;
                       }
                       // Check if the author is a child (fallback for old posts without posted_as)
                       if (postAuthorMember && postAuthorIsChild) {
-                        console.log(`[Delete] Adult can delete post by child author ${postAuthorMember.name}`);
                         return true;
-                      }
-                      // If it's another adult's post, cannot delete (unless admin in own family, checked above)
-                      if (postAuthorIsAdult || (postAuthorRole && !postAuthorIsChild)) {
-                        console.log(`[Delete] Adult cannot delete another adult's post`);
-                        return false;
                       }
                     }
                     
