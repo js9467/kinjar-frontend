@@ -262,6 +262,33 @@ export function FamilyConnectionsManager({ tenantSlug }: FamilyConnectionsManage
     }
   };
 
+  const handleDisconnectFamily = async (connection: FamilyConnection) => {
+    const familyName = connection.otherFamilyName;
+    
+    if (!confirm(`Are you sure you want to disconnect from ${familyName}? This will stop content sharing between your families and cannot be undone.`)) {
+      return;
+    }
+
+    try {
+      setLoading(true);
+      const result = await api.disconnectFromFamily(connection.id, tenantSlug);
+      
+      if (result.ok) {
+        alert(`Successfully disconnected from ${result.disconnected_family.name}`);
+        // Remove from connections list and refresh
+        setConnections(prev => prev.filter(conn => conn.id !== connection.id));
+        await loadConnections();
+      } else {
+        alert('Failed to disconnect from family. Please try again.');
+      }
+    } catch (error) {
+      console.error('Failed to disconnect from family:', error);
+      alert('Failed to disconnect from family. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="bg-white rounded-lg shadow-md">
       {/* Tab Navigation */}
@@ -506,13 +533,22 @@ export function FamilyConnectionsManager({ tenantSlug }: FamilyConnectionsManage
                             {connection.status === 'accepted' && (
                               <>
                                 <span className="text-green-600 font-medium text-sm">Connected</span>
-                                <button
-                                  onClick={() => loadFamilyDetails(connection.otherFamilySlug)}
-                                  disabled={loadingFamilyDetails}
-                                  className="text-blue-600 hover:text-blue-700 text-sm font-medium disabled:opacity-50"
-                                >
-                                  View Details
-                                </button>
+                                <div className="flex space-x-2">
+                                  <button
+                                    onClick={() => loadFamilyDetails(connection.otherFamilySlug)}
+                                    disabled={loadingFamilyDetails}
+                                    className="text-blue-600 hover:text-blue-700 text-sm font-medium disabled:opacity-50"
+                                  >
+                                    View Details
+                                  </button>
+                                  <button
+                                    onClick={() => handleDisconnectFamily(connection)}
+                                    disabled={loading}
+                                    className="text-red-600 hover:text-red-700 text-sm font-medium disabled:opacity-50"
+                                  >
+                                    Disconnect
+                                  </button>
+                                </div>
                               </>
                             )}
                             {connection.status === 'declined' && (

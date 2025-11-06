@@ -1064,6 +1064,19 @@ class KinjarAPI {
     });
   }
 
+  async disconnectFromFamily(connectionId: string, tenantSlug: string): Promise<{
+    ok: boolean;
+    message: string;
+    disconnected_family: {
+      name: string;
+      slug: string;
+    };
+  }> {
+    return this.request(`/api/families/connections/${connectionId}`, {
+      method: 'DELETE'
+    }, tenantSlug);
+  }
+
   // Admin Functions
   async listAllFamilies(search = '', limit = 50, offset = 0): Promise<{
     families: Array<{
