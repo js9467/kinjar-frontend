@@ -63,6 +63,7 @@ export function useCanStream({
   const heartbeatIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const manualStopRef = useRef(false);
   const reconnectAttemptsRef = useRef(0);
+  const recentFrameTrackerRef = useRef<Map<string, number>>(new Map());
 
   const connectRef = useRef<() => void>(() => {});
 
@@ -117,6 +118,20 @@ export function useCanStream({
     (frame: CanFrame) => {
       if (pausedRef.current) {
         return;
+      }
+      const signature = `${frame.id}-${frame.direction}-${frame.data}`;
+      const lastTimestamp = recentFrameTrackerRef.current.get(signature);
+      if (lastTimestamp && frame.timestamp <= lastTimestamp) {
+        return;
+      }
+      recentFrameTrackerRef.current.set(signature, frame.timestamp);
+      if (recentFrameTrackerRef.current.size > maxBuffer * 4) {
+        const cutoff = Date.now() - 60000;
+        for (const [key, recordedTimestamp] of recentFrameTrackerRef.current) {
+          if (recordedTimestamp < cutoff) {
+            recentFrameTrackerRef.current.delete(key);
+          }
+        }
       }
       if (!isFrameWithinRange(frame, numericRangeRef.current)) {
         droppedRef.current += 1;
@@ -288,6 +303,7 @@ export function useCanStream({
     setTotalReceived(0);
     droppedRef.current = 0;
     setDroppedByFilter(0);
+    recentFrameTrackerRef.current.clear();
   }, [setFramesState]);
 
   const updatePaused = useCallback((value: boolean | ((current: boolean) => boolean)) => {
@@ -312,6 +328,7 @@ export function useCanStream({
     closeConnection();
     updateLastHeartbeat(null);
     updateStatus('disconnected');
+    recentFrameTrackerRef.current.clear();
   }, [clearReconnectTimeout, closeConnection, stopHeartbeatInterval, updateLastHeartbeat, updateStatus]);
 
   useEffect(() => {
