@@ -114,6 +114,15 @@ export function useCanStream({
     );
   }, []);
 
+  const clearFrames = useCallback(() => {
+    setFramesState([]);
+    totalReceivedRef.current = 0;
+    setTotalReceived(0);
+    droppedRef.current = 0;
+    setDroppedByFilter(0);
+    recentFrameTrackerRef.current.clear();
+  }, [setFramesState]);
+
   const addFrame = useCallback(
     (frame: CanFrame) => {
       if (pausedRef.current) {
@@ -158,6 +167,7 @@ export function useCanStream({
       updateLastHeartbeat(null);
       if (markDisconnected) {
         updateStatus('disconnected');
+        clearFrames();
       }
       if (manualStopRef.current) {
         return;
@@ -173,7 +183,7 @@ export function useCanStream({
         connectRef.current();
       }, delay);
     },
-    [closeConnection, stopHeartbeatInterval, updateLastHeartbeat, updateStatus]
+    [clearFrames, closeConnection, stopHeartbeatInterval, updateLastHeartbeat, updateStatus]
   );
 
   const startHeartbeatMonitor = useCallback(() => {
@@ -297,15 +307,6 @@ export function useCanStream({
     [setFramesState]
   );
 
-  const clearFrames = useCallback(() => {
-    setFramesState([]);
-    totalReceivedRef.current = 0;
-    setTotalReceived(0);
-    droppedRef.current = 0;
-    setDroppedByFilter(0);
-    recentFrameTrackerRef.current.clear();
-  }, [setFramesState]);
-
   const updatePaused = useCallback((value: boolean | ((current: boolean) => boolean)) => {
     setPausedState((previous) => {
       const next = typeof value === 'function' ? (value as (current: boolean) => boolean)(previous) : value;
@@ -328,8 +329,16 @@ export function useCanStream({
     closeConnection();
     updateLastHeartbeat(null);
     updateStatus('disconnected');
+    clearFrames();
     recentFrameTrackerRef.current.clear();
-  }, [clearReconnectTimeout, closeConnection, stopHeartbeatInterval, updateLastHeartbeat, updateStatus]);
+  }, [
+    clearFrames,
+    clearReconnectTimeout,
+    closeConnection,
+    stopHeartbeatInterval,
+    updateLastHeartbeat,
+    updateStatus,
+  ]);
 
   useEffect(() => {
     if (!autoStart) {
