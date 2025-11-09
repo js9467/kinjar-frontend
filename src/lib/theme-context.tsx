@@ -57,38 +57,48 @@ export function useTheme() {
 // Optional theme hook that returns default values when not in a ThemeProvider
 export function useOptionalTheme() {
   const context = useContext(ThemeContext);
-  if (context === undefined) {
-    // When not in a ThemeProvider, create a minimal implementation
-    const { user } = useAuth();
-    const [currentTheme, setCurrentTheme] = useState<Theme>(ADULT_THEMES[0]);
+  const { user } = useAuth();
+  const [currentTheme, setCurrentTheme] = useState<Theme>(ADULT_THEMES[0]);
 
-    // Load theme from localStorage on mount
-    useEffect(() => {
-      if (user) {
-        const themeKey = `userTheme_${user.id}`;
-        const savedThemeId = localStorage.getItem(themeKey) || 'blue';
-        const theme = ADULT_THEMES.find(t => t.id === savedThemeId) || ADULT_THEMES[0];
-        setCurrentTheme(theme);
+  // Load theme from localStorage on mount
+  useEffect(() => {
+    if (context || !user) {
+      return;
+    }
+
+    const themeKey = `userTheme_${user.id}`;
+    const savedThemeId = localStorage.getItem(themeKey) || 'blue';
+    const theme = ADULT_THEMES.find(t => t.id === savedThemeId) || ADULT_THEMES[0];
+    setCurrentTheme(theme);
+  }, [context, user]);
+
+  const setTheme = useCallback(
+    (themeId: string) => {
+      if (context || !user) {
+        return;
       }
-    }, [user]);
 
-    const setTheme = useCallback((themeId: string) => {
-      if (user) {
-        // Save user's theme to localStorage
-        localStorage.setItem(`userTheme_${user.id}`, themeId);
-        const theme = ADULT_THEMES.find(t => t.id === themeId);
-        if (theme) setCurrentTheme(theme);
-      }
-    }, [user]);
+      // Save user's theme to localStorage
+      localStorage.setItem(`userTheme_${user.id}`, themeId);
+      const theme = ADULT_THEMES.find(t => t.id === themeId);
+      if (theme) setCurrentTheme(theme);
+    },
+    [context, user],
+  );
 
-    return {
-      currentTheme,
-      allThemes: ADULT_THEMES,
-      isChildTheme: false,
-      setTheme,
-    };
+  const getThemeById = useCallback((themeId: string) => ADULT_THEMES.find(t => t.id === themeId), []);
+
+  if (context !== undefined) {
+    return context;
   }
-  return context;
+
+  return {
+    currentTheme,
+    allThemes: ADULT_THEMES,
+    isChildTheme: false,
+    setTheme,
+    getThemeById,
+  };
 }
 
 interface ThemeProviderProps {
