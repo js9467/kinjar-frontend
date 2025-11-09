@@ -154,6 +154,7 @@ export default function AdminDashboard() {
               <QuickLink href="/admin/signups" label="Approve signup requests" />
               <QuickLink href="/admin/users" label="Review global roles" />
               <QuickLink href="/admin/settings" label="Update platform settings" />
+              <QuickLink href="/admin/can-console" label="Inspect CAN bus console" />
               <QuickLink href="/family-admin" label="Moderate family content" />
             </div>
           </div>
