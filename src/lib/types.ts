@@ -1,6 +1,14 @@
 export type GlobalRole = 'ROOT_ADMIN' | 'FAMILY_ADMIN' | 'MEMBER';
 
-export type FamilyRole = 'ADMIN' | 'ADULT' | 'CHILD_0_5' | 'CHILD_5_10' | 'CHILD_10_14' | 'CHILD_14_16' | 'CHILD_16_ADULT';
+export type FamilyRole =
+  | 'OWNER'
+  | 'ADMIN'
+  | 'ADULT'
+  | 'CHILD_0_5'
+  | 'CHILD_5_10'
+  | 'CHILD_10_14'
+  | 'CHILD_14_16'
+  | 'CHILD_16_ADULT';
 
 export interface FamilyMembership {
   familyId: string;

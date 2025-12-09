@@ -13,6 +13,8 @@ import React, {
 import { api, getSubdomainInfo } from './api';
 import { AuthUser, FamilyRole, FamilyMembership, CreateFamilyRequest } from './types';
 
+const isAdminLikeRole = (role?: FamilyRole) => role === 'ADMIN' || role === 'OWNER';
+
 interface AuthContextType {
   user: AuthUser | null;
   loading: boolean;
@@ -119,12 +121,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     if (familyId) {
       return user.memberships.some(
         (m: FamilyMembership) =>
-          (m.familyId === familyId || m.familySlug === familyId) && m.role === 'ADMIN'
+          (m.familyId === familyId || m.familySlug === familyId) && isAdminLikeRole(m.role)
       );
     }
 
     // If no familyId provided, check if user can manage any family
-    return user.memberships.some((m: FamilyMembership) => m.role === 'ADMIN');
+    return user.memberships.some((m: FamilyMembership) => isAdminLikeRole(m.role));
   };
 
   const hasRole = (role: FamilyRole, familyId?: string) => {
@@ -145,11 +147,17 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
     
     if (!targetFamilyId) return false;
-    
+
     const membership = user.memberships.find(
       (m: FamilyMembership) => m.familyId === targetFamilyId || m.familySlug === targetFamilyId
     );
-    return membership?.role === role;
+    if (!membership) return false;
+
+    if (role === 'ADMIN') {
+      return isAdminLikeRole(membership.role);
+    }
+
+    return membership.role === role;
   };
 
   const value: AuthContextType = {
