@@ -4,7 +4,7 @@ import { useMemo, useState } from 'react';
 
 import { useAppState } from '@/lib/app-state';
 import { useAuth } from '@/lib/auth';
-import { PostVisibility } from '@/lib/types';
+import { FamilyProfile, PostVisibility } from '@/lib/types';
 import { StatCard } from '../ui/StatCard';
 import { FamilyFeed } from '../family/FamilyFeed';
 
@@ -31,6 +31,7 @@ export function FamilyAdminDashboard({ familyId, onBack }: FamilyAdminDashboardP
     requestConnection,
   } = useAppState();
   const { user } = useAuth();
+  const isAdminLikeRole = (role: FamilyProfile['members'][number]['role']) => role === 'ADMIN' || role === 'OWNER';
 
   const [content, setContent] = useState('');
   const [mediaUrl, setMediaUrl] = useState('');
@@ -49,7 +50,7 @@ export function FamilyAdminDashboard({ familyId, onBack }: FamilyAdminDashboardP
     }
     const membership = user.memberships.find((m) => m.familyId === family.id);
     if (!membership) {
-      return family.members.find((member) => member.role === 'ADMIN');
+      return family.members.find((member) => isAdminLikeRole(member.role));
     }
     return family.members.find((member) => member.id === membership.memberId) ?? null;
   }, [family, user]);

@@ -11,6 +11,7 @@ import React, {
 
 import {
   FamilyConnectionRequest,
+  FamilyRole,
   FamilyMemberProfile,
   FamilyPost,
   FamilyProfile,
@@ -39,6 +40,8 @@ const slugify = (value: string) =>
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, '-')
     .replace(/(^-|-$)+/g, '');
+
+const isAdminLikeRole = (role?: FamilyRole) => role === 'ADMIN' || role === 'OWNER';
 
 type Action =
   | { type: 'SET_FAMILIES'; payload: FamilyProfile[] }
@@ -322,7 +325,7 @@ export const AppStateProvider = ({ children }: { children: ReactNode }) => {
         content,
         visibility,
         media,
-        status: author.role === 'ADMIN' ? 'approved' : 'pending',
+        status: isAdminLikeRole(author.role) ? 'approved' : 'pending',
       };
 
       updateFamily(familyId, (current) => ({

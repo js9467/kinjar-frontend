@@ -126,6 +126,8 @@ export default function AdminUsersPage() {
 }
 
 function deriveUsers(families: FamilyProfile[]): DerivedUser[] {
+  const isAdminLikeRole = (role: FamilyMemberProfile['role']) => role === 'ADMIN' || role === 'OWNER';
+
   const byUser = new Map<string, DerivedUser>();
   const memberLookup = new Map<string, { member: FamilyMemberProfile; family: FamilyProfile }>();
 
@@ -140,7 +142,7 @@ function deriveUsers(families: FamilyProfile[]): DerivedUser[] {
       if (!existing) {
         const globalRole = ROOT_ADMIN_EMAILS.includes(member.email.toLowerCase())
           ? 'ROOT_ADMIN'
-          : member.role === 'ADMIN'
+          : isAdminLikeRole(member.role)
             ? 'FAMILY_ADMIN'
             : 'MEMBER';
 
@@ -155,7 +157,7 @@ function deriveUsers(families: FamilyProfile[]): DerivedUser[] {
         });
       } else {
         existing.families.push(membershipEntry);
-        if (existing.globalRole !== 'ROOT_ADMIN' && member.role === 'ADMIN') {
+        if (existing.globalRole !== 'ROOT_ADMIN' && isAdminLikeRole(member.role)) {
           existing.globalRole = 'FAMILY_ADMIN';
         }
       }
@@ -172,7 +174,7 @@ function deriveUsers(families: FamilyProfile[]): DerivedUser[] {
         if (!derived.lastActivity || derived.lastActivity < post.createdAt) {
           derived.lastActivity = post.createdAt;
         }
-        if (derived.globalRole !== 'ROOT_ADMIN' && lookup?.member.role === 'ADMIN') {
+        if (derived.globalRole !== 'ROOT_ADMIN' && lookup?.member && isAdminLikeRole(lookup.member.role)) {
           derived.globalRole = 'FAMILY_ADMIN';
         }
       }

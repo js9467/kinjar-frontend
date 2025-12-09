@@ -40,6 +40,8 @@ export default function AdminFamiliesPage() {
   const selectedFamily: FamilyProfile | null =
     filteredFamilies.find((family) => family.id === selectedFamilyId) ?? filteredFamilies[0] ?? null;
 
+  const isAdminLikeRole = (role: FamilyProfile['members'][number]['role']) => role === 'ADMIN' || role === 'OWNER';
+
   return (
     <div className="space-y-8 pb-16">
       <header className="flex flex-col gap-4 rounded-3xl border border-slate-200 bg-white px-8 py-10 shadow-sm lg:flex-row lg:items-center lg:justify-between">
@@ -169,12 +171,14 @@ function FamilyDetail({
         <h3 className="text-lg font-semibold text-slate-900">Admins and recent activity</h3>
         <ul className="mt-4 space-y-3 text-sm text-slate-600">
           {family.members
-            .filter((member) => member.role === 'ADMIN')
+            .filter((member) => isAdminLikeRole(member.role))
             .map((member) => (
               <li key={member.id} className="flex items-center justify-between rounded-2xl border border-slate-100 bg-slate-50 px-4 py-3">
                 <span>
                   <span className="font-semibold text-slate-900">{member.name}</span>
-                  <span className="ml-2 text-xs uppercase tracking-wide text-slate-500">Admin</span>
+                  <span className="ml-2 text-xs uppercase tracking-wide text-slate-500">
+                    {member.role === 'OWNER' ? 'Owner' : 'Admin'}
+                  </span>
                 </span>
                 <span className="text-xs text-slate-500">{member.email}</span>
               </li>
